@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.4.27)  16 MAR 2026 13:01
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.4.27)  16 MAR 2026 16:58
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1135,8 +1135,7 @@ Package caption Info: New subtype `subfigure' on input line 239.
 \c@subfigure=\count431
 Package caption Info: New subtype `subtable' on input line 239.
 \c@subtable=\count432
-))
-No file all_beamer.aux.
+)) (./all_beamer.aux (./beamer/1-foundations-beamer.aux) (./beamer/2-slt-beamer.aux) (./beamer/3.1-loss-beamer.aux))
 \openout1 = `all_beamer.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 21.
@@ -1149,7 +1148,7 @@ LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 21.
 LaTeX Font Info:    ... okay on input line 21.
 LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 21.
 LaTeX Font Info:    Trying to load font information for TS1+cmr on input line 21.
-(/usr/local/texlive/2023/texmf-dist/tex/latex/base/ts1cmr.fd
+ (/usr/local/texlive/2023/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2022/07/10 v2.5l Standard LaTeX font definitions
 )
 LaTeX Font Info:    ... okay on input line 21.
@@ -1199,13 +1198,11 @@ LaTeX Font Info:    ... okay on input line 21.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 Package hyperref Info: Link coloring OFF on input line 21.
+(./all_beamer.out) (./all_beamer.out)
 \@outlinefile=\write6
 \openout6 = `all_beamer.out'.
 
-
-Package hyperref Warning: Rerun to get /PageLabels entry.
-
-(/usr/local/texlive/2023/texmf-dist/tex/latex/translator/translator-basic-dictionary-English.dict
+ (/usr/local/texlive/2023/texmf-dist/tex/latex/translator/translator-basic-dictionary-English.dict
 Dictionary: translator-basic-dictionary, Language: English 
 ) (/usr/local/texlive/2023/texmf-dist/tex/latex/translator/translator-bibliography-dictionary-English.dict
 Dictionary: translator-bibliography-dictionary, Language: English 
@@ -1244,13 +1241,15 @@ Package caption Info: End \AtBeginDocument code.
  (./beamer/1-foundations-beamer.tex [1
 
 
-]
-No file all_beamer.toc.
+] (./all_beamer.toc)
+Overfull \vbox (210.20203pt too high) detected at line 25
+ []
+
 [2
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 69.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 46.
  [3
 
 ] [4
@@ -1258,13 +1257,13 @@ LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
 ] (/usr/local/texlive/2023/texmf-dist/tex/latex/microtype/mt-cmr.cfg
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msa on input line 118.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 95.
  (/usr/local/texlive/2023/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 ) (/usr/local/texlive/2023/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 118.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 95.
  (/usr/local/texlive/2023/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (/usr/local/texlive/2023/texmf-dist/tex/latex/microtype/mt-msb.cfg
@@ -1311,7 +1310,7 @@ File: mt-eur.cfg 2006/07/31 v1.1 microtype config. file: AMS Euler Roman (RS)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <9> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 572.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 549.
  [24
 
 ] [25
@@ -1373,8 +1372,10 @@ LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <9> not available
  (./beamer/2-slt-beamer.tex [50
 
 
-]
-No file all_beamer.toc.
+] (./all_beamer.toc)
+Overfull \vbox (210.20203pt too high) detected at line 59
+ []
+
 [51
 
 ] [52
@@ -1491,8 +1492,10 @@ LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <5> not available
  (./beamer/3.1-loss-beamer.tex [99
 
 
-]
-No file all_beamer.toc.
+] (./all_beamer.toc)
+Overfull \vbox (210.20203pt too high) detected at line 110
+ []
+
 [100
 
 ] [101
@@ -1609,20 +1612,14 @@ Overfull \vbox (15.89555pt too high) detected at line 331
 \openout9 = `all_beamer.snm'.
 
  (./all_beamer.aux (./beamer/1-foundations-beamer.aux) (./beamer/2-slt-beamer.aux) (./beamer/3.1-loss-beamer.aux))
-
-Package rerunfilecheck Warning: File `all_beamer.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `all_beamer.out':
-(rerunfilecheck)             Before: <no file>
-(rerunfilecheck)             After:  67834D953FB6641E1C315DB349E6E658;5827.
+Package rerunfilecheck Info: File `all_beamer.out' has not changed.
+(rerunfilecheck)             Checksum: 67834D953FB6641E1C315DB349E6E658;5827.
  ) 
 Here is how much of TeX's memory you used:
- 56735 strings out of 476683
- 1379369 string characters out of 5804047
- 2030756 words of memory out of 5000000
- 75920 multiletter control sequences out of 15000+600000
+ 56786 strings out of 476683
+ 1380649 string characters out of 5804047
+ 2051316 words of memory out of 5000000
+ 75953 multiletter control sequences out of 15000+600000
  529132 words of font info for 114 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  128i,16n,134p,1038b,2289s stack positions out of 10000i,1000n,20000p,200000b,200000s
