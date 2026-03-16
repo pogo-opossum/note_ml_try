@@ -1,0 +1,99 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  SIMBOLI
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% The Boolean values
+\newcommand{\yes}{\mbox{\sc vero}}
+\newcommand{\no}{\mbox{\sc falso}}
+
+% insieme
+\newcommand{\set}[1]{\ifmmode \left\{ #1 \right\} \else\mbox{$\left\{ #1 \right\}$}\fi}
+% cardinalit¬à  di un insieme
+\newcommand{\setcard}[1]{\mid\!#1\!\mid}
+%insieme potenza
+\newcommand{\powerset}[1]{\mathcal{P}(#1)}
+%insieme quoziente
+\newcommand{\qset}[2]{\mbox{$#1/\!{\scriptstyle #2}$}}
+% funzione caratteristica di un insieme
+\newcommand{\car}[1]{\mbox{${\cal C}_{#1}$}}
+
+% Must be included in \mbox when used in math mode
+\newcommand{\Real}{{\rm I\kern-.2emR}}
+
+% Must be included in \mbox when used in math mode
+\newcommand{\Natural}{{\rm I\kern-.2emN}}
+
+% Must be included in \mbox when used in math mode
+\newcommand{\Complex}{{\rm C\kern-.5em\rule[.08ex]{.05em}{1.4ex}\kern.45em}}
+
+% Must be included in \mbox when used in math mode
+\newcommand{\Rational}{{\rm Q\kern-.55em\rule[.1ex]{.05em}{1.4ex}\kern.5em}}
+
+% Must be included in \mbox when used in math mode
+\newcommand{\Integer}{{\sf Z\kern-.4em{Z}}} % Doesn't work with tiny,scriptsize and Huge
+
+
+%%%Frecce ed implicazioni varie
+
+\newcommand{\If}{\ifmmode \Leftarrow \else $\Leftarrow$\fi }        %1st direction of iff-proof
+
+\newcommand{\OnlyIf}{\ifmmode \Rightarrow \else $Rightarrow \fi}   %2nd direction of iff-proof
+
+\newcommand{\IfOnlyIf}{\ifmmode {\Longleftrightarrow} \else $\Longleftrightarrow$ \fi}
+
+%\newcommand{\implies}{\Rightarrow}
+
+\newcommand{\lvd}{\mbox{$\mid{\kern-0.525em-}{\kern-0.5em-}$}}
+
+\newcommand{\Lvd}{~{\mbox{$\rule[-.2ex]{.08ex}{1.5ex}\rule[.50ex]{1.5em}{.08ex}$}~}}
+
+\newcommand{\ra}{\rightarrow}
+
+\newcommand{\lra}{\longrightarrow}
+
+\newcommand{\Ra}{\Rightarrow}
+
+\newcommand{\Lra}{\Longrightarrow}
+
+
+\newcommand{\ovl}[1]{\mbox{$\overline{#1}$}}
+
+\newcommand{\undl}[1]{\mbox{$\underline{#1}$}}
+
+% Sottrazione su interi
+\newcommand{\dotminus}{-\kern-.77em\lower-.5ex\hbox{$\cdot$}\kern.5em}
+
+% coppia di parentesi angolari
+\newcommand{\angolari}[1]{\ifmmode {\left\langle #1 \right\rangle}
+   \else {$\left\langle #1 \right\rangle$} \fi }
+% coppia di parentesi graffe   
+\newcommand{\bbrace}[1]{\left\{#1\right\}}
+
+\newcommand{\quadrona}[2]{\left[%
+   \! \begin{array}{c}
+        #1 \\
+        #2
+    \end{array}\!
+\right]}
+
+\newcommand{\quadronaq}[4]{\left[%
+   \! \begin{array}{c}
+        #1 \\
+        #2 \\
+        #3 \\
+        #4
+    \end{array}\!
+\right]}
+
+% dominio di una funzione, pu\`o essere usato in math o LR mode
+\newcommand{\dom}[1]{\ifmmode {\rm dom}(#1) \else\mbox{\rm dom$(#1)$}\fi}
+% dominio di definizione di una funzione, pu\`o essere usato in math o LR mode
+\newcommand{\ddef}[1]{\ifmmode {\rm def}\mkern1mu(#1) \else\mbox{\rm def$\mkern1mu(#1)$}\fi}
+% codominio di una funzione, pu\`o essere usato in math o LR mode
+\newcommand{\cod}[1]{\ifmmode {\rm cod}\mkern.3mu(#1)\else\mbox{\rm cod$\mkern.3mu(#1)$}\fi}
+% immagine di una funzione, pu\`o essere usato in math o LR mode
+\newcommand{\immagine}[1]{\ifmmode {\rm imm}\mkern1mu(#1)\else\mbox{\rm imm$\mkern1mu(#1)$}\fi}
+
+

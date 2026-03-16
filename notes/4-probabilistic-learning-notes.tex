@@ -1,0 +1,829 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Probabilistic learning}
+
+%\subsection*{Supervised learning framework: deriving a probabilistic predictor}
+	As done before, we assume that the observed dataset (features and target) has been obtained by randomly sampling:
+	\begin{itemize}
+		\item $\mathcal{X}$ according to the probability distribution $p_M(\x)$ (usually the uniform distribution)
+		\item $\mathcal{Y}$ according to the conditional distribution $p_C(t|\x)$
+	\end{itemize}
+
+	Deriving a probabilistic predictor results into deriving, from the training set $\mathcal{T}$, an algorithm computing a conditional distribution $p^*(t|\x)$ which approximates the correct, unknown distribution $p_C$.
+An independent \alert{decision strategy} will then be applied to $p^*(t|\x)$ to return a specific prediction $h(\x)$: this usually results into returning the target value $t^*$ with maximum probability according to $p^*(t|\x)$, that is $h(\x)=\argmax{t\in\mathcal{Y}}p^*(t|\x)$. However, different decision strategies could be applied, for example in the case of different cost for different error types.
+
+\section*{Decision theory}
+
+In many real-world applications, our goal is not merely to predict an outcome, but to select the \textbf{best actions} to perform. This necessitates a framework where we can account for the costs associated with different types of errors. The core objective of decision theory is to choose a strategy - or a decision rule - that minimizes the \alert{expected cost} (or loss).
+
+\subsection*{Decision Regions and Classification}
+
+Let us begin with the problem of classification. Our task is to partition the input space $\mathcal{X}$ into $K$ disjoint \textbf{decision regions} $\mathcal{R}_1, \dots, \mathcal{R}_K$. Any point $\x$ falling into region $\mathcal{R}_k$ will be assigned to class $\mathcal{C}_k$. The boundaries between these regions are known as \alert{decision boundaries}.
+
+To understand the logic of these partitions, consider a binary classification case $\{ \mathcal{C}_0, \mathcal{C}_1 \}$. We want to maximize the probability of being correct. An item $\x$ is correctly classified if it is in $\mathcal{R}_0$ and actually belongs to $\mathcal{C}_0$, or if it is in $\mathcal{R}_1$ and belongs to $\mathcal{C}_1$. We express this total probability as:
+\begin{myalign}
+\hat{p}(\x) &= p(\x \in \mathcal{R}_0, \mathcal{C}_0) + p(\x \in \mathcal{R}_1, \mathcal{C}_1) \\
+&= \int_{\mathcal{R}_0} p(\x, \mathcal{C}_0) d\x + \int_{\mathcal{R}_1} p(\x, \mathcal{C}_1) d\x
+\end{myalign}
+
+
+
+To maximize this sum, we should assign each point $\x$ to the region whose corresponding class has the higher joint probability $p(\x, \mathcal{C}_k)$. Specifically, we assign $\x$ to $\mathcal{C}_0$ if $p(\x, \mathcal{C}_0) > p(\x, \mathcal{C}_1)$. Using the product rule of probability, $p(\x, \mathcal{C}_k) = p(\mathcal{C}_k|\x)p(\x)$, this condition becomes:
+\begin{myequation}
+\frac{p(\mathcal{C}_0|\x)p(\x)}{p(\mathcal{C}_1|\x)p(\x)} = \frac{p(\mathcal{C}_0|\x)}{p(\mathcal{C}_1|\x)} > 1
+\end{myequation}
+This tells us that the optimal strategy for maximizing accuracy is simply to choose the class with the highest \textbf{posterior probability} $p(\mathcal{C}_k|\x)$.
+
+%\subsection{Generalization to $K$ Classes}
+
+This logic extends naturally to $K > 2$ classes. The probability of a correct classification is the sum of the probabilities of correctly assigning an item to any of the $K$ classes:
+\begin{myequation}
+\hat{p}(\x) = \sum_{i=0}^{K-1} p(\x \in \mathcal{R}_i, \mathcal{C}_i) = \sum_{i=0}^{K-1} \int_{\mathcal{R}_i} p(\x, \mathcal{C}_i) d\x
+\end{myequation}
+To maximize this integral, we define the decision rule $h(\x)$ to always pick the class with the maximum posterior probability:
+\begin{myequation}
+h(\x) = \argmax{0 \leq i \leq K-1} p(\mathcal{C}_i|\x)
+\end{myequation}
+
+\subsubsection*{Incorporating Misclassification Costs}
+
+In reality, not all errors are equal. For example, in a cancer screening test, the cost of failing to detect a disease (a false negative) is much higher than the cost of a false alarm (a false positive). We formalize this using a \alert{loss matrix} $L_{ij}$, which represents the cost of classifying an item as belonging to $\mathcal{C}_j$ when it actually belongs to $\mathcal{C}_i$.
+
+The expected cost (or risk) associated with our decision regions is given by:
+\begin{myequation}
+\mathbb{E}[L] = \sum_{i} \sum_{j} \int_{\mathcal{R}_j} L_{ij} p(\x, \mathcal{C}_i) d\x = \sum_{j} \int_{\mathcal{R}_j} \left[ \sum_{i} L_{ij} p(\mathcal{C}_i|\x) \right] p(\x) d\x
+\end{myequation}
+To minimize this expected cost, for each $\x$, we must choose the class $k$ that minimizes the \textbf{conditional risk}:
+\begin{myequation}
+j = \argmin{k} \sum_{i} L_{ik} p(\mathcal{C}_i|\x)
+\end{myequation}
+
+%\subsubsection{The Binary Case with Costs}
+In the binary case, we compare the expected cost of choosing $\mathcal{C}_0$ versus $\mathcal{C}_1$.
+The cost for $\mathcal{C}_0$ is $L_{00}p(\mathcal{C}_0|\x) + L_{10}p(\mathcal{C}_1|\x)$, while the cost for $\mathcal{C}_1$ is $L_{01}p(\mathcal{C}_0|\x) + L_{11}p(\mathcal{C}_1|\x)$.
+We assign $\x$ to $\mathcal{R}_0$ if:
+\begin{myalign}
+L_{00}p(\mathcal{C}_0|\x) + L_{10}p(\mathcal{C}_1|\x) &< L_{01}p(\mathcal{C}_0|\x) + L_{11}p(\mathcal{C}_1|\x) \\
+(L_{10} - L_{00})p(\mathcal{C}_0|\x) &> (L_{01} - L_{11})p(\mathcal{C}_1|\x)
+\end{myalign}
+This can be rewritten as a ratio of posterior probabilities compared to a threshold:
+\begin{myalign}
+\frac{p(\mathcal{C}_0|\x)}{p(\mathcal{C}_1|\x)} > \frac{L_{01} - L_{11}}{L_{10} - L_{00}}
+\end{myalign}
+Defining the threshold $\theta = \frac{L_{01}-L_{11}}{L_{10}+L_{01}-L_{00}-L_{11}}$, we assign $\x$ to $\mathcal{C}_0$ if $p(\mathcal{C}_0|\x) > \theta$. Note that if errors have equal cost ($L_{01}=L_{10}$) and correct predictions have zero cost ($L_{00}=L_{11}=0$), then $\theta = 1/2$.
+
+\begin{myexample}
+\textbf{Medical Diagnosis Example:} 
+Let $\mathcal{C}_0 = \text{Sick}$ and $\mathcal{C}_1 = \text{Healthy}$. Suppose the loss matrix is $L = \begin{pmatrix} 0 & 100 \\ 1 & 0 \end{pmatrix}$. 
+Here, missing a sick patient ($L_{01}=100$) is 100 times more costly than a false alarm ($L_{10}=1$).
+The assignment rule for "Healthy" ($\mathcal{R}_1$) becomes:
+\begin{myalign}
+p(\mathcal{C}_1|\x) > \frac{L_{01}}{L_{10} + L_{01}} = \frac{100}{101} \approx 0.99
+\end{myalign}
+We only call a patient "Healthy" if we are 99\% sure.
+\end{myexample}
+
+\subsubsection*{The Reject Option}
+
+Sometimes, the most "rational" action is to refuse to make a prediction if the uncertainty is too high. We can introduce a \alert{rejection region} where the classifier avoids a decision. 
+
+In a binary framework, we might only classify $\x$ as $\mathcal{C}_0$ if the expected cost is significantly lower than the alternative, by a factor of $(1-\epsilon)$. This leads to a higher threshold $\theta'$ for class 0 and a lower threshold for class 1, creating a "gap" where we remain undecided:
+\begin{myequation}
+	h(\x)=\begin{cases}
+		0 & \text{ if } p(\mathcal{C}_0|\x) > \theta' \\
+		1 & \text{ if } p(\mathcal{C}_0|\x) < 1-\theta'' \\
+		\text{undefined} & \text{ otherwise}
+	\end{cases}
+\end{myequation}
+Where $\theta'$ and $1-\theta''$ are derived by comparing the costs scaled by the safety margin $(1-\epsilon)$. As expected, if misclassification costs are higher than correct classification costs, we find $\theta' > \theta$, making it "harder" to commit to a class without strong evidence.
+
+
+
+\subsection*{Decision Theory for Regression}
+
+In regression, the target $t$ is continuous. The most common loss function is the \alert{squared loss} $L(t, y(\x)) = (y(\x) - t)^2$. Our goal is to find a function $h(\x)$ that minimizes the expected loss:
+\begin{myequation}
+\mathbb{E}[L] = \int \int (h(\x) - t)^2 p(\x, t) d\x dt
+\end{myequation}
+
+To find the optimal $h(\x)$, we can decompose the squared error. Let $\mathbb{E}[t|\x] = \int t p(t|\x) dt$ be the conditional mean of $t$. We observe that:
+\begin{myalign}
+(h(\x) - t)^2 &= (h(\x) - \mathbb{E}[t|\x] + \mathbb{E}[t|\x] - t)^2 \\
+&= (h(\x) - \mathbb{E}[t|\x])^2 + (\mathbb{E}[t|\x] - t)^2 + 2(h(\x) - \mathbb{E}[t|\x])(\mathbb{E}[t|\x] - t)
+\end{myalign}
+When we take the expectation over $t$ for a fixed $\x$, the last term vanishes because $\mathbb{E}_t[\mathbb{E}[t|\x] - t] = 0$. The total expected loss becomes:
+\begin{myequation}
+\mathbb{E}[L] = \int (h(\x) - \mathbb{E}[t|\x])^2 p(\x) d\x + \int \int (\mathbb{E}[t|\x] - t)^2 p(\x, t) d\x dt
+\end{myequation}
+The second term is independent of our choice of $h(\x)$—it represents the intrinsic noise in the data. To minimize the first term, we must set it to zero, which happens when:
+\begin{myequation}
+h^*(\x) = \mathbb{E}[t|\x]
+\end{myequation}
+Thus, the optimal prediction in regression is the \alert{conditional expectation} of the target variable given the input.
+
+\section*{Approximating the Conditional Distribution}
+
+The theoretical framework of decision theory assumes that the true conditional distribution $p_C(t|\x)$ is known. However, in any practical scenario, we only have access to a finite training set $\mathcal{T}$. Therefore, our primary objective in supervised learning is to infer an approximation $p(t|\x)$ from the data that is as close as possible to the true, unknown $p_C$.
+
+\subsection*{Generative vs. Discriminative Approaches}
+
+There are two fundamentally different philosophies for modeling this approximation, each with its own advantages and computational characteristics:
+
+\begin{enumerate}
+    \item \alert{Generative Probabilistic Models}: These models attempt to understand how the data was "generated" by modeling the class-conditional densities $p(\x|{\mathcal{C}}_{k})$ for each class, as well as the prior probabilities $p({\mathcal{C}}_{k})$ of the classes themselves. To obtain the posterior probability needed for decision-making, we apply Bayes' rule:
+    \begin{equation*}
+    p({\mathcal{C}}_{k}|\x) = \frac{p(\x|{\mathcal{C}}_{k})p({\mathcal{C}}_{k})}{p(\x)} = \frac{p(\x|{\mathcal{C}}_{k})p({\mathcal{C}}_{k})}{\sum_j p(\x|{\mathcal{C}}_{j})p({\mathcal{C}}_{j})}
+    \end{equation*}
+    Notice that $p(\x)$ acts as a normalizing constant; thus, for comparing classes, we only need the product $p(\x|{\mathcal{C}}_{k})p({\mathcal{C}}_{k})$.
+    
+    \item \alert{Discriminative Probabilistic Models}: Instead of modeling the input distribution, these models focus directly on the goal: estimating the posterior class probabilities $p({\mathcal{C}}_{k}|\x)$ from the training set $\mathcal{T}$. They "discriminate" between classes without attempting to model the underlying distribution of the features $\x$.
+\end{enumerate}
+
+
+
+\medskip
+To formalize the learning process for these models, we typically follow a three-step procedure:
+\begin{enumerate}
+    \item \textbf{Model Selection}: We define a class of possible conditional distributions $\mathcal{P}$, often called the hypothesis space.
+    \item \textbf{Inference}: We select the "best" distribution $p^* \in \mathcal{P}$ based on the training data $\mathcal{T}$, using a quality measure $q$ (such as likelihood).
+    \item \textbf{Prediction}: For any new unseen item $\x$, we use the inferred distribution $p^*(t|\x)$ to assign probabilities to the possible targets.
+\end{enumerate}
+
+\begin{center}
+    \begin{tikzpicture}
+        \Vertex[Math, x=.5,y=0, color=xkcdTurquoise, opacity=.5, shape = rectangle, label = \mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+        \Text[position=left,x=-1,y=0, distance=1.5mm, fontsize=\normalsize]{learning}
+        \Vertex[Math, x=2.5,y=0, color=xkcdAmethyst, opacity=.3, shape = rectangle, label = \mathcal{A}, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+        \Edge[lw=.5pt, Direct](B01)(B1)
+        \Vertex[Math, x=4.5,y=0, color=xkcdLipstickRed, label=A_{\mathcal{T}}, opacity=.3, shape = rectangle, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=.1pt}]{C7}
+        \Edge[lw=.5pt, Direct](B1)(C7)
+        \Vertex[Math, x=1,y=-1.7, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape = rectangle, label = \x, style={minimum width=1cm, minimum height=.4cm, line width=0.1pt}]{B00}
+        \Vertex[Math, x=1,y=-2.3, color=xkcdFadedBlue, label=y, opacity=.4, shape = rectangle, fontsize=\normalsize, style={minimum width=5mm, minimum height=4mm, line width=.1pt}]{B20}
+        \Text[position=left,x=-1,y=-1.8, distance=1.5mm, fontsize=\normalsize]{predicting}
+        \Vertex[Math, x=2.5,y=-2, color=xkcdLipstickRed, opacity=.3, shape = rectangle, label = A_{\mathcal{T}}, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=0.1pt}]{B10}
+        \Edge[lw=.5pt, Direct](B00)(B10)
+        \Edge[lw=.5pt, Direct](B20)(B10)
+        \Vertex[Math, x=4,y=-2, color=xkcdOrange, label=p^*(t|\x), opacity=.3, shape = rectangle, fontsize=\normalsize, style={minimum width=1.5cm, minimum height=7mm, line width=.1pt}]{C70}
+        \Edge[lw=.5pt, Direct](B10)(C70)
+    \end{tikzpicture}
+\end{center}
+
+\subsubsection*{Parametric Distributions and the Logistic Example}
+
+Defining the class $\mathcal{P}$ usually involves a \textbf{parametric approach}. We assume the distributions share a common mathematical structure but are governed by a set of parameters $\mathbf{w}$. The learning process then becomes a search for the parameters that best fit the data.
+
+\begin{myexample}
+    \textbf{Example: Logistic Regression for Binary Classification}\\
+    In binary classification where $t \in \{0,1\}$, we assume the target follows a Bernoulli distribution conditioned on the input:
+    \begin{myequation}
+        p(t|\x, \mathbf{w}) = \pi(\x)^t(1-\pi(\x))^{1-t}
+    \end{myequation}
+    The parameter $\pi(\x) = p(t=1|\x)$ is modeled via the logistic sigmoid function applied to a linear combination of features:
+    \begin{myequation}
+        \pi(\x) = \sigma(\mathbf{w}^T\x) = \frac{1}{1 + e^{-(\sum_{i=1}^d w_i x_i + w_0)}}
+    \end{myequation}
+    This squashes the output of a linear model into the range $[0, 1]$, allowing it to be interpreted as a probability.
+\end{myexample}
+
+%\section*{Inferring the ``best'' distribution}
+%
+%To find the optimal parameters, we need a quality measure $q(p, \mathcal{T})$. A standard approach is to evaluate the \textbf{Likelihood} of the dataset. We ask: "What is the probability that we would observe the training set $\mathcal{T}$ if $p(t|\x)$ were the true distribution?"
+%
+%If we assume that:
+%\begin{itemize}
+%    \item The $n$ pairs $(\x_i, t_i)$ are sampled independently.
+%    \item The inputs $\x_i$ are sampled from a distribution $\mathcal{D}_1$ (often assumed uniform or independent of the parameters of interest).
+%    \item The targets $t_i$ are generated by the model $p(t|\x_i)$.
+%\end{itemize}
+%
+%Then the joint probability of the dataset is:
+%\begin{myequation}
+%    p(\X,\t) = \prod_{i=1}^n p(\x_i,t_i) = \prod_{i=1}^n p(t_i|\x_i)p(\x_i) \propto \prod_{i=1}^n p(t_i|\x_i) = q(p,\mathcal{T})
+%\end{myequation}
+%
+%Searching for the distribution $p^*$ that maximizes this product is known as \textbf{Maximum Likelihood Estimation (MLE)}. Interestingly, this is logically equivalent to minimizing the empirical risk in functional predictors. Just as a functional predictor must balance complexity to avoid overfitting or underfitting (the \textbf{inductive bias}), a probabilistic model must choose a parametric family $\mathcal{P}$ that is expressive enough to capture the true distribution without fitting to the noise of the specific sample $\mathcal{T}$.
+%
+%\medskip
+%
+%Rather than selecting a single "best" distribution $p^*$, we can adopt a more robust, often Bayesian, perspective:
+%
+%\begin{itemize}
+%    \item Instead of picking the modal value (the single distribution with highest quality $q$), we can consider the entire space $\mathcal{P}$.
+%    \item We can compute a \textbf{predictive distribution} by averaging the predictions of all possible distributions $p \in \mathcal{P}$, weighted by their respective quality measures $q(p, \mathcal{T})$.
+%\end{itemize}
+%
+%\subsection*{Inference of Predictive Distributions}
+%
+%We formally assume that our dataset $\mathcal{T}$ consists of $n$ samples drawn \alert{independent and identically distributed} (i.i.d.) from a fixed distribution. Our ultimate goal is the \alert{predictive distribution} for a new point, which incorporates the uncertainty of our learning process.
+%
+%Depending on the task, we focus on different formulations:
+%\begin{itemize}
+%    \item \textbf{Density Estimation}: Given $\X=\{\x_1,\ldots,\x_n\}$, we want $p(\x_{new}|\X)$, the probability of seeing a new item.
+%    \item \textbf{Supervised Learning}: Given $\mathcal{T}=(\X,\t)$, we want the conditional predictive distribution $p(t_{new}|\x_{new}, \X, \t)$. If we assume $p(\x)$ is independent of our target knowledge, this allows us to predict the likely target $t_{new}$ for a specific new input $\x_{new}$ by integrating over our uncertainty about the model parameters.
+%\end{itemize}
+%
+%\subsection*{From Maximum Likelihood to Bayesian Predictive Distributions}
+%
+%The transition from a frequentist perspective (MLE) to a Bayesian one represents a fundamental shift in how we handle uncertainty regarding the model parameters $\mathbf{w}$.
+%
+%\subsubsection*{The Point Estimation Approach (MLE)}
+%
+%In the \alert{Maximum Likelihood} framework, we assume there exists a single "optimal" parameter vector $\mathbf{w}_{MLE}$ that best explains the observed training data $\mathcal{T} = (\mathbf{X}, \mathbf{t})$. We find this by maximizing the likelihood function:
+%\begin{myequation}
+%    \mathbf{w}_{MLE} = \arg\max{\mathbf{w}} p(\mathbf{t} | \mathbf{X}, \mathbf{w})
+%\end{myequation}
+%When a new input $\mathbf{x}_{new}$ arrives, we make a prediction using \textit{only} this specific parameter vector:
+%\begin{myequation}
+%    p(t_{new} | \mathbf{x}_{new}, \mathcal{T}) \approx p(t_{new} | \mathbf{x}_{new}, \mathbf{w}_{MLE})
+%\end{myequation}
+%While computationally efficient, this approach is prone to overfitting because it places all "bet" on a single parameter value, ignoring other values of $\mathbf{w}$ that might be nearly as likely.
+%
+%\subsubsection*{The Bayesian Approach: Marginalization}
+%
+%In \alert{Bayesian inference}, we do not discard the other possible parameter values. Instead, we compute a \textbf{posterior distribution} $p(\mathbf{w}|\mathcal{T})$, which quantifies our uncertainty about $\mathbf{w}$ after seeing the data:
+%\begin{myequation}
+%    p(\mathbf{w} | \mathcal{T}) = \frac{p(\mathbf{t} | \mathbf{X}, \mathbf{w}) p(\mathbf{w})}{p(\mathbf{t} | \mathbf{X})}
+%\end{myequation}
+%Here, $p(\mathbf{w})$ is the prior, and the denominator is the evidence (or marginal likelihood).
+%
+%
+%
+%\subsubsection*{The Predictive Distribution}
+%
+%To predict the target $t_{new}$ for a new input $\mathbf{x}_{new}$, we use the \alert{Bayesian Predictive Distribution}. Rather than using a single $\mathbf{w}$, we calculate an expectation across all possible parameters in the space $\mathcal{W}$, weighted by their posterior probability. This process is called \alert{marginalization}:
+%\begin{myequation}
+%    p(t_{new} | \mathbf{x}_{new}, \mathcal{T}) = \int_{\mathcal{W}} p(t_{new} | \mathbf{x}_{new}, \mathbf{w}) p(\mathbf{w} | \mathcal{T}) d\mathbf{w}
+%\end{myequation}
+%
+%Some remarks can be done on the predictive distribution and how it is obtained:
+%\begin{itemize}
+%    \item Model Averaging: The predictive distribution is effectively an ensemble of all possible models $p(t_{new} | \mathbf{x}_{new}, \mathbf{w})$. Each model's contribution is determined by how well it fits the training data (the posterior).
+%    \item Uncertainty Quantification: Unlike MLE, which provides a "hard" prediction, the Bayesian predictive distribution is typically broader (has higher variance). This width accounts for two types of uncertainty: the \textit{aleatoric} uncertainty (noise in the data) and the \textit{epistemic} uncertainty (our lack of knowledge about the true parameters).
+%    \item Convergence to MLE: As the number of training samples $n \to \infty$, the posterior $p(\mathbf{w} | \mathcal{T})$ typically becomes highly peaked (a delta function) around $\mathbf{w}_{MLE}$. In this limit, the integral collapses, and the Bayesian prediction converges to the MLE prediction.
+%\end{itemize}
+
+
+
+\section*{Probabilistic models}
+
+\subsection*{Parametric and Non-Parametric Probabilistic Models}
+
+A \alert{probabilistic model} is fundamentally a structured collection of probability distributions defined over a specific data domain. We can think of the model as a "template" or a family of shapes, where individual probability distributions are specific instances of that template. These instances are uniquely identified and characterized by the values assigned to a set of \alert{parameters}, denoted as $\Vtheta$.
+
+\begin{myexample}
+Consider a \textbf{bivariate Gaussian probabilistic model}. Here, the "template" is the bell-shaped curve extended into two dimensions. Every specific distribution in this family is determined by:
+\begin{enumerate}
+    \item The mean vector $\Vmu = (\mu_1, \mu_2)$, which determines the center of the distribution in the 2D plane.
+    \item The covariance matrix $\VSigma = \left( \begin{array}{cc} \sigma_{11} & \sigma_{12} \\ \sigma_{21} & \sigma_{22} \end{array} \right)$, which determines the spread and the orientation (correlation) of the distribution. Due to symmetry, we must have $\sigma_{12} = \sigma_{21}$.
+\end{enumerate}
+\end{myexample}
+
+To navigate these models, we distinguish between two broad categories based on how the parameter set is defined:
+\begin{description}
+    \item[Parametric Models:] The set of parameters is fixed, finite, and predefined before seeing any data (e.g., a Normal distribution always has a mean and a variance).
+    \item[Non-Parametric Models:] The number of parameters is not fixed in advance but grows with the size of the dataset $\mathcal{T}$, allowing the model to adapt its complexity to the data (e.g., Kernel Density Estimation).
+\end{description}
+
+\subsection*{The Concept of Likelihood}
+
+When we possess a dataset $\mathcal{T}$ and a candidate model with parameters $\Vtheta$, we need a way to evaluate how well those parameters "explain" the observed data. This is where the \alert{likelihood} comes in.
+
+\begin{itemize}
+    \item The likelihood $L(\Vtheta|\mathcal{T})$ is defined as the probability of observing the dataset $\mathcal{T}$ given a specific set of parameters $\Vtheta$:
+    \begin{myequation}
+    L(\Vtheta|\mathcal{T}) = p(\mathcal{T}|\Vtheta)
+    \end{myequation}
+    Essentially, it measures the probability that the dataset was generated by independently sampling points from the distribution $p(\x,t;\Vtheta)$.
+    
+    \item While $p(\mathcal{T}|\Vtheta)$ and $L(\Vtheta|\mathcal{T})$ share the same mathematical expression, they are conceptually different. We speak of the \textit{probability of the data} (where $\Vtheta$ is fixed and the data varies) but the \textit{likelihood of the parameters} (where the data $\mathcal{T}$ is fixed and we vary $\Vtheta$).
+    
+    \item Frequentist Interpretation: In this view, parameters $\Vtheta$ are treated as fixed, deterministic constants that are currently unknown. They are not random variables; they are independent variables in an optimization problem.
+\end{itemize}
+
+
+If we assume that the elements in our dataset $\mathcal{T}$ are \textbf{independent and identically distributed (i.i.d.)}, the joint probability of the dataset factorizes into a product of individual probabilities. Depending on our goal, we see two common cases:
+
+\begin{enumerate}
+    \item \textbf{Density Estimation:} When we only observe inputs $\X$, the likelihood is:
+    \begin{myequation}
+    L(\Vtheta|\mathcal{T}) = p(\X|\Vtheta) = \prod_{i=1}^n p(\x_i|\Vtheta)
+    \end{myequation}
+    
+    \item \textbf{Supervised Learning:} When we have input-target pairs $(\X, \t)$, the joint likelihood is:
+    \begin{myalign}
+    L(\Vtheta|\mathcal{T}) &= p(\X,\t|\Vtheta) = \prod_{i=1}^n p(\x_i,t_i|\Vtheta) = \prod_{i=1}^n p(t_i|\x_i,\Vtheta) p(\x_i|\Vtheta) \\
+    &= p(\X|\Vtheta) \prod_{i=1}^n p(t_i|\x_i,\Vtheta)
+    \end{myalign}
+    If we assume the input distribution $p(\x|\Vtheta)$ is uniform or independent of our parameters $\Vtheta$, the likelihood becomes proportional to the product of conditional probabilities:
+    \begin{myequation}
+    L(\Vtheta|\mathcal{T}) \propto \prod_{i=1}^n p(t_i|\x_i,\Vtheta)
+    \end{myequation}
+\end{enumerate}
+
+\subsection*{Maximum Likelihood Estimation (MLE)}
+
+The \alert{Maximum Likelihood} principle suggests that the "best" estimate for our parameters is the value $\Vtheta^*$ that makes the observed data most probable. In the frequentist point of view, this is an optimization problem:
+\begin{myequation}
+\Vtheta^*_{ML} = \argmax{\Vtheta} L(\Vtheta|\mathcal{T})
+\end{myequation}
+
+
+
+In practice, working with products of many small probabilities is computationally difficult and prone to numerical underflow. Therefore, we prefer the \textbf{log-likelihood}:
+\begin{myequation}
+l(\Vtheta|\mathcal{T}) = \ln L(\Vtheta|\mathcal{T})
+\end{myequation}
+Since the logarithm is a strictly monotonic function, the value $\Vtheta$ that maximizes $l(\Vtheta|\mathcal{T})$ is identical to the one that maximizes $L(\Vtheta|\mathcal{T})$. By taking the log, the products are transformed into more manageable sums:
+\begin{myequation}
+\Vtheta^*_{ML} = \argmax{\Vtheta} \sum_{i=1}^{n} \ln p(\x_{i}|\Vtheta) \quad \text{or} \quad \argmax{\Vtheta} \sum_{i=1}^{n} \ln p(t_i|\x_{i},\Vtheta)
+\end{myequation}
+
+\subsubsection*{The Optimization Process}
+
+To find the maximum, we use calculus by setting the gradient of the log-likelihood to zero (the \textbf{stationary point} condition):
+\begin{myequation}
+\nabla l(\Vtheta|\mathcal{T}) = \Zero
+\end{myequation}
+It is important to remember that $\nabla l = \Zero$ is a \textit{necessary} but not \textit{sufficient} condition for a global maximum. The point could be a local maximum, a minimum, or a saddle point. We generally verify the nature of the point by examining the \textbf{Hessian matrix} (the second derivatives).
+
+Once the optimum $\Vtheta^*_{ML}$ is computed, predictions can be performed by estimating, for any new observation $\x$,  its probability:
+\begin{myalign}
+p(\x|\X)&=\int_{\Vtheta} p(\x|\Vtheta)p(\Vtheta|\X)d\Vtheta\approx\int_{\Vtheta} p(\x|\Vtheta^*_{ML})p(\Vtheta|\X)d\Vtheta=p(\x|\Vtheta^*_{ML})\int_{\Vtheta}p(\Vtheta|\X)d\Vtheta=p(\x|\Vtheta^*_{ML})
+\end{myalign}
+and the conditional distribution $t|\x$ of the associated target value:
+\begin{myalign}
+p(t|\x,\X,\t)&=\int_{\Vtheta} p(t|\x,\Vtheta)p(\Vtheta|\X,\t)d\Vtheta\approx\int_{\Vtheta} p(t|\x, \Vtheta^*_{ML})p(\Vtheta|\X)d\Vtheta=p(\x|\Vtheta^*_{ML})\int_{\Vtheta}p(\Vtheta|\X,\t)d\Vtheta=p(t|\x,\Vtheta^*_{ML})
+\end{myalign}
+
+\begin{myexample}
+\textbf{Bernoulli Trials:} Consider $n$ binary events (flips of a biased coin). The likelihood for the probability of success $\phi$ is:
+\begin{myequation}
+L(\phi|\X) = \prod_{i=1}^{n} \phi^{x_i}(1-\phi)^{1-x_i} = \phi^{n_1}(1-\phi)^{n_0}
+\end{myequation}
+where $n_1$ is the number of successes and $n_0$ the failures. Taking the derivative of the log-likelihood $l(\phi|\X) = n_1 \ln \phi + n_0 \ln(1-\phi)$ and setting it to zero yields:
+\begin{myequation}
+\frac{n_1}{\phi} - \frac{n_0}{1-\phi} = 0 \implies \phi^*_{ML} = \frac{n_1}{n_1+n_0} = \frac{n_1}{n}
+\end{myequation}
+This confirms the intuitive frequentist result: the best estimate is the observed sample frequency.
+\end{myexample}
+
+\begin{myexample}
+\textbf{Linear Regression:} In a regression context with Gaussian noise we have a collection $\X,\t$ of value-target pairs, modeled as $p(\x,t)=p(\x)p(t|\x, \w, \sigma^2)$, with $\w\in\Real^d$, $w_0\in\Real$:
+\begin{itemize}
+\item $p(\x)$ uniform
+\item $p(t|\x,\w,\sigma^2)=\mathcal{N}(\w^T\x+w_0, 1/\beta)$ ($\beta$, the inverse of the variance, is the \alert{precision})
+\end{itemize}
+Likelihood: $L(\t|\X,\w,w_0,\beta)=\prod_{i=1}^{n}p(t_i|\x_i,\w,w_0,\beta)=\prod_{i=1}^{n}\mathcal{N}(\w^T\x_i+w_0, \beta)$
+
+\bigskip
+Log-likelihood: 
+\begin{myalign}
+l(\t|\X,\w,w_0,\beta)&=\sum_{i=1}^{n}\ln p(t_i|\x_i,\w,w_0,\beta)=\sum_{i=1}^{n}\ln \left(\sqrt{\frac{\beta}{2\pi}}e^{-\frac{\beta(\w^T\x_i+w_0-t_i)^2}{2}}\right)\\&=
+\sum_{i=1}^{n}\left(-\frac{\beta(\w^T\x_i+w_0-t_i)^2}{2}+\frac{1}{2}\ln\beta-\frac{1}{2}\ln(2\pi)\right)\\
+&= -\frac{\beta}{2}\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)^2+\frac{n}{2}\ln\beta-\frac{n}{2}\ln (2\pi)
+\end{myalign}
+
+
+\begin{myalign}
+\frac{\partial}{\partial w_k}l(\t|\X,\w,w_0,\beta)&=-\frac{\beta}{2}\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)x_{ik}\hspace{1cm}k=1,\ldots,d\\
+\frac{\partial}{\partial w_0}l(\t|\X,\w,w_0,\beta)&=-\frac{\beta}{2}\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)\\
+\frac{\partial}{\partial\beta}l(\t|\X,\w,w_0,\beta)&=-\frac{1}{2}\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)^2+\frac{n}{2\beta}
+\end{myalign}
+The ML estimation for $\w, w_0$ (linear regression coefficients) is obtained as the solution of  the $(d+1,d+1)$ linear system 
+\begin{myalign}
+\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)x_{ik}&=0\hspace{1cm}k=1,\ldots,d\\
+\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)&=0
+\end{myalign}
+The ML estimation for $\beta$ is obtained by
+\begin{myequation}
+-\frac{1}{2}\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)^2+\frac{n}{2\beta}=0 \hspace{1cm}\implies\hspace{1cm}\beta_{ML}=\left(\frac{1}{n}\sum_{i=1}^{n}(\w^T\x_i+w_0-t_i)^2\right)^{-1}
+\end{myequation}
+
+\end{myexample}
+
+\subsection*{Overfitting and the Maximum a Posteriori (MAP) Estimate}
+
+A major drawback of MLE is \alert{overfitting}. By strictly maximizing the likelihood of a specific dataset, the model may "memorize" the noise, leading to poor generalization. To counter this, we can introduce a \textbf{penalty function} $P(\Vtheta)$ to the log-likelihood:
+\begin{myequation}
+C(\Vtheta|\X) = l(\Vtheta|\X) - P(\Vtheta)
+\end{myequation}
+A common choice is weight decay, $P(\Vtheta) = \frac{\gamma}{2}\|\Vtheta\|^2$.
+
+This regularization has a beautiful Bayesian interpretation through the \alert{Maximum a Posteriori (MAP)} estimate. Instead of treating $\Vtheta$ as a constant, we treat it as a random variable with a \textbf{prior distribution} $p(\Vtheta)$. Using Bayes' theorem:
+\begin{myequation}
+p(\Vtheta|\mathcal{T}) = \frac{p(\mathcal{T}|\Vtheta)p(\Vtheta)}{p(\mathcal{T})} \propto L(\Vtheta|\mathcal{T})p(\Vtheta)
+\end{myequation}
+The MAP estimate maximizes this posterior:
+\begin{myequation}
+\Vtheta^*_{MAP} = \argmax{\Vtheta} \left( \ln L(\Vtheta|\mathcal{T}) + \ln p(\Vtheta) \right)
+\end{myequation}
+
+If we assume $\Vtheta$ is distributed around the origin as a multivariate gaussian with uniform variance and null covariance, 
+\begin{myequation}
+p(\Vtheta)\sim{\mathcal{N}}(\Vtheta|\Zero, \sigma^{2})=\frac{1}{(2\pi)^{d/2}\sigma^{d}}e^{-\frac{\|\Vtheta\|^{2}}{2\sigma^{2}}}\propto e^{-\frac{\|\Vtheta\|^{2}}{2\sigma^{2}}}%\Longleftrightarrow p(\theta_i)\sim{\cal N}(\theta|0, \sigma^{2}) \mbox{ for all }i=1,\ldots,d
+\end{myequation}
+
+Then we obtain 
+\begin{myalign}
+&\Vtheta^*_{MAP}=\argmax{\Vtheta} p(\Vtheta|\mathcal{T})=\argmax{\Vtheta}\left(l(\Vtheta|\mathcal{T})+\ln p(\Vtheta)\right)\\
+&   =\argmax{\Vtheta}\left(l(\Vtheta|\mathcal{T})+\ln  e^{-\frac{\|\Vtheta\|^2}{2\sigma^2}}\right)=\argmax{\Vtheta}\left(l(\Vtheta|\mathcal{T})-\frac{\|\Vtheta\|^2}{2\sigma^2}\right)
+\end{myalign}
+which is equal to the penalty function introduced before to prevent overfitting, where
+ $\gamma=\frac{1}{\sigma^{2}}$. This shows that regularization is essentially the inclusion of prior beliefs that parameters should not be too large.
+
+
+
+\begin{myexample}
+\textbf{MAP for Bernoulli with Beta Prior:} If we use a Beta distribution as a prior for $\phi$, we can incorporate "pseudo-counts" $\alpha$ and $\beta$ as follows:
+the initial knowledge of $\phi$ is modeled as a Beta distribution:
+\begin{myequation}
+p(\phi|\alpha,\beta)=\mbox{Beta}(\phi|\alpha,\beta)=\frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha)\Gamma(\beta)}\phi^{\alpha-1}(1-\phi)^{\beta-1}
+\end{myequation}
+The log-likelihood is
+\begin{myequation}
+l(\phi|\X)=\sum_{i=1}^{n}\left(x_{i}\ln\phi+(1-x_{i})\ln(1-\phi)\right)=n_{1}\ln\phi+n_{0}\ln(1-\phi)
+\end{myequation}
+%dove $n_{0}$ ($n_{1}$) \`e il numero di $x\in\X$ pari a 0 (1)
+The MAP estimation for $\phi$ is computed by setting the derivative to 0
+\begin{myequation}
+\frac{\partial }{\partial\phi}\big(l(\phi|\X)+\ln\mbox{Beta}(\phi|\alpha,\beta)\big)=\frac{n_{1}}{\phi}-\frac{n_{0}}{1-\phi}+\frac{\alpha-1}{\phi}-\frac{\beta-1}{1-\phi}=0\hspace{.5cm}\implies
+\end{myequation}
+\begin{myequation}
+\phi^*_{MAP}=\frac{N_{1}+\alpha-1}{n_{0}+n_{1}+\alpha+\beta-2}=\frac{n_{1}+\alpha-1}{n+\alpha+\beta-2}
+\end{myequation}
+This prevents the estimate from becoming 0 or 1 when data is scarce (the "black swan" problem).
+\end{myexample}
+
+\subsection*{Full Bayesian Inference}
+
+Once the posterior distribution
+\begin{myequation}
+p(\Vtheta|\X)=\frac{p(\X|\Vtheta)p(\Vtheta)}{p(\X)}=\frac{p(\X|\Vtheta)p(\Vtheta)}{\int_{\Vtheta} p(\X|\Vtheta)d\Vtheta}
+\end{myequation}
+is available, MAP estimate computes the most probable value (mode) $\Vtheta_{MAP}$ of the distribution. This may lead to inaccurate estimates, as in the figure below, if the distribution is skewed or multimodal:
+
+\centerline{
+\includegraphics[width=10cm,angle=0]{Figure_2.pdf}
+}
+
+
+
+
+A \textbf{Fully Bayesian} approach considers the entire posterior distribution $p(\Vtheta|\X)$. Instead of just taking the mode, we might calculate the \textbf{posterior mean} (the expectation):
+\begin{myequation}
+\Vtheta^{*} = \mathbb{E}[\Vtheta|\X] = \int_{\Vtheta} \Vtheta p(\Vtheta|\X) d\Vtheta
+\end{myequation}
+
+\begin{myexample}
+Collection $\X$ of $n$ binary events, modeled as a Bernoulli distribution with unknown parameter $\phi$. Initial knowledge of $\phi$ is modeled as a Beta distribution:
+\begin{myequation}
+p(\phi|\alpha,\beta)=\mbox{Beta}(\phi|\alpha,\beta)=\frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha)\Gamma(\beta)}\phi^{\alpha-1}(1-\phi)^{\beta-1}
+\end{myequation}
+Posterior distribution
+\begin{myalign}
+p(\phi|\X,\alpha,\beta)&=\frac{\prod_{i=1}^{N}\phi^{x_{i}}(1-\phi)^{1-x_{i}}p(\phi|\alpha,\beta)}{p(\X)}\\
+&=\frac{\phi^{N_{1}}(1-\phi)^{N_{0}}\phi^{\alpha-1}(1-\phi)^{\beta-1}}{\frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha+\beta)}p(\X)}=\frac{\phi^{N_{1}+\alpha-1}(1-\phi)^{N_{0}+\beta-1}}{Z}
+\end{myalign}
+
+Hence,
+\begin{myequation}
+p(\phi|\X,\alpha,\beta)=\mbox{Beta}(\phi|\alpha+N_{1},\beta+N_{0})
+\end{myequation}
+
+
+\end{myexample}
+
+
+\subsection*{Model Selection}
+
+In the predictive modeling pipeline, we are often faced with a fundamental dilemma: before we can estimate the specific parameters $\Vtheta$ of a distribution, we must first choose the \textbf{model structure} (or hypothesis space) itself. This involves deciding on the functional form of the model, the number of features to include, or the values of various hyper-parameters. 
+
+The process of \alert{model selection} aims to identify, within a set of candidate models $\{m_1, m_2, \ldots, m_r\}$, the one that is expected to best represent the underlying process that generated the available data. It is important to clarify that we are not merely looking for the model that fits the training data most perfectly; rather, we seek the model whose \textit{best instantiation} generalizes effectively to unseen data. A model that is too simple may suffer from \textbf{underfitting}, failing to capture the essential patterns in the data, while a model that is too complex may \textbf{overfit}, capturing the random noise of the specific dataset $\mathcal{T}$ rather than the signal.
+
+\subsubsection*{Model Selection in Practice: Validation Strategies}
+
+When we lack a closed-form theoretical solution to rank models, we rely on empirical validation. These techniques simulate the arrival of new data to measure how well a model might perform in the real world.
+
+\begin{description}
+    \item[Test Set Validation:] The most straightforward approach is to partition the dataset $\mathcal{T}$ into two disjoint sets: a \textbf{Training set} (used to learn the parameters $\Vtheta$) and a \textbf{Test set} (held out entirely during training to provide an unbiased measure of effectiveness). This method is computationally efficient and highly reliable for large datasets. However, if the dataset is small, the resulting split leaves too few points for robust parameter fitting and too few for a statistically significant validation.
+    
+    \item[Cross-Validation:] To make better use of limited data, we can use $K$-fold cross-validation. The dataset is partitioned into $K$ equal-sized subsets. The learning and validation process occurs in $K$ iterations: in each phase, one subset is used as the test set, while the union of the remaining $K-1$ subsets serves as the training set. The final performance measure is the average of the results across all $K$ folds.
+    
+    
+    
+    \item[Leave-One-Out (LOO) Cross-Validation:] This is a special case of $K$-fold cross-validation where $K=n$ (the number of samples). In each iteration, only a single data point is left out for testing. While this maximizes the amount of data used for training in each step, it is extremely time-consuming for large datasets or for models that are computationally expensive to fit.
+\end{description}
+
+\subsubsection*{Information-Theoretic Measures}
+
+While validation is effective, it requires re-training the model multiple times. \alert{Information measures} offer a faster alternative by providing a score for a single model based on its performance on the training data, adjusted by a "complexity penalty." The core idea is to find a balance between the \textbf{goodness-of-fit} (how well the model explains the data) and the \textbf{parsimony} (how simple the model is).
+
+\begin{description}
+    \item[Akaike Information Criterion (AIC):] The AIC is rooted in information theory, specifically the Kullback-Leibler divergence. It estimates the relative amount of information lost when a given model is used to represent the process that generated the data. 
+    
+    Let $\Vtheta$ be the set of parameters and $\Vtheta_{ML}$ be their maximum likelihood estimate on the dataset $\X$. The AIC is defined as:
+    \begin{myequation}
+    AIC = 2|\Vtheta| - 2\log p(\X|\Vtheta_{ML}) = 2|\Vtheta| - 2\max{\Vtheta} l(\Vtheta|\X)
+    \end{myequation}
+    Here, $-2\log p(\X|\Vtheta_{ML})$ represents the \textit{deviance}, a measure of how poorly the model fits the data. The term $2|\Vtheta|$ acts as a penalty that increases linearly with the number of parameters. According to AIC, the preferred model is the one with the \textbf{lowest} score, as it achieves high likelihood without excessive complexity.
+
+    \item[Bayesian Information Criterion (BIC):] Also known as the Schwarz Information Criterion, the BIC is derived from a Bayesian perspective of model evidence. It assumes that one of the candidate models is the "true" model and seeks to identify it. Its formulation is:
+    \begin{myalign}
+    BIC &= |\Vtheta| \log n - 2\log p(\X|\Vtheta_{ML}) \\
+    &= |\Vtheta|\log |\X| - 2\max{\Vtheta}l(\Vtheta|\X)
+    \end{myalign}
+    Where $n = |\X|$ is the number of data points. 
+\end{description}
+
+\subsubsection*{Interpreting the Difference between AIC and BIC}
+
+The fundamental difference between these two criteria lies in the \textbf{weight of the penalty term}. 
+\begin{itemize}
+    \item In AIC, the penalty for each added parameter is always 2. 
+    \item In BIC, the penalty for each added parameter is $\log n$. 
+\end{itemize}
+
+As the dataset size $n$ increases, $\log n$ becomes much larger than 2. Consequently, BIC penalizes complex models much more heavily than AIC does. 
+
+
+
+The underlying philosophy is different: AIC is designed to minimize the prediction error (maximizing generalization) and tends to favor slightly more complex models if they improve the fit. BIC is designed to be \textit{consistent}, meaning that if the true model is among the candidates, BIC will eventually select it as $n \to \infty$. In practice, AIC is often preferred when the primary goal is prediction, while BIC is preferred when the primary goal is explanation or identifying the "correct" structure.
+
+\begin{myexample}
+	
+Example: Information Measures in Polynomial Model Selection
+
+\medskip
+To understand how the \alert{Akaike Information Criterion (AIC)} and \alert{Bayesian Information Criterion (BIC)} operate in practice, we consider the classic problem of choosing the optimal degree $M$ for a polynomial regression model. Given a dataset $\mathcal{T} = \{(\x_i, t_i)\}_{i=1}^n$, we aim to fit:
+\begin{myequation}
+y(x, \mathbf{w}) = w_0 + w_1x + w_2x^2 + \dots + w_Mx^M
+\end{myequation}
+In this model, the number of parameters is $|\Vtheta| = M+1$ (including the intercept $w_0$).
+
+\medskip
+As we increase the degree $M$, the model's flexibility grows. From a Frequentist Maximum Likelihood perspective, a more complex model will always yield a higher (or equal) likelihood on the training data because it has more "degrees of freedom" to pass through the points.
+
+
+
+The behavior of the two components of information measures is as follows:
+\begin{enumerate}
+    \item \textbf{Goodness-of-Fit (Deviance):} The term $-2\log p(\X|\Vtheta_{ML})$ \alert{decreases} as $M$ increases.
+    \item \textbf{Complexity Penalty:} The term $2|\Vtheta|$ (AIC) or $|\Vtheta|\log n$ (BIC) \alert{increases} linearly with $M$.
+\end{enumerate}
+
+The optimal model is found at the minimum of the resulting curve, representing the point where adding more complexity no longer provides a sufficient increase in likelihood to justify the "cost" of the additional parameters.
+
+
+
+If we compare the behavior of AIC and BIC Behavior, we observe
+that the fundamental difference lies in how they scale with the sample size $n$. Consider two scenarios:
+
+\begin{description}
+\item[Small Dataset ($n=10$).]
+For a small sample, the penalty coefficients are similar:
+\begin{itemize}
+    \item AIC penalty: $2$
+    \item BIC penalty: $\ln(10) \approx 2.30$
+\end{itemize}
+In this case, both criteria behave similarly, favoring very simple models to avoid fitting the noise present in the small sample.
+
+\item[Large Dataset ($n=1000$).]
+For a large sample, the difference becomes stark:
+\begin{itemize}
+    \item AIC penalty: $2$
+    \item BIC penalty: $\ln(1000) \approx 6.91$
+\end{itemize}
+Here, BIC is more than three times as "stringent" as AIC. 
+\end{description}
+This leads to the following properties:
+\begin{itemize}
+    \item AIC tends to be \textit{asymptotically efficient}: it chooses the model that minimizes the mean squared error of prediction. However, it may overfit by choosing a slightly too complex model as $n \to \infty$.
+    \item BIC is \textit{consistent}: if the "true" model is among the candidates, BIC will select it with probability 1 as $n \to \infty$. It is much more conservative and prefers simpler, more interpretable models.
+\end{itemize}
+
+\subsection*{Numerical Illustration}
+
+Consider the scores for a dataset of $n=100$ points where the true relationship is quadratic:
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Degree ($M$)} & \textbf{$|\Vtheta|$} & \textbf{Deviance ($-2\ln L$)} & \textbf{AIC Score} & \textbf{BIC Score} \\
+\hline
+1 (Linear) & 2 & 150.0 & 154.0 & 159.2 \\
+\textbf{2 (Quadratic)} & \textbf{3} & \textbf{120.0} & \textbf{126.0} & \textbf{133.8} \\
+3 (Cubic) & 4 & 119.5 & 127.5 & 137.9 \\
+4 (Quartic) & 5 & 119.2 & 129.2 & 142.2 \\
+\hline
+\end{tabular}
+\end{center}
+
+In this example, both AIC and BIC correctly identify the quadratic model as the best ($126.0$ and $133.8$ are the respective minima). However, notice that for AIC, the cubic model is a "close second" (difference of $1.5$), whereas for BIC, the quadratic model is much more clearly separated from the more complex alternatives.
+
+\end{myexample}
+
+
+\section*{Bayesian Model Comparison and Averaging}
+
+In the standard approach to machine learning, we often commit to a single model and strive to find its optimal parameters. However, this carries a significant risk of overfitting, especially when the model complexity is high relative to the amount of available data. As we already sketched, a more robust alternative is the \alert{Bayesian approach}, which treats model selection not as a search for a single "winner," but as an exercise in accounting for uncertainty.
+
+\subsection*{Model Averaging and the Mixture Predictive Distribution}
+
+The core philosophy of Bayesian learning is to use probabilities to represent our uncertainty at every level of the hierarchy, including the choice of the model itself. Instead of selecting one model $\mathcal{M}$, we consider a set of $L$ candidate models $\{\mathcal{M}_i\}_{i=1}^L$. Each model represents a different probability distribution over the observed training data $\mathcal{T}=(\X,\t)$.
+
+Our initial belief about which model is correct is captured by the prior distribution $p(\mathcal{M}_i)$. Once we observe the training set $\mathcal{T}$, we update this belief into a posterior distribution using Bayes' theorem:
+\begin{myequation}
+p(\mathcal{M}_i|\mathcal{T}) = \frac{p(\mathcal{T}|\mathcal{M}_i)p(\mathcal{M}_i)}{p(\mathcal{T})} \propto p(\mathcal{T}|\mathcal{M}_i)p(\mathcal{M}_i)
+\end{myequation}
+The term $p(\mathcal{T}|\mathcal{M}_i)$ is known as the \alert{marginal likelihood} or \alert{model evidence}. It is a crucial quantity that expresses how well the model $\mathcal{M}_i$ as a whole (not just one specific configuration of it) predicts the data. When comparing two specific models, $\mathcal{M}_i$ and $\mathcal{M}_j$, we often examine the \alert{Bayes factor}, defined as the ratio of their evidences:
+\begin{myequation}
+K = \frac{p(\mathcal{T}|\mathcal{M}_i)}{p(\mathcal{T}|\mathcal{M}_j)}
+\end{myequation}
+
+This Bayesian framework naturally leads to a predictive strategy called \alert{Model Averaging}. When we want to predict a target $t$ for a new input $\x$, we do not rely on just one model; instead, we form a mixture distribution:
+\begin{myequation}
+p(t|\x,\mathcal{T}) = \sum_{i=1}^L p(t|\x, \mathcal{M}_i, \mathcal{T}) p(\mathcal{M}_i|\mathcal{T})
+\end{myequation}
+This formula tells us that the final prediction is a weighted average of the predictions made by each individual model, where the weights are determined by the posterior probability of the model given the training data.
+
+%\subsection{The Anatomy of Model Evidence}
+\medskip
+To understand why the marginal likelihood $p(\mathcal{T}|\mathcal{M}_i)$ is such an effective tool for model comparison, we must look at how it is calculated. It is an average of the likelihood $p(\mathcal{T}|\w, \mathcal{M}_i)$ over all possible parameter values $\w$, weighted by the prior distribution of those parameters:
+\begin{myequation}
+p(\mathcal{T}|\mathcal{M}_i) = \int p(\mathcal{T}|\w, \mathcal{M}_i) p(\w|\mathcal{M}_i) d\w
+\end{myequation}
+This can be interpreted as the probability of generating the dataset $\mathcal{T}$ if we first sample a parameter vector $\w$ from the prior $p(\w|\mathcal{M}_i)$ and then sample data from the model. 
+
+It is also important to note that the evidence is exactly the normalization constant (the denominator) required to compute the posterior distribution of the parameters for a specific model:
+\begin{myequation}
+p(\w|\mathcal{T},\mathcal{M}_i) = \frac{p(\mathcal{T}|\w,\mathcal{M}_i)p(\w|\mathcal{M}_i)}{p(\mathcal{T}|\mathcal{M}_i)}
+\end{myequation}
+
+%\subsection{Insight into Complexity: Occam's Razor}
+
+We can gain a deeper understanding of the evidence by considering a model with a single parameter $w$. Suppose that the posterior distribution $p(w|\mathcal{T}, \mathcal{M})$ is sharply peaked around the Maximum A Posteriori (MAP) estimate $w_{MAP}$, with a width of $\Delta w_{pos}$. 
+
+
+
+If we assume the prior $p(w|\mathcal{M})$ is flat (uniform) with a width of $\Delta w_{pri}$, then its value must be $1/\Delta w_{pri}$. We can approximate the integral of the evidence as the height of the integrand multiplied by its width:
+\begin{myalign}
+p(\mathcal{T}|\mathcal{M}) &= \int p(\mathcal{T}|w, \mathcal{M}) p(w|\mathcal{M}) dw \\
+&\simeq p(\mathcal{T}|w_{MAP}, \mathcal{M}) p(w_{MAP}|\mathcal{M}) \Delta w_{pos} \\
+&\simeq p(\mathcal{T}|w_{MAP}, \mathcal{M}) \frac{\Delta w_{pos}}{\Delta w_{pri}}
+\end{myalign}
+Taking the logarithm of this expression reveals a fascinating structure:
+\begin{myequation}
+\log p(\mathcal{T}|\mathcal{M}) \simeq \log p(\mathcal{T}|w_{MAP}, \mathcal{M}) + \log \left( \frac{\Delta w_{pos}}{\Delta w_{pri}} \right)
+\end{myequation}
+
+This approximation breaks the evidence down into two competing terms:
+\begin{enumerate}
+    \item Data Fit: $\log p(\mathcal{T}|w_{MAP}, \mathcal{M})$ represents how well the model fits the data using its best parameter settings. This term favors complex models that can "bend" to match the data closely.
+    \item Complexity Penalty: The second term is the \textit{Occam factor}. Since the posterior is typically much narrower than the prior ($\Delta w_{pos} < \Delta w_{pri}$), this term is negative. It acts as a penalty that increases as the model becomes more "finely tuned."
+\end{enumerate}
+
+If $\Delta w_{pos}$ is very small, it implies the model is very sensitive; only a tiny range of parameter values allows the model to fit the data. This high sensitivity is a hallmark of complex models and results in a large negative penalty. Conversely, a simpler model might have a larger $\Delta w_{pos}$ (it is "roughly tuned"), leading to a smaller penalty.
+
+For a model with $M$ independent parameters, assuming each has a similar ratio of posterior-to-prior width, the penalty scales linearly with $M$:
+\begin{myequation}
+\log p(\mathcal{T}|\mathcal{M}) \simeq \log p(\mathcal{T}|\w_{MAP},\mathcal{M}) + M \log \left( \frac{\Delta w_{pos}}{\Delta w_{pri}} \right)
+\end{myequation}
+
+%\subsection{Occam's Razor in Model Selection}
+
+The Bayesian evidence naturally embodies \alert{Occam's Razor}: the principle that one should prefer the simplest explanation that fits the data. We can visualize this by considering the probability of different datasets $\mathcal{D}$ under models of varying complexity.
+
+\begin{itemize}
+    \item A Simple Model ($\mathcal{M}_1$): This model is very restricted. It can only describe a small range of datasets well. If our observed data $\mathcal{D}_0$ falls outside this range, the evidence will be near zero.
+    \item A Complex Model ($\mathcal{M}_3$): This model is highly general and can fit a vast array of potential datasets. However, because the evidence distribution $p(\mathcal{D}|\mathcal{M})$ must integrate to 1 over all possible datasets:
+    \begin{myequation}
+    \int_{\mathcal{D}} p(\mathcal{D}|\mathcal{M}_i) d\mathcal{D} = 1
+    \end{myequation}
+    the probability it assigns to any \textit{specific} dataset (including our $\mathcal{D}_0$) must be relatively small. It spreads its "probability mass" too thin.
+    \item An Intermediate Model ($\mathcal{M}_2$): This model is flexible enough to capture the structure of $\mathcal{D}_0$, but not so flexible that it wastes probability on every possible data configuration. Consequently, it achieves the highest evidence.
+\end{itemize}
+
+In summary, Bayesian model selection avoids overfitting by penalizing both models that are too simple (which fail to fit the data) and models that are too complex (which are over-specialized or "diluted" in their predictive power). By maximizing $p(\mathcal{T}|\mathcal{M}_i)$, we naturally settle on the most appropriate level of complexity for the data at hand.
+
+\begin{myexample}
+Derivation of Model Evidence for Linear Regression.
+
+\medskip
+To show the analytical derivation of the evidence, let us consider a linear regression model $\mathcal{M}$ where the target $t$ is modeled as $t = \w^T\x + \epsilon$, with noise $\epsilon \sim \mathcal{N}(0, \beta^{-1})$. For a dataset $\mathcal{T} = (\X, \t)$, the likelihood is given by:
+\begin{myequation}
+p(\t|\X, \w, \beta) = \left( \frac{\beta}{2\pi} \right)^{n/2} \exp \left( -\frac{\beta}{2} \|\t - \X\w\|^2 \right)
+\end{myequation}
+
+To complete the Bayesian setup, we assume a \textbf{Gaussian prior} over the parameters $\w$, governed by a precision hyper-parameter $\alpha$:
+\begin{myequation}
+p(\w|\alpha) = \mathcal{N}(\w|\Zero, \alpha^{-1}\mathbf{I}) = \left( \frac{\alpha}{2\pi} \right)^{M/2} \exp \left( -\frac{\alpha}{2} \w^T\w \right)
+\end{myequation}
+where $M$ is the number of parameters.
+
+%\subsection*{The Marginal Likelihood Integral}
+\medskip
+The model evidence $p(\t|\X, \alpha, \beta)$ is found by marginalizing out the parameters $\w$:
+\begin{myequation}
+p(\t|\X, \alpha, \beta) = \int p(\t|\X, \w, \beta) p(\w|\alpha) d\w
+\end{myequation}
+
+
+
+To solve this, we combine the exponents. The sum of the quadratic forms in the likelihood and the prior is:
+\begin{myequation}
+\ev{}{\w} = \frac{\beta}{2} \|\t - \X\w\|^2 + \frac{\alpha}{2} \w^T\w
+\end{myequation}
+By completing the square with respect to $\w$, we can rewrite this as:
+\begin{myequation}
+\ev{}{\w}= \ev{}{\w_{MAP}}+ \frac{1}{2} (\w - \w_{MAP})^T \mathbf{A} (\w - \w_{MAP})
+\end{myequation}
+where $\mathbf{A} = \alpha\mathbf{I} + \beta\X^T\X$ is the \textbf{Hessian matrix} of the error function, and $w_{MAP} = \beta \mathbf{A}^{-1} \X^T \t$ is the Maximum A Posteriori estimate.
+
+Substituting this back into the integral, we obtain:
+\begin{myalign}
+p(\t|\X, \alpha, \beta) &= \left( \frac{\beta}{2\pi} \right)^{n/2} \left( \frac{\alpha}{2\pi} \right)^{M/2} \exp(-\ev{}{\w_{MAP}}) \int \exp \left( -\frac{1}{2} (\w - \w_{MAP})^T \mathbf{A} (\w - \w_{MAP}) \right) d\w
+\end{myalign}
+
+The integral is a standard Gaussian integral, which evaluates to $(2\pi)^{M/2} |\mathbf{A}|^{-1/2}$.
+
+%\subsection*{The Log-Evidence Expression}
+
+Taking the natural logarithm of the result, we arrive at the final analytical expression for the log-evidence:
+\begin{myequation}
+\log p(\t|\X, \alpha, \beta) = \frac{M}{2}\log\alpha + \frac{n}{2}\log\beta - \ev{}{\w_{MAP}}) - \frac{1}{2}\log|\mathbf{A}| - \frac{n}{2}\log(2\pi)
+\end{myequation}
+
+%\subsubsection*{Interpretation of the Result}
+
+This formula provides a rigorous confirmation of our earlier intuitive insights:
+\begin{itemize}
+    \item The Data Fit: The term $-\ev{}{\w_{MAP}}$ contains the sum of squared errors at the optimal parameter setting. A better fit leads to a higher evidence.
+    \item The Occam Penalty: The term $-\frac{1}{2}\log|\mathbf{A}| + \frac{M}{2}\log\alpha$ represents the complexity penalty. Since $\mathbf{A}$ is the posterior precision and $\alpha$ is the prior precision, this term is effectively the log of the ratio of the volumes of the posterior and prior uncertainty $(\frac{\Delta w_{pos}}{\Delta w_{pri}})$. 
+\end{itemize}
+
+
+
+As the model becomes more complex (e.g., adding more basis functions to $\X$), the value of $\ev{}{\w_{MAP}}$ will decrease, but the penalty term based on the determinant of the Hessian $\mathbf{A}$ will increase. The Bayesian framework selects the model that optimizes this balance, effectively finding the "simplest" model that adequately explains the data.
+
+%\subsubsection*{Automated Hyper-parameter Tuning via the Evidence Framework}
+\medskip
+In the previous derivation, we assumed that the hyper-parameters $\alpha$ (prior precision) and $\beta$ (noise precision) were fixed. However, the quality of our model depends heavily on these values. In a fully Bayesian approach, we would marginalize over them, but a computationally efficient alternative is to maximize the model evidence with respect to $\alpha$ and $\beta$. This is known as the \alert{Evidence Framework}.
+
+%\subsection*{Maximizing Evidence with Respect to $\alpha$}
+\medskip
+To find the optimal $\alpha$, we look at the stationary points of the log-evidence:
+\begin{myequation}
+\frac{\partial}{\partial \alpha} \log p(\t|\X, \alpha, \beta) = 0
+\end{myequation}
+
+Recall that $\mathbf{A} = \alpha\mathbf{I} + \beta\X^T\X$. Let $\lambda_i$ be the eigenvalues of the matrix $\beta\X^T\X$. Then the eigenvalues of $\mathbf{A}$ are $(\lambda_i + \alpha)$. The term $\log |\mathbf{A}|$ can be written as $\sum_i \log(\lambda_i + \alpha)$. Taking the derivative of the log-evidence with respect to $\alpha$:
+\begin{myequation}
+\frac{M}{2\alpha} - \frac{1}{2} \w_{MAP}^T \w_{MAP} - \frac{1}{2} \sum_{i=1}^M \frac{1}{\lambda_i + \alpha} = 0
+\end{myequation}
+
+By rearranging, we define a quantity $\gamma$ representing the number of \textit{well-determined parameters}:
+\begin{myequation}
+\gamma = \sum_{i=1}^M \frac{\lambda_i}{\lambda_i + \alpha}
+\end{myequation}
+The optimal $\alpha$ is then given by the iterative update formula:
+\begin{myequation}
+\alpha = \frac{\gamma}{\w_{MAP}^T \w_{MAP}}
+\end{myequation}
+
+%\subsection*{Maximizing Evidence with Respect to $\beta$}
+
+Similarly, we can find the optimal noise precision $\beta$ by differentiating with respect to it:
+\begin{myequation}
+\frac{1}{\beta} = \frac{1}{n - \gamma} \sum_{i=1}^n \{t_i - \w_{MAP}^T \x_i\}^2
+\end{myequation}
+
+
+
+%\subsection*{Interpretation: The "Well-Determined" Parameters}
+
+The parameter $\gamma$ (where $0 \leq \gamma \leq M$) provides a deep interpretation of the learning process. 
+\begin{itemize}
+    \item If an eigenvalue $\lambda_i$ is much larger than $\alpha$, the corresponding parameter is driven primarily by the data (it is "well-determined"), and its contribution to $\gamma$ is close to 1.
+    \item If $\lambda_i$ is much smaller than $\alpha$, the prior dominates, the parameter is "shrunk" toward zero, and its contribution to $\gamma$ is close to 0.
+\end{itemize}
+
+This framework effectively performs \textbf{internal validation}. It measures how much information the data provides versus the prior and adjusts the regularization ($\alpha$) and the expected noise level ($\beta$) accordingly. This eliminates the need for the expensive $K$-fold cross-validation typically required in frequentist settings, as the model "self-regulates" based on the marginal likelihood.
+
+%\section*{Summary of Bayesian Model Selection}
+\medskip
+In coclusion, we have moved from simple model averaging to a rigorous mathematical framework for selecting model complexity. By utilizing the \textbf{Model Evidence}, we achieve:
+\begin{itemize}
+    \item Automatic Occam's Razor: Models that are too complex are penalized by the ratio of the posterior-to-prior volume.
+    \item No Need for a Test Set: Hyper-parameters can be tuned by maximizing the evidence on the training data alone.
+    \item Quantified Uncertainty: Predictions are made as a mixture, acknowledging that we may not know which model is "true."
+\end{itemize}
+
+By integrating these techniques, the Bayesian approach provides a cohesive and theoretically grounded path to building models that generalize effectively to unseen data while providing a realistic measure of their own uncertainty.
+	
+\end{myexample}
+
+%
+%\clearpage
+%\pagestyle{empty}
+%\end{document}

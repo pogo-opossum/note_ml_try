@@ -1,0 +1,292 @@
+%!TEX program = xelatex
+%!TEX root = ../all_short.tex
+
+\chapter{Generative probabilistic classification: A Summary}
+
+\section*{Generative Models}
+
+\begin{itemize}
+    \item \alert{Generative approach}: model how data in each class are produced, rather than directly separating classes.
+    \item Each class $C_k$ is described by a \alert{class-conditional distribution} $p(\x \mid C_k)$, capturing typical variability of samples in that class.
+    \item Generative models can be used to \emph{sample} new observations statistically similar to training data.
+    \item \alert{Class priors} $p(C_k)$ express probability of observing each class before seeing data.
+    \item Once $p(\x \mid C_k)$ and $p(C_k)$ are available, Bayes' rule gives \alert{posterior} class probabilities:
+    \begin{myequation}
+    p(C_k \mid \x) = \frac{p(\x \mid C_k) p(C_k)}{p(\x)} = \frac{p(\x \mid C_k) p(C_k)}{\sum_j p(\x \mid C_j) p(C_j)}
+    \end{myequation}
+    \item Parameters of $p(\x \mid C_k)$ and $p(C_k)$ are learned from labeled data, typically by maximum likelihood.
+    \item Classification: select class with highest posterior probability.
+\end{itemize}
+
+\subsection*{Deriving Posterior Probabilities (Binary Case)}
+
+\begin{itemize}
+    \item For binary classification ($C_1$, $C_2$), Bayes' rule yields:
+    \begin{myequation}
+    p(C_{1}|\x)=\frac{p(\x|C_{1})p(C_{1})}{p(\x|C_{1})p(C_{1})+p(\x|C_{2})p(C_{2})}
+    =\frac{1}{1+\frac{p(\x|C_{2})p(C_{2})}{p(\x|C_{1})p(C_{1})}}
+    \end{myequation}
+    \item Define \alert{log odds}:
+    \begin{myequation}
+    a(\x)=\log\frac{p(\x|C_{1})p(C_{1})}{p(\x|C_{2})p(C_{2})}
+    =\log\frac{p(C_{1}|\x)}{p(C_{2}|\x)}
+    \end{myequation}
+    \item Log odds convert multiplicative comparisons into additive ones.
+    \item Posterior probability expressed via \alert{logistic (sigmoid) function}:
+    \begin{myequation}
+    p(C_{1}|\x)=\frac{1}{1+e^{-a(\x)}}=\sigma(a(\x)),\quad
+    p(C_{2}|\x)=1-\sigma(a(\x))=\frac{1}{1+e^{a(\x)}}
+    \end{myequation}
+    \item Sigmoid properties:
+    \begin{itemize}
+        \item Maps $\mathbb{R}$ to $(0,1)$, producing valid probabilities.
+        \item $\sigma(-x)=1-\sigma(x)$.
+        \item Derivative: $\frac{d\sigma(x)}{dx}=\sigma(x)(1-\sigma(x))$.
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Multiclass Extension}
+
+\begin{itemize}
+    \item For $K>2$ classes, define for each class $k$:
+    \begin{myequation}
+    a_{k}(\x)=\log (p(\x|C_{k})p(C_{k}))=\log p(\x|C_{k})+\log p(C_k)
+    \end{myequation}
+    \item These are \alert{unnormalized log-posteriors} (up to additive constant $-\log p(\x)$).
+    \item Posterior probabilities via \alert{softmax} (normalized exponential):
+    \begin{myequation}
+    p(C_{k}|\x)=\frac{e^{a_k}}{\sum_{j}e^{a_j}}=s(a_k)
+    \end{myequation}
+    \item Softmax converts vector of real scores into probability distribution over classes.
+    \item If one score $a_k$ much larger than others, softmax assigns probability near 1 to class $k$.
+\end{itemize}
+
+\section*{Gaussian Discriminant Analysis (GDA)}
+
+\subsection*{Model Assumptions}
+
+\begin{itemize}
+    \item Assume Gaussian class-conditional distributions with \alert{shared covariance matrix} $\VSigma$:
+    \begin{myequation}
+    p(\x|C_{k})=\mgaussian{\x}{\Vmu_{k}}{\VSigma}{d}
+    \end{myequation}
+    \item $\Vmu_k$: center of class $C_k$; $\VSigma$: common spread and correlation structure.
+\end{itemize}
+
+\subsection*{Binary Case}
+
+\begin{itemize}
+    \item Log odds become:
+    \begin{myalign}
+    a(\x) &= \log\frac{p(\x|C_{1})p(C_{1})}{p(\x|C_{2})p(C_{2})} \\
+    &= \frac{1}{2}(\Vmu_{2}^{T}\VSigma^{-1}\Vmu_{2}-\Vmu_{1}^{T}\VSigma^{-1}\Vmu_{1}) \\
+    &\quad + (\Vmu_{1}^{T}\VSigma^{-1}-\Vmu_{2}^{T}\VSigma^{-1})\x
+    + \log\frac{p(C_{1})}{p(C_{2})}
+    \end{myalign}
+    \item Quadratic terms in $\x$ cancel due to shared covariance $\Rightarrow$ $a(\x)$ is \alert{linear} in $\x$.
+    \item Therefore:
+    \begin{myequation}
+    a(\x) = \w^{T}\x + b
+    \end{myequation}
+    with parameters:
+    \begin{myalign}
+    \w &= \VSigma^{-1}(\Vmu_{1}-\Vmu_{2}) \\
+    b &= \frac{1}{2}(\Vmu_{2}^{T}\VSigma^{-1}\Vmu_{2}-\Vmu_{1}^{T}\VSigma^{-1}\Vmu_{1}) + \log\frac{p(C_{1})}{p(C_{2})}
+    \end{myalign}
+    \item Posterior: $p(C_1|\x)=\sigma(\w^T\x+b)$ (generalized linear model).
+    \item Decision boundary ($a(\x)=0$) is a hyperplane:
+    \begin{myequation}
+    \w^{T}\x+b=0
+    \end{myequation}
+    \item With isotropic covariance $\VSigma=\lambda\I$:
+    \begin{myequation}
+    2(\Vmu_{2}-\Vmu_{1})\x+\|\Vmu_{1}\|^{2}-\|\Vmu_{2}\|^{2}+2\lambda\log\frac{p(C_{2})}{p(C_{1})}=0
+    \end{myequation}
+    \item Separation direction determined by difference of class means.
+\end{itemize}
+
+\subsection*{Multiclass Case ($K>2$)}
+
+\begin{itemize}
+    \item With shared covariance, each $a_k(\x)$ is affine:
+    \begin{myequation}
+    a_k(\x)=\w_k^{T}\x+b_k
+    \end{myequation}
+    \item Posterior: $p(C_k|\x)=s(\w_k^T\x+b_k)$ (softmax of linear functions).
+    \item Decision boundary between classes $j$ and $k$: $a_j(\x)=a_k(\x)$ defines a hyperplane.
+    \item All decision boundaries are linear; regions are convex.
+\end{itemize}
+
+\subsection*{General Covariance Matrices (Binary Case)}
+
+\begin{itemize}
+    \item If each class has its own covariance matrix $\VSigma_1 \neq \VSigma_2$, quadratic terms do not cancel.
+    \item Log odds become:
+    \begin{myalign}
+    a(\x) &= \frac{1}{2}\left((\x-\Vmu_{2})^{T}\VSigma_{2}^{-1}(\x-\Vmu_{2})
+    -(\x-\Vmu_{1})^{T}\VSigma_{1}^{-1}(\x-\Vmu_{1})\right) \\
+    &\quad + \frac{1}{2}\log\frac{|\VSigma_{2}|}{|\VSigma_{1}|}
+    + \log\frac{p(C_{1})}{p(C_{2})}
+    \end{myalign}
+    \item Decision boundary is quadratic (conic sections in low dimension).
+    \item Classifier compares two quadratic forms; boundary surfaces are at most quadratic.
+\end{itemize}
+
+\subsection*{Maximum Likelihood Estimation for GDA}
+
+\begin{itemize}
+    \item Binary case, shared covariance. Parameters: $\pi=p(C_1)$, $\Vmu_1$, $\Vmu_2$, $\VSigma$.
+    \item Training set $\mathcal T$: $(\x_i,t_i)$ with $t_i\in\{0,1\}$.
+    \item Likelihood:
+    \begin{myequation}
+    L(\pi,\Vmu_1,\Vmu_2,\VSigma|\mathcal{T})
+    =\prod_{i=1}^{n}(\pi\cdot\mathcal{N}(\x_i|\Vmu_1,\VSigma))^{t_i}
+    ((1-\pi)\cdot\mathcal{N}(\x_i|\Vmu_2,\VSigma))^{1-t_i}
+    \end{myequation}
+    \item Log-likelihood:
+    \begin{myalign}
+    l(\pi,\Vmu_1,\Vmu_2,\VSigma|\mathcal{T})
+    &= \sum_{i=1}^{n} t_i\log\pi + \sum_{i=1}^{n} t_i\log\mathcal{N}(\x_i|\Vmu_1,\VSigma) \\
+    &\quad + \sum_{i=1}^{n} (1-t_i)\log(1-\pi) + \sum_{i=1}^{n} (1-t_i)\log\mathcal{N}(\x_i|\Vmu_2,\VSigma)
+    \end{myalign}
+    \item MLE estimates:
+    \begin{myalign}
+    \pi &= \frac{n_1}{n} \quad (\text{empirical class frequency}) \\
+    \Vmu_1 &= \frac{1}{n_1}\sum_{\x_i\in C_1}\x_i \\
+    \Vmu_2 &= \frac{1}{n_2}\sum_{\x_i\in C_2}\x_i \\
+    \VSigma &= \frac{n_1}{n}\S_1 + \frac{n_2}{n}\S_2
+    \end{myalign}
+    where $\S_k = \frac{1}{n_k}\sum_{\x_i\in C_k}(\x_i-\Vmu_k)(\x_i-\Vmu_k)^{T}$.
+    \item Shared covariance is weighted average of within-class covariances.
+\end{itemize}
+
+\subsection*{MAP Estimation for GDA}
+
+\begin{itemize}
+    \item MAP estimation maximizes posterior $p(\theta|\mathcal{T}) \propto p(\mathcal{T}|\theta)p(\theta)$.
+    \item Equivalent to maximizing $\log p(\mathcal{T}|\theta) + \log p(\theta)$ (log-likelihood + regularization).
+    \item \textbf{For class prior $\pi$}: Beta prior yields posterior proportional to $\pi^{n_1+\alpha-1}(1-\pi)^{n_2+\beta-1}$; MAP estimate incorporates pseudo-counts, preventing extreme values with small data.
+    \item \textbf{For covariance $\VSigma$}: MAP acts as \alert{shrinkage} estimator, improving conditioning and numerical stability. Blends empirical covariance with structured prior target (e.g., $\tau\I$), damping spurious correlations and extreme eigenvalues.
+    \item \textbf{For means $\Vmu_k$}: Gaussian prior shrinks empirical means toward prior center $\Vmu_0$. MAP estimate is convex combination:
+    \begin{myequation}
+    \widehat{\Vmu}_k^{\mathrm{MAP}} = \alpha_k \widehat{\Vmu}_k^{\mathrm{ML}} + (1-\alpha_k)\Vmu_0,\quad \alpha_k\in(0,1)
+    \end{myequation}
+    with $\alpha_k$ increasing with class size $n_k$. Reduces variance when data limited.
+    \item MAP improves stability and generalization, especially in high-dimensional or small-sample regimes.
+\end{itemize}
+
+\section*{Conditional Independence and Naive Bayes}
+
+\begin{itemize}
+    \item \alert{Naive Bayes assumption}: conditioned on class label $C_k$, features are mutually independent:
+    \begin{myequation}
+    p(\x \mid C_k) = \prod_{i=1}^m p(x_i \mid C_k)
+    \end{myequation}
+    \item Features can be continuous or discrete; each $p(x_i \mid C_k)$ can be any parametric family.
+    \item For continuous features with Gaussian marginals:
+    \begin{myequation}
+    p(x_i \mid C_k)=\mathcal{N}(x_i \mid \mu_{ki}, \sigma_{ki}^2)
+    \end{myequation}
+    \item This corresponds to GDA with diagonal covariance matrices (features uncorrelated given class).
+    \item Naive Bayes drastically reduces number of parameters, beneficial for high-dimensional data, at cost of ignoring feature correlations.
+\end{itemize}
+
+\section*{Discrete Features and Language Models}
+
+\subsection*{Language Model Definition}
+
+\begin{itemize}
+    \item A \alert{language model} is a categorical probability distribution over a vocabulary $\mathcal{D}=\{t_1,\ldots,t_n\}$.
+    \item Vocabulary constructed from document collection via stop word removal and stemming.
+    \item For each term $t_i$, compute multiplicity $m_i$ (total occurrences in collection).
+    \item Probability vector $\hat{\Vphi}=(\hat{\phi}_1,\ldots,\hat{\phi}_n)^T$ with $\hat{\phi}_i = p(t_i|\mathcal{C})$.
+    \item Constraints: $0 \leq \hat{\phi}_i \leq 1$, $\sum_{i=1}^n \hat{\phi}_i = 1$.
+    \item Maximum likelihood estimate: $\hat{\phi}_i = \frac{m_i}{N}$ where $N = \sum m_i$ (observed frequency).
+\end{itemize}
+
+\subsection*{Laplace Smoothing}
+
+\begin{itemize}
+    \item MLE suffers from \alert{zero-frequency problem}: unseen terms get probability zero.
+    \item \alert{Laplace smoothing} (add-one smoothing):
+    \begin{myequation}
+    \phi_i^{Lap} = \frac{m_i + 1}{N + n}
+    \end{myequation}
+    \item Ensures all terms have non-zero probability; distribution remains normalized.
+    \item Bayesian interpretation: equivalent to Dirichlet prior with $\alpha_i=1$.
+    \item \alert{Lidstone smoothing} (generalization):
+    \begin{myequation}
+    \phi_i^{(\alpha)} = \frac{m_i + \alpha}{N + \alpha n},\quad 0<\alpha\leq1
+    \end{myequation}
+    \item Smaller $\alpha$ gives less aggressive smoothing, preferred for large-scale NLP.
+\end{itemize}
+
+\subsection*{Bayesian Language Modeling (Dirichlet-Multinomial)}
+
+\begin{itemize}
+    \item Treat parameters as random variables with \alert{Dirichlet prior}:
+    \begin{myequation}
+    p(\phi_{1}, \ldots, \phi_{n} | \Valpha) = \frac{1}{\Delta(\alpha_{1}, \ldots, \alpha_{n})} \prod_{i=1}^{n} \phi_{i}^{\alpha_{i}-1}
+    \end{myequation}
+    \item $\alpha_i$ are pseudo-counts (prior observations).
+    \item Dirichlet is conjugate prior to multinomial.
+    \item After observing counts $m_i$, posterior is $\text{Dir}(\Vphi|\overline\Valpha)$ with:
+    \begin{myequation}
+    \overline\Valpha = (\alpha_1 + m_1, \ldots, \alpha_n + m_n)
+    \end{myequation}
+    \item Predictive posterior (probability of next term $t_j$):
+    \begin{myequation}
+    \hat{\phi}_j = \frac{\alpha_j + m_j}{\sum_{k=1}^n (\alpha_k + m_k)} = \frac{\alpha_j + m_j}{\alpha_0 + N}
+    \end{myequation}
+    where $\alpha_0 = \sum \alpha_k$.
+    \item This is the expected value of $\phi_j$ under posterior Dirichlet.
+    \item With uniform prior $\alpha_i=\alpha$, we get $\hat{\phi}_j = \frac{m_j + \alpha}{\alpha n + N}$.
+    \item When $\alpha=1$, this equals Laplace smoothing.
+\end{itemize}
+
+\subsection*{Naive Bayes Classifiers for Text}
+
+\begin{itemize}
+    \item For document $d$ with terms $\overline{t}_{1},\ldots,\overline{t}_{n_d}$, posterior probability:
+    \begin{myequation}
+    p(C_k|d) \propto p(C_k) \prod_{j=1}^{n_d} p(\overline{t}_j|C_k)
+    \end{myequation}
+    \item $p(C_k)$ estimated as class frequency: $p(C_k) = \frac{|\mathcal{C}_k|}{|\mathcal{C}_1|+|\mathcal{C}_2|}$.
+    \item $p(\overline{t}_j|C_k)$ are term probabilities from language model for class $C_k$.
+    \item Classification rule: assign $d$ to class with highest $p(C_k) \prod p(\overline{t}_j|C_k)$.
+    \item Naive Bayes assumption: terms conditionally independent given class (ignores linguistic dependencies).
+    \item Despite strong assumption, often performs well, especially with high-dimensional features.
+\end{itemize}
+
+\section*{Feature Selection via Mutual Information}
+
+\begin{itemize}
+    \item Identify terms whose presence/absence best characterizes document class.
+    \item \alert{Mutual Information} $I_j$ between term $t_j$ and class distribution:
+    \begin{myalign}
+    I_j &= \sum_{k=1,2} p(t_j, C_k) \log \frac{p(t_j, C_k)}{p(t_j) p(C_k)} \\
+    &= p(t_j) \sum_{k=1,2} p(C_k|t_j) \log \frac{p(C_k|t_j)}{p(C_k)} \\
+    &= p(t_j) KL(p(C_k|t_j) \| p(C_k))
+    \end{myalign}
+    \item $KL$ divergence measures how much class distribution changes given term presence.
+    \item Weighted by $p(t_j)$ to avoid over-prioritizing rare terms.
+    \item Estimated using language model parameters:
+    \begin{myalign}
+    I_j &= \phi_{j1} \pi_1 \log \frac{\phi_{j1}}{\phi_{j1}\pi_1 + \phi_{j2}\pi_2} \\
+    &\quad + \phi_{j2} \pi_2 \log \frac{\phi_{j2}}{\phi_{j1}\pi_1 + \phi_{j2}\pi_2}
+    \end{myalign}
+    where $\phi_{jk}=p(t_j|C_k)$, $\pi_k=p(C_k)$.
+    \item Rank terms by $I_j$, select top $K$ for classification.
+\end{itemize}
+
+\subsection*{Mutual Information vs. Frequency-Based Selection}
+
+\begin{itemize}
+    \item \textbf{Frequency-based}: selects most common terms (stop words, background words) -- poor for discrimination.
+    \item \textbf{Mutual Information}: selects terms strongly correlated with specific class (high in one class, low in others).
+    \item MI naturally ignores high-frequency words evenly distributed across classes.
+    \item $p(t_j)$ factor prevents selection of extremely rare "noise" terms.
+    \item MI focuses on terms where ratio $\frac{p(t_j|C_1)}{p(t_j|C_2)}$ differs significantly from 1, amplifying class separation.
+    \item Frequency best for language modeling; MI superior for supervised classification.
+\end{itemize}
+

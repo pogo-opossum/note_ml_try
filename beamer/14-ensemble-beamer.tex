@@ -1,0 +1,1383 @@
+%!TEX program = xelatex
+%!TEX root = ../all_beamer.tex
+
+%% Ensemble Methods – Beamer Presentation
+%% Based on notes by Giorgio Gambosi, University of Rome "Tor Vergata"
+%% Style modelled on ml-dectrees-beamer.tex
+
+%\input{header-beamer.tex}
+%
+%%% ── Packages ────────────────────────────────────────────────────────────────
+%\usepackage{amsmath,amssymb,bm}
+%\usepackage{booktabs}
+%\usepackage{graphicx}
+%\usepackage{xcolor}
+%\usepackage{xkcdcolors}
+%\usepackage{tikz}
+%\usepackage{subcaption}
+%
+%%% ── Math shorthands ─────────────────────────────────────────────────────────
+%\newcommand{\SW}{\mathbf{S}_W}
+%\newcommand{\SB}{\mathbf{S}_B}
+%\newcommand{\ST}{\mathbf{S}_T}
+%\newcommand{\Smat}{\mathbf{S}}
+%\newcommand{\GX}{G_{\mathbf{X}}}
+
+%% ── Metadata ────────────────────────────────────────────────────────────────
+\title[Ensemble Methods]{Ensemble Methods}
+%\subtitle{Course of Machine Learning}
+%\author{Giorgio Gambosi}
+%\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+%\date{A.Y. 2025--2026}
+
+%% ════════════════════════════════════════════════════════════════════════════
+%\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Introduction to Ensemble Methods}
+
+\begin{frame}{What Are Ensemble Methods?}
+  \framesubtitle{Combining multiple learners for superior prediction}
+  \begin{itemize}
+    \item An \alert{ensemble method} builds several predictive models and combines their outputs
+          to obtain a final predictor that is more accurate, more stable, or both.
+    \item Core motivation: a single model is limited by the particular sample on which it was
+          trained and by the inductive biases of its hypothesis class.
+    \item By \alert{aggregating multiple models}, we reduce the impact of these limitations,
+          much like averaging repeated measurements reduces noise.
+    \item From a probabilistic viewpoint: ensembles reduce \alert{uncertainty} by combining
+          multiple plausible rules, each affected by sampling variability.
+  \end{itemize}
+  \begin{block}{Error correction through diversity}
+    Idiosyncratic mistakes made by one model may be compensated by other models, while
+    consistent patterns across models are \alert{reinforced}.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Two Fundamental Paradigms}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Bagging (parallel)}
+        \begin{itemize}
+          \item Constructs a \alert{committee} of $L$ models trained independently on
+                perturbed versions of the data.
+          \item Aggregates predictions through voting or averaging.
+          \item Primarily reduces \alert{variance}.
+          \item Models are diverse through data perturbation.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Boosting (sequential)}
+        \begin{itemize}
+          \item Constructs models \alert{sequentially}, each trained to address the
+                shortcomings of the current ensemble.
+          \item Later models focus on hard examples.
+          \item Primarily reduces \alert{bias}.
+          \item Diversity through adaptive reweighting.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item Both produce ensembles, but differ in how diversity is created and what aspect
+          of error they primarily target.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Bootstrap}
+
+\begin{frame}{The Bootstrap Principle}
+  \framesubtitle{Resampling to approximate sampling uncertainty}
+  \begin{itemize}
+    \item The \alert{bootstrap} is a fundamental resampling tool whose purpose is to approximate
+          sampling uncertainty when the true data-generating distribution is unknown.
+    \item Key observation: in most realistic problems, the underlying distribution $\mathcal{F}$
+          from which data are drawn cannot be accessed directly.
+    \item Bootstrap solution: treat the observed dataset itself as a \alert{proxy for $\mathcal{F}$},
+          and resample from it repeatedly to mimic collecting new data.
+  \end{itemize}
+  \begin{block}{Converting a hard problem into a computational one}
+    The bootstrap converts reasoning about the sampling distribution under an unknown distribution
+    into a \alert{computational problem} that can be addressed by simulation.
+  \end{block}
+\end{frame}
+
+\begin{frame}{The Empirical Distribution}
+  \framesubtitle{The plug-in principle}
+  \begin{itemize}
+    \item Given training data $(\mathbf{x}_i, t_i)$ for $i = 1, \ldots, n$ drawn i.i.d.\ from
+          unknown joint distribution $\mathcal{F}$.
+    \item Bootstrap replaces $\mathcal{F}$ with the \alert{empirical distribution}
+          $\hat{\mathcal{F}}$, which assigns equal probability mass $1/n$ to each observed
+          training pair.
+  \end{itemize}
+  \begin{block}{Empirical probability mass function}
+    \[
+    \hat{p}(\mathbf{x}, t) =
+    \begin{cases}
+    \dfrac{1}{n} & \text{if } \exists\, i : (\mathbf{x}, t) = (\mathbf{x}_i, t_i), \\
+    0            & \text{otherwise.}
+    \end{cases}
+    \]
+  \end{block}
+  \begin{itemize}
+    \item This is a discrete distribution supported entirely on the observed sample.
+    \item As $n$ grows, $\hat{\mathcal{F}}$ converges to $\mathcal{F}$ by the
+          \alert{Glivenko--Cantelli theorem}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Bootstrap Sampling Procedure}
+  \begin{itemize}
+    \item To draw a \alert{bootstrap sample} of size $n$, we sample $n$ times \emph{with replacement}
+          from the original dataset.
+    \item Each draw selects one of the $n$ observed pairs with equal probability $1/n$,
+          independently of all other draws.
+    \item Because sampling is \alert{with replacement}, some original observations appear
+          multiple times in a bootstrap sample, while others do not appear at all.
+  \end{itemize}
+  \begin{block}{Bootstrap replication}
+    Repeating this procedure $B$ times produces $B$ distinct bootstrap datasets
+    $\mathcal{D}^{(1)}, \mathcal{D}^{(2)}, \ldots, \mathcal{D}^{(B)}$, each of size $n$ but
+    with different compositions of training examples.
+  \end{block}
+  \begin{itemize}
+    \item Each bootstrap dataset is used to train a separate model, yielding $B$ fitted models.
+    \item The distribution of these models approximates the distribution of models we would
+          obtain by repeatedly collecting new samples from $\mathcal{F}$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Expected Coverage in a Bootstrap Sample}
+  \begin{itemize}
+    \item Consider a particular training example $(\mathbf{x}_i, t_i)$ from the original dataset.
+    \item In one bootstrap sample, the probability that this example is \alert{not selected}
+          in a single draw is $(1 - 1/n)$.
+    \item Since we make $n$ independent draws, the probability that the example is never
+          selected in the entire bootstrap sample is:
+  \end{itemize}
+  \begin{block}{Probability of exclusion}
+    \[
+    \left(1 - \frac{1}{n}\right)^n \xrightarrow{n \to \infty} e^{-1} \approx 0.368.
+    \]
+  \end{block}
+  \begin{itemize}
+    \item Therefore, approximately \alert{63.2\%} of the original training examples appear
+          at least once in any given bootstrap sample.
+    \item The remaining \alert{36.8\%} are \emph{out-of-bag} (OOB) examples for that sample.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Out-of-Bag Examples and Validation}
+  \begin{itemize}
+    \item For each bootstrap sample $\mathcal{D}^{(b)}$, the examples not selected constitute
+          the \alert{out-of-bag (OOB)} set for that bootstrap replicate.
+    \item These OOB examples were not used to train the model, so they provide an
+          \alert{unbiased validation set} for evaluating that model's performance.
+  \end{itemize}
+  \begin{block}{OOB error estimation}
+    By aggregating OOB predictions across all bootstrap replicates, we can estimate
+    generalization error \alert{without setting aside a separate validation set}.
+  \end{block}
+  \begin{itemize}
+    \item This is particularly valuable when data is scarce: the full dataset is used for
+          training, yet we still obtain honest performance estimates.
+    \item OOB evaluation is a distinctive feature of bootstrap-based ensembles like bagging
+          and random forests.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Bagging}
+
+\begin{frame}{Bootstrap Aggregation (Bagging)}
+  \framesubtitle{Variance reduction through model averaging}
+  \begin{itemize}
+    \item \alert{Bagging} (Bootstrap AGGregatING) applies the bootstrap principle directly
+          to supervised learning.
+    \item Given a training set $\mathcal{D}$ of size $n$, we generate $B$ bootstrap samples
+          $\mathcal{D}^{(1)}, \ldots, \mathcal{D}^{(B)}$.
+    \item On each bootstrap sample, we train a \alert{base learner} $\hat{f}^{(b)}$, producing
+          $B$ fitted models.
+    \item Final prediction is obtained by \alert{aggregating} the predictions of all $B$ models.
+  \end{itemize}
+  \begin{block}{Aggregation rules}
+    \begin{itemize}
+      \item \textbf{Regression}: average the predictions:
+            $\displaystyle \hat{f}_{\text{bag}}(\mathbf{x}) = \frac{1}{B}\sum_{b=1}^{B} \hat{f}^{(b)}(\mathbf{x})$.
+      \item \textbf{Classification}: majority vote among the predicted class labels.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Why Does Bagging Reduce Variance?}
+  \begin{itemize}
+    \item Consider the case of regression with squared loss. The expected prediction error of
+          a single model $\hat{f}$ can be decomposed as:
+          \[
+          \mathbb{E}[(t - \hat{f}(\mathbf{x}))^2] = \text{Bias}^2 + \text{Variance} + \text{Irreducible error}.
+          \]
+    \item If the base learner has high variance (e.g., deep decision trees), individual predictions
+          are highly sensitive to which particular sample was used for training.
+    \item Averaging reduces variance: if predictions $\hat{f}^{(1)}(\mathbf{x}), \ldots, \hat{f}^{(B)}(\mathbf{x})$
+          were independent with variance $\sigma^2$, the variance of the average would be $\sigma^2/B$.
+  \end{itemize}
+  \begin{alertblock}{In practice}
+    Bootstrap samples are \alert{not independent} (they overlap), so variance reduction is less
+    than $1/B$. Nevertheless, substantial reduction is typically achieved.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Bagging Does Not Reduce Bias}
+  \begin{itemize}
+    \item Bagging primarily addresses \alert{variance}, not bias.
+    \item Each bootstrap sample is still drawn from the empirical distribution $\hat{\mathcal{F}}$,
+          which is an approximation of the true distribution $\mathcal{F}$.
+    \item The bias of the bagged predictor is approximately the same as the bias of a single
+          base learner trained on the full dataset.
+  \end{itemize}
+  \begin{block}{Implication}
+    Bagging is most effective when combined with \alert{low-bias, high-variance} base learners,
+    such as:
+    \begin{itemize}
+      \item Deep, unpruned decision trees.
+      \item Complex models that can overfit easily.
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item If the base learner is already high-bias (e.g., shallow tree), bagging provides
+          little benefit because there is little variance to reduce.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Base Learners for Bagging}
+  \begin{itemize}
+    \item In principle, \alert{any supervised learning algorithm} can serve as the base learner
+          for bagging.
+    \item However, bagging is most beneficial when the base learner is:
+      \begin{itemize}
+        \item \alert{Unstable}: small changes in training data lead to large changes in the
+              learned model.
+        \item \alert{Low bias}: capable of fitting complex patterns when given enough data.
+      \end{itemize}
+    \item Decision trees are the canonical choice because they satisfy both properties.
+  \end{itemize}
+  \begin{block}{Stable vs.\ unstable learners}
+    \begin{itemize}
+      \item Stable learners (e.g., linear regression, nearest neighbors with large $k$):
+            bagging provides little improvement.
+      \item Unstable learners (e.g., decision trees, neural networks): bagging can yield
+            substantial gains.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Out-of-Bag Error in Bagging}
+  \begin{itemize}
+    \item For each training example $(\mathbf{x}_i, t_i)$, approximately $36.8\%$ of the
+          bootstrap samples will not include it.
+    \item These are the \alert{out-of-bag (OOB)} samples for example $i$.
+    \item We can predict $t_i$ using only those models for which $(\mathbf{x}_i, t_i)$
+          was out-of-bag.
+    \item By aggregating OOB predictions across all training examples, we obtain an unbiased
+          estimate of generalization error.
+  \end{itemize}
+  \begin{block}{Advantage}
+    OOB error provides a \alert{free cross-validation estimate} without the need for a
+    separate validation set or multiple training runs.
+  \end{block}
+  \begin{itemize}
+    \item This is particularly valuable in bagging and random forests, where it has become
+          a standard diagnostic.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Number of Bootstrap Replicates}
+  \begin{itemize}
+    \item The parameter $B$ (number of bootstrap samples) controls the size of the ensemble.
+    \item Unlike many hyperparameters, increasing $B$ does \alert{not cause overfitting}.
+    \item The bagged predictor converges as $B \to \infty$ to the idealized expectation over
+          all possible bootstrap samples from $\hat{\mathcal{F}}$.
+    \item In practice, $B$ is chosen based on computational budget rather than statistical
+          considerations.
+  \end{itemize}
+  \begin{block}{Practical recommendation}
+    \begin{itemize}
+      \item Start with $B = 100$ to $500$ for exploratory analysis.
+      \item For production models, $B = 1000$ or more is common.
+      \item Monitor OOB error as $B$ increases; it typically stabilizes after a few hundred trees.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Bagging: Summary of Key Properties}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Strengths}
+        \begin{itemize}
+          \item \alert{Reduces variance} substantially for unstable learners.
+          \item Simple and easy to parallelize.
+          \item Provides OOB error estimates.
+          \item Does not overfit as $B$ increases.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Limitations}
+        \begin{itemize}
+          \item Does \alert{not reduce bias}.
+          \item Less effective with stable learners.
+          \item Loss of interpretability compared to single model.
+          \item Requires computational resources proportional to $B$.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item Bagging laid the foundation for more sophisticated ensemble methods, most notably
+          \alert{random forests}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Random Forests}
+
+\begin{frame}{Random Forests: Beyond Bagging}
+  \framesubtitle{Adding feature randomization for decorrelation}
+  \begin{itemize}
+    \item \alert{Random forests} extend bagging by introducing an additional source of randomness:
+          at each node, only a \alert{random subset of features} is considered for splitting.
+    \item This feature subsampling decorrelates the trees, reducing the overlap in their
+          decision paths.
+    \item Because bagging produces trees from overlapping bootstrap samples, those trees tend
+          to use similar features at the top levels, leading to \alert{correlation}.
+    \item Feature randomization breaks this correlation, leading to greater diversity and
+          further variance reduction.
+  \end{itemize}
+  \begin{block}{Key innovation}
+    While bagging randomizes the \alert{data}, random forests randomize both the \alert{data}
+    and the \alert{features}, yielding substantially more diverse ensembles.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Random Forest Algorithm}
+  \begin{enumerate}
+    \item For $b = 1, \ldots, B$:
+      \begin{enumerate}
+        \item Draw a bootstrap sample $\mathcal{D}^{(b)}$ of size $n$ from the training set.
+        \item Grow a decision tree $T^{(b)}$ on $\mathcal{D}^{(b)}$, with the following
+              modification:
+              \begin{itemize}
+                \item At each node, randomly select $m$ features from the $p$ available features.
+                \item Determine the best split using \alert{only those $m$ features}.
+                \item Typical choices: $m = \sqrt{p}$ (classification) or $m = p/3$ (regression).
+              \end{itemize}
+        \item Grow the tree to full depth without pruning (or to a pre-specified minimum
+              node size).
+      \end{enumerate}
+    \item Aggregate predictions: average for regression, majority vote for classification.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Feature Subsampling Parameter $m$}
+  \begin{itemize}
+    \item The parameter $m$ controls the strength of feature randomization.
+    \item \alert{$m = p$}: no feature randomization, reduces to standard bagging.
+    \item \alert{$m = 1$}: maximum randomization, each split considers only one feature.
+    \item Intermediate values balance diversity and individual tree quality.
+  \end{itemize}
+  \begin{block}{Default recommendations}
+    \begin{itemize}
+      \item \textbf{Classification}: $m = \sqrt{p}$ (e.g., $m = 3$ for $p = 10$).
+      \item \textbf{Regression}: $m = p/3$ (e.g., $m \approx 3$ for $p = 10$).
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item Smaller $m$ increases diversity but may reduce individual tree quality.
+    \item Larger $m$ reduces diversity but produces stronger individual trees.
+    \item In practice, the defaults work well, but $m$ can be tuned via cross-validation.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Why Feature Randomization Works}
+  \begin{itemize}
+    \item In many datasets, a \alert{few features are much stronger predictors} than the rest.
+    \item In bagging, most trees will select these strong features at the top levels,
+          making the trees highly similar.
+    \item Feature randomization forces the algorithm to consider \alert{alternative features},
+          even if they are individually weaker.
+  \end{itemize}
+  \begin{block}{Decorrelation effect}
+    By preventing all trees from relying on the same strong features, random forests create
+    more \alert{diverse decision boundaries}, which reduces the correlation among predictions
+    and leads to greater variance reduction upon averaging.
+  \end{block}
+  \begin{itemize}
+    \item This is especially beneficial in problems with many correlated features or a few
+          dominant predictors.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Deep Trees Without Pruning}
+  \begin{itemize}
+    \item Unlike classical decision trees, random forests typically grow trees to
+          \alert{full depth} without pruning.
+    \item Individual trees are allowed to overfit, achieving very low bias but high variance.
+    \item The ensemble aggregation then \alert{reduces the variance} without increasing bias.
+  \end{itemize}
+  \begin{block}{Trade-off}
+    \begin{itemize}
+      \item Each individual tree is complex and potentially overfit.
+      \item The forest as a whole is \alert{regularized by averaging}, not by constraining
+            individual trees.
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item This strategy contrasts with boosting, where individual trees are typically kept
+          shallow to serve as weak learners.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Out-of-Bag Error in Random Forests}
+  \begin{itemize}
+    \item As in bagging, each tree in a random forest is trained on a bootstrap sample,
+          leaving approximately $36.8\%$ of examples out-of-bag.
+    \item OOB predictions for each example are computed using only trees for which that
+          example was OOB.
+    \item The \alert{OOB error} aggregates these predictions and provides an unbiased estimate
+          of generalization performance.
+  \end{itemize}
+  \begin{block}{Practical advantage}
+    OOB error in random forests is nearly as accurate as $k$-fold cross-validation but
+    requires \alert{only a single training run}, making it extremely convenient for model
+    evaluation and hyperparameter tuning.
+  \end{block}
+  \begin{itemize}
+    \item OOB error typically stabilizes after a few hundred trees and can guide the choice of $B$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Feature Importance in Random Forests}
+  \framesubtitle{Measuring variable relevance}
+  \begin{itemize}
+    \item Random forests provide a natural mechanism for assessing \alert{feature importance}.
+    \item Two common measures:
+  \end{itemize}
+  \begin{block}{Mean Decrease in Impurity (MDI)}
+    For each feature, sum the total reduction in impurity (e.g., Gini or entropy) achieved
+    by splits on that feature, averaged over all trees.
+    \begin{itemize}
+      \item Advantages: fast to compute, available by default.
+      \item Disadvantage: biased toward high-cardinality features.
+    \end{itemize}
+  \end{block}
+  \begin{block}{Permutation Importance (Mean Decrease in Accuracy)}
+    For each feature, randomly permute its values in the OOB samples and measure the
+    decrease in prediction accuracy.
+    \begin{itemize}
+      \item More reliable and unbiased.
+      \item Requires recomputing predictions, more expensive.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Hyperparameters in Random Forests}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Hyperparameter} & \textbf{Typical values / guidance} \\
+    \midrule
+    $B$ (number of trees) & $100$--$1000$; does not cause overfitting \\
+    $m$ (features per split) & $\sqrt{p}$ (classif.), $p/3$ (regr.) \\
+    Min samples per leaf & $1$ (classif.), $5$ (regr.) \\
+    Max depth & Unlimited (full trees) \\
+    Bootstrap sample size & $n$ (same as training set) \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item Random forests are remarkably \alert{robust to hyperparameter choices}.
+    \item Default settings often work well out-of-the-box.
+    \item The most important parameter is $m$; tuning it can provide modest improvements.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Random Forests: Strengths and Limitations}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Strengths}
+        \begin{itemize}
+          \item Excellent \alert{out-of-the-box performance}.
+          \item Handles high-dimensional data well.
+          \item Provides feature importance estimates.
+          \item Robust to overfitting.
+          \item Naturally handles mixed feature types.
+          \item Easily parallelizable.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Limitations}
+        \begin{itemize}
+          \item Loss of interpretability.
+          \item Can be slow for very large datasets.
+          \item Less effective than boosting for highly structured problems.
+          \item Memory-intensive for large $B$.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item Random forests are among the most widely used ensemble methods in practice,
+          valued for their simplicity, robustness, and strong empirical performance.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Boosting}
+
+\begin{frame}{The Boosting Paradigm}
+  \framesubtitle{Sequential learning with adaptive emphasis}
+  \begin{itemize}
+    \item \alert{Boosting} constructs an ensemble \emph{sequentially}, where each new model
+          is trained to correct the errors of the current ensemble.
+    \item Unlike bagging, which trains models independently in parallel, boosting is inherently
+          \alert{adaptive}: later models focus on examples that earlier models found difficult.
+    \item The key mechanism: assign \alert{higher weights} to misclassified examples, forcing
+          subsequent learners to prioritize them.
+  \end{itemize}
+  \begin{block}{Core principle}
+    By repeatedly focusing attention on hard cases, boosting transforms a sequence of
+    \alert{weak learners} (models barely better than random guessing) into a single
+    \alert{strong learner} with high accuracy.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Weak Learners}
+  \begin{itemize}
+    \item A \alert{weak learner} is a model that performs slightly better than random guessing
+          on any distribution over training examples.
+    \item For binary classification: a weak learner achieves error rate $\epsilon < 1/2$.
+    \item Typical weak learners in boosting:
+      \begin{itemize}
+        \item \alert{Decision stumps}: trees with only one split (depth 1).
+        \item \alert{Shallow trees}: depth 2--6, capturing simple interactions.
+      \end{itemize}
+    \item The weakness of individual learners is \alert{deliberate}: boosting's strength comes
+          from combining many simple models, not from using complex ones.
+  \end{itemize}
+  \begin{alertblock}{Contrast with bagging}
+    Bagging uses \alert{strong, high-variance} base learners (deep trees), while boosting
+    uses \alert{weak, low-variance} base learners (shallow trees).
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Boosting vs.\ Bagging: Conceptual Comparison}
+  \renewcommand{\arraystretch}{1.5}
+  \begin{center}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Aspect} & \textbf{Bagging} & \textbf{Boosting} \\
+    \midrule
+    Training mode & Parallel & Sequential \\
+    Base learners & Strong (deep trees) & Weak (shallow trees) \\
+    Error focus & Variance reduction & Bias reduction \\
+    Weighting & Uniform & Adaptive \\
+    Overfitting risk & Low & Moderate to high \\
+    Interpretability & Low & Very low \\
+    Parallelization & Easy & Difficult \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{AdaBoost}
+
+\begin{frame}{AdaBoost: Adaptive Boosting}
+  \framesubtitle{The canonical boosting algorithm}
+  \begin{itemize}
+    \item \alert{AdaBoost} (Adaptive Boosting) is the most influential and historically
+          important boosting algorithm.
+    \item Designed for \alert{binary classification} with labels $t_i \in \{-1, +1\}$.
+    \item Maintains a set of nonnegative weights $\mathbf{w}^{(j)} = (w_1^{(j)}, \ldots, w_n^{(j)})$
+          over training examples, normalized to define a probability distribution.
+    \item Initially, all examples are equally important: $w_i^{(0)} = 1/n$.
+  \end{itemize}
+  \begin{block}{Adaptive reweighting}
+    At each stage, AdaBoost increases the weights of \alert{misclassified examples} and
+    decreases the weights of correctly classified ones, forcing subsequent learners to
+    focus on hard cases.
+  \end{block}
+\end{frame}
+
+\begin{frame}{AdaBoost Algorithm: Overview}
+  \begin{enumerate}
+    \item Initialize weights: $w_i^{(0)} = 1/n$ for $i = 1, \ldots, n$.
+    \item For $j = 1, \ldots, m$ stages:
+      \begin{enumerate}
+        \item Train a weak learner $y_j(\mathbf{x})$ by minimizing the \alert{weighted}
+              misclassification error under $\mathbf{w}^{(j)}$.
+        \item Compute the weighted error:
+              \[
+              \epsilon^{(j)} = \frac{\sum_{\mathbf{x}_i \in \mathcal{E}^{(j)}} w_i^{(j)}}{\sum_i w_i^{(j)}},
+              \]
+              where $\mathcal{E}^{(j)}$ is the set of misclassified examples.
+        \item Compute the learner weight:
+              \[
+              \alpha_j = \frac{1}{2}\ln\left(\frac{1 - \epsilon^{(j)}}{\epsilon^{(j)}}\right).
+              \]
+        \item Update example weights:
+              \[
+              w_i^{(j+1)} = w_i^{(j)} \cdot \exp\left(-\alpha_j\, t_i\, y_j(\mathbf{x}_i)\right).
+              \]
+      \end{enumerate}
+    \item Final classifier: $H(\mathbf{x}) = \text{sign}\left(\sum_{j=1}^{m} \alpha_j y_j(\mathbf{x})\right)$.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Weighted Error and Learner Weight}
+  \begin{itemize}
+    \item The \alert{weighted error} $\epsilon^{(j)}$ measures performance under the current
+          distribution $\mathbf{w}^{(j)}$:
+          \[
+          \epsilon^{(j)} = \frac{\sum_{\mathbf{x}_i \in \mathcal{E}^{(j)}} w_i^{(j)}}{\sum_i w_i^{(j)}}.
+          \]
+    \item If $\epsilon^{(j)} > 1/2$, the learner performs worse than random guessing.
+          In this case, we can flip its predictions to achieve $\epsilon < 1/2$.
+    \item The \alert{learner weight} $\alpha_j$ quantifies the contribution of weak learner $y_j$:
+          \[
+          \alpha_j = \frac{1}{2}\ln\left(\frac{1 - \epsilon^{(j)}}{\epsilon^{(j)}}\right).
+          \]
+  \end{itemize}
+  \begin{block}{Interpretation}
+    \begin{itemize}
+      \item If $\epsilon^{(j)} \to 0$ (perfect learner), then $\alpha_j \to \infty$.
+      \item If $\epsilon^{(j)} = 1/2$ (random), then $\alpha_j = 0$.
+      \item Better learners receive higher weights in the final combination.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Weight Update Rule}
+  \begin{itemize}
+    \item After training weak learner $y_j$, example weights are updated:
+          \[
+          w_i^{(j+1)} = w_i^{(j)} \cdot \exp\left(-\alpha_j\, t_i\, y_j(\mathbf{x}_i)\right).
+          \]
+    \item The product $t_i\, y_j(\mathbf{x}_i)$ is:
+      \begin{itemize}
+        \item $+1$ if the prediction is correct.
+        \item $-1$ if the prediction is incorrect.
+      \end{itemize}
+    \item Therefore:
+      \begin{itemize}
+        \item \alert{Correct predictions}: $w_i^{(j+1)} = w_i^{(j)} \cdot e^{-\alpha_j}$ (weight decreases).
+        \item \alert{Incorrect predictions}: $w_i^{(j+1)} = w_i^{(j)} \cdot e^{\alpha_j}$ (weight increases).
+      \end{itemize}
+  \end{itemize}
+  \begin{block}{Adaptive emphasis}
+    Misclassified examples receive exponentially increasing attention, while correctly
+    classified examples gradually fade into the background.
+  \end{block}
+\end{frame}
+
+\begin{frame}{AdaBoost Weight Distribution Visualization}
+  \begin{center}
+    \includegraphics[width=.4\linewidth]{figs/Figure14-1.pdf}
+  \end{center}
+  \begin{itemize}
+    \item The figure illustrates how weights evolve across boosting iterations.
+    \item Points consistently misclassified accumulate larger weights (shown as larger markers).
+    \item These hard cases dominate the objective of later learners, forcing the ensemble to
+          refine decision boundaries precisely where classification is most difficult.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Final Ensemble Prediction}
+  \begin{itemize}
+    \item After $m$ iterations, AdaBoost produces $m$ weak learners $y_1, \ldots, y_m$ with
+          corresponding weights $\alpha_1, \ldots, \alpha_m$.
+    \item The \alert{final classifier} combines all weak learners through a weighted vote:
+          \[
+          H(\mathbf{x}) = \text{sign}\left(\sum_{j=1}^{m} \alpha_j\, y_j(\mathbf{x})\right).
+          \]
+    \item Each weak learner votes with strength proportional to its accuracy (via $\alpha_j$).
+    \item Better learners have more influence; weaker learners contribute less.
+  \end{itemize}
+  \begin{block}{Interpretation}
+    The ensemble score $f(\mathbf{x}) = \sum_{j=1}^{m} \alpha_j\, y_j(\mathbf{x})$ measures
+    the \alert{confidence} of the prediction. Larger magnitude $|f(\mathbf{x})|$ indicates
+    higher confidence.
+  \end{block}
+\end{frame}
+
+\begin{frame}{AdaBoost Learning Dynamics: Sequence of Weak Learners}
+  \begin{center}
+    \includegraphics[width=.3\linewidth]{figures/adaboost1.png}
+  \end{center}
+  \begin{itemize}
+    \item The first weak learner produces a coarse separator that inevitably misclassifies
+          certain regions.
+    \item These misclassified points receive higher weights, shifting the focus for the next learner.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{AdaBoost Learning Dynamics: Second Weak Learner}
+  \begin{center}
+    \includegraphics[width=.3\linewidth]{figures/adaboost2.png}
+  \end{center}
+  \begin{itemize}
+    \item The second weak learner is trained on the reweighted distribution, focusing on
+          points that the first learner misclassified.
+    \item It produces a different decision boundary that corrects some of the previous errors.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{AdaBoost Learning Dynamics: Third Weak Learner}
+  \begin{center}
+    \includegraphics[width=.3\linewidth]{figures/adaboost3.png}
+  \end{center}
+  \begin{itemize}
+    \item The third weak learner continues this process, refining the decision boundary in
+          regions that remain problematic.
+    \item Each successive learner addresses the shortcomings of the current ensemble.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{AdaBoost Learning Dynamics: Final Decision Boundary}
+  \begin{center}
+    \includegraphics[width=.5\linewidth]{figures/adaboost4.png}
+  \end{center}
+  \begin{itemize}
+    \item The final ensemble combines all weak learners through weighted voting.
+    \item The resulting decision boundary is highly nonlinear and captures complex patterns,
+          even though each individual weak learner is simple (e.g., a decision stump or shallow tree).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Why AdaBoost Works: Margin Maximization}
+  \begin{itemize}
+    \item For a training example $(\mathbf{x}_i, t_i)$, the \alert{margin} is:
+          \[
+          \text{margin}_i = t_i \cdot f(\mathbf{x}_i) = t_i \sum_{j=1}^{m} \alpha_j\, y_j(\mathbf{x}_i).
+          \]
+    \item A positive margin indicates correct classification; larger margin $\Rightarrow$
+          more confident prediction.
+    \item Theoretical analyses show that AdaBoost tends to \alert{maximize the minimum margin}
+          of training examples.
+  \end{itemize}
+  \begin{block}{Generalization via large margins}
+    Even after training error reaches zero, AdaBoost continues to increase margins, pushing
+    correctly classified points farther from the decision boundary. This improves robustness
+    and generalization.
+  \end{block}
+\end{frame}
+
+\begin{frame}{AdaBoost and Exponential Loss}
+  \begin{itemize}
+    \item AdaBoost can be interpreted as minimizing the \alert{exponential loss}:
+          \[
+          L_{\text{exp}}(f) = \sum_{i=1}^{n} \exp(-t_i\, f(\mathbf{x}_i)).
+          \]
+    \item This loss is convex and differentiable, making it amenable to gradient-based
+          optimization.
+    \item The weight update rule in AdaBoost corresponds to a coordinate descent step
+          minimizing this loss.
+  \end{itemize}
+  \begin{alertblock}{Sensitivity to outliers}
+    The exponential loss is very sensitive to outliers and mislabeled examples: misclassified
+    points receive exponentially increasing penalties, which can lead to overfitting on noisy data.
+  \end{alertblock}
+  \begin{itemize}
+    \item This motivates more robust variants like LogitBoost (logistic loss) and gradient boosting
+          with other loss functions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{AdaBoost: Regularization and Overfitting}
+  \begin{itemize}
+    \item Unlike bagging, boosting can \alert{overfit} if the number of iterations $m$ is too large.
+    \item As iterations increase, AdaBoost focuses ever more aggressively on hard examples,
+          which may include noise or outliers.
+    \item Common regularization strategies:
+  \end{itemize}
+  \begin{block}{Early stopping}
+    Monitor performance on a validation set and stop when validation error begins to increase.
+  \end{block}
+  \begin{block}{Shrinkage (learning rate)}
+    Scale each $\alpha_j$ by a factor $\nu \in (0, 1]$:
+    \[
+    f_j(\mathbf{x}) = f_{j-1}(\mathbf{x}) + \nu \cdot \alpha_j\, y_j(\mathbf{x}).
+    \]
+    Smaller $\nu$ requires more iterations but produces smoother, more regularized models.
+  \end{block}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Gradient Boosting}
+
+\begin{frame}{From AdaBoost to Gradient Boosting}
+  \framesubtitle{Generalizing boosting to arbitrary loss functions}
+  \begin{itemize}
+    \item AdaBoost is elegant but limited to classification with exponential loss.
+    \item \alert{Gradient boosting} generalizes the boosting principle to \emph{any differentiable
+          loss function}.
+    \item Core idea: fit each new weak learner to the \alert{negative gradient} of the loss
+          with respect to the current model's predictions.
+    \item This is \alert{functional gradient descent}: we move in function space to minimize
+          the empirical loss.
+  \end{itemize}
+  \begin{block}{Universality}
+    Gradient boosting works for classification, regression, ranking, and any other task where
+    a differentiable loss can be defined.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Gradient Boosting Algorithm}
+  \begin{enumerate}
+    \item Initialize the model with a constant prediction:
+          \[
+          f_0(\mathbf{x}) = \arg\min_{\gamma} \sum_{i=1}^{n} L(t_i, \gamma).
+          \]
+    \item For $m = 1, \ldots, M$ iterations:
+      \begin{enumerate}
+        \item Compute the \alert{pseudo-residuals} (negative gradients):
+              \[
+              r_{im} = -\left.\frac{\partial L(t_i, f(\mathbf{x}_i))}{\partial f(\mathbf{x}_i)}\right|_{f = f_{m-1}}.
+              \]
+        \item Fit a weak learner $h_m(\mathbf{x})$ to the pseudo-residuals:
+              \[
+              h_m = \arg\min_h \sum_{i=1}^{n} (r_{im} - h(\mathbf{x}_i))^2.
+              \]
+        \item Update the model:
+              \[
+              f_m(\mathbf{x}) = f_{m-1}(\mathbf{x}) + \nu \cdot \alpha_m\, h_m(\mathbf{x}),
+              \]
+              where $\nu \in (0, 1]$ is the learning rate.
+      \end{enumerate}
+    \item Final model: $f_M(\mathbf{x})$.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Pseudo-Residuals: The Gradient Direction}
+  \begin{itemize}
+    \item At iteration $m$, we have a current model $f_{m-1}(\mathbf{x})$.
+    \item To improve the model, we want to move in the direction that \alert{most reduces the loss}.
+    \item This direction is the \alert{negative gradient} of the loss:
+          \[
+          r_{im} = -\frac{\partial L(t_i, f(\mathbf{x}_i))}{\partial f(\mathbf{x}_i)}\bigg|_{f = f_{m-1}}.
+          \]
+    \item These pseudo-residuals $r_{im}$ represent the \alert{correction} needed for each
+          training example.
+  \end{itemize}
+  \begin{block}{Fitting to gradients}
+    By training $h_m$ to predict $r_{im}$, we are effectively fitting a model that approximates
+    the \alert{steepest descent direction} in function space.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Loss Functions in Gradient Boosting}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{center}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Task} & \textbf{Loss function} & \textbf{Gradient} \\
+    \midrule
+    Regression & Squared: $L(t, f) = (t - f)^2$ & $r = t - f$ \\
+    Regression & Absolute: $L(t, f) = |t - f|$ & $r = \text{sign}(t - f)$ \\
+    Regression & Huber (robust) & $r = $ clipped residual \\
+    Classification & Logistic (cross-entropy) & $r = t - p(t=1 \mid \mathbf{x})$ \\
+    Classification & Exponential (AdaBoost) & $r = t \cdot e^{-tf}$ \\
+    Ranking & Pairwise loss & $r = $ pairwise gradient \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item Different loss functions yield different pseudo-residuals, but the gradient boosting
+          framework remains the same.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Learning Rate (Shrinkage)}
+  \begin{itemize}
+    \item The \alert{learning rate} $\nu \in (0, 1]$ controls the step size of each update:
+          \[
+          f_m(\mathbf{x}) = f_{m-1}(\mathbf{x}) + \nu \cdot \alpha_m\, h_m(\mathbf{x}).
+          \]
+    \item Smaller $\nu$ produces smoother, more regularized trajectories in function space.
+    \item Larger $\nu$ allows faster convergence but increases the risk of overshooting and
+          overfitting.
+  \end{itemize}
+  \begin{block}{Practical guidance}
+    \begin{itemize}
+      \item Typical values: $\nu \in [0.01, 0.1]$.
+      \item Smaller $\nu$ requires more iterations $M$ but often yields better generalization.
+      \item Use early stopping on a validation set to select $M$ for a given $\nu$.
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item The combination of small learning rate and early stopping is a \alert{highly effective
+          regularization strategy}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Tree Depth and Interaction Order}
+  \begin{itemize}
+    \item In gradient boosting, \alert{decision trees} are the standard choice of weak learner.
+    \item The depth of these trees controls the \alert{order of interactions} the model can capture:
+      \begin{itemize}
+        \item \alert{Depth 1 (stumps)}: main effects only, no interactions.
+        \item \alert{Depth 2}: pairwise interactions.
+        \item \alert{Depth $d$}: up to $d$-way interactions.
+      \end{itemize}
+    \item Typical recommendation: depth between \alert{3 and 6}.
+  \end{itemize}
+  \begin{block}{Trade-off}
+    \begin{itemize}
+      \item Shallow trees: lower variance, require more iterations to fit complex patterns.
+      \item Deep trees: higher variance, can overfit, reduce diversity of corrections.
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item Unlike random forests, boosting uses \alert{shallow trees} to maintain the role of
+          each tree as a weak learner.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Stochastic Gradient Boosting}
+  \framesubtitle{Adding randomness for robustness}
+  \begin{itemize}
+    \item \alert{Stochastic gradient boosting} introduces randomness at each iteration by
+          training each tree on a \alert{random subsample} of the training data.
+    \item Subsampling can be applied to:
+      \begin{itemize}
+        \item \alert{Rows (examples)}: train each tree on a fraction $\eta \in (0, 1]$ of examples.
+        \item \alert{Columns (features)}: select a random subset of features for each tree.
+      \end{itemize}
+    \item This is analogous to the randomization in random forests, but applied within the
+          boosting framework.
+  \end{itemize}
+  \begin{block}{Benefits}
+    \begin{itemize}
+      \item Reduces correlation between successive trees.
+      \item Improves generalization and robustness.
+      \item Speeds up training (smaller datasets per tree).
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item Typical values: $\eta \in [0.5, 0.8]$ for row subsampling.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Regularization in Gradient Boosting}
+  \begin{itemize}
+    \item Gradient boosting is powerful but prone to overfitting without proper regularization.
+    \item Key regularization mechanisms:
+  \end{itemize}
+  \begin{block}{Early stopping}
+    Monitor validation error and stop training when it stops improving.
+  \end{block}
+  \begin{block}{Learning rate (shrinkage)}
+    Use small $\nu \in [0.01, 0.1]$ to produce smoother updates.
+  \end{block}
+  \begin{block}{Tree depth}
+    Limit depth to 3--6 to prevent individual trees from overfitting.
+  \end{block}
+  \begin{block}{Subsampling}
+    Use row and/or column subsampling to decorrelate trees.
+  \end{block}
+  \begin{itemize}
+    \item Combining these strategies produces robust, high-performing models.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Why Does Gradient Boosting Work?}
+  \framesubtitle{Multiple complementary perspectives}
+  \begin{itemize}
+    \item \alert{Optimization perspective}: gradient boosting is functional gradient descent,
+          minimizing a differentiable loss through iterative additive corrections.
+    \item \alert{Bias--variance perspective}: boosting primarily reduces \alert{bias} by
+          sequentially correcting systematic errors of simple base learners.
+    \item \alert{Statistical perspective}: boosting increases the \alert{classification margin},
+          pushing correctly classified examples farther from the decision boundary.
+  \end{itemize}
+  \begin{block}{Synergy of weak learners}
+    Each shallow tree provides a small but meaningful correction; the ensemble builds up
+    representational power that no individual tree could achieve. Averaging many corrections
+    also provides some variance reduction.
+  \end{block}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Modern Gradient Boosting Implementations}
+
+\begin{frame}{XGBoost: Extreme Gradient Boosting}
+  \framesubtitle{Engineering optimizations and explicit regularization}
+  \begin{itemize}
+    \item \alert{XGBoost} (Extreme Gradient Boosting) is one of the most widely used gradient
+          boosting implementations.
+    \item Key innovations:
+  \end{itemize}
+  \begin{block}{Second-order optimization}
+    XGBoost uses both first-order (gradient) and \alert{second-order (Hessian)} information
+    to find better splits:
+    \[
+    \text{Gain} \propto \frac{G^2}{H + \lambda},
+    \]
+    where $G$ is the sum of gradients, $H$ is the sum of Hessians, and $\lambda$ is a
+    regularization parameter.
+  \end{block}
+  \begin{block}{Explicit regularization}
+    The objective includes regularization terms on the number of leaves and leaf weights:
+    \[
+    \mathcal{L} = \sum_{i} L(t_i, \hat{t}_i) + \sum_{k} \left[\gamma T + \frac{1}{2}\lambda \|\mathbf{w}\|^2\right].
+    \]
+  \end{block}
+\end{frame}
+
+\begin{frame}{XGBoost: Engineering Optimizations}
+  \begin{itemize}
+    \item \alert{Column block structure}: features are stored in compressed column format
+          (CSC) for efficient split finding.
+    \item \alert{Cache-aware access}: data structures are designed to fit in CPU cache,
+          reducing memory latency.
+    \item \alert{Out-of-core computation}: handles datasets larger than memory by streaming
+          data from disk.
+    \item \alert{Distributed training}: scales to very large datasets across multiple machines.
+    \item \alert{Sparsity-aware splitting}: handles missing values and sparse features efficiently
+          by learning default directions for each split.
+  \end{itemize}
+  \begin{block}{Result}
+    XGBoost is both faster and more scalable than traditional gradient boosting implementations
+    while maintaining or improving predictive accuracy.
+  \end{block}
+\end{frame}
+
+\begin{frame}{LightGBM: Light Gradient Boosting Machine}
+  \framesubtitle{Histogram-based splitting and leaf-wise growth}
+  \begin{itemize}
+    \item \alert{LightGBM}, developed by Microsoft, introduces two major innovations:
+  \end{itemize}
+  \begin{block}{Histogram-based split finding}
+    Instead of sorting continuous features at each node, LightGBM bins feature values into
+    discrete histograms (typically 255 bins). Split candidates are evaluated on histogram bins,
+    reducing computational cost from $O(n\log n)$ to $O(n)$ per feature.
+  \end{block}
+  \begin{block}{Leaf-wise (best-first) growth}
+    Unlike the standard level-wise (breadth-first) strategy, LightGBM always splits the leaf
+    that offers the \alert{largest gain}, regardless of depth. This produces asymmetric but
+    deeper trees that reduce training loss more rapidly per split.
+  \end{block}
+  \begin{itemize}
+    \item Requires careful tuning of maximum depth to prevent overfitting on small datasets.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{LightGBM: Additional Features}
+  \begin{itemize}
+    \item \alert{Gradient-based One-Side Sampling (GOSS)}: retains all examples with large
+          gradients (hard examples) and randomly samples from those with small gradients,
+          reducing dataset size while preserving information.
+    \item \alert{Exclusive Feature Bundling (EFB)}: bundles mutually exclusive sparse features
+          (e.g., one-hot encoded categoricals) into single features, reducing effective
+          dimensionality.
+    \item Together, these optimizations make LightGBM extremely fast and memory-efficient,
+          especially on high-dimensional sparse data.
+  \end{itemize}
+  \begin{block}{Performance}
+    LightGBM is often \alert{10--20× faster} than XGBoost on large datasets while achieving
+    comparable or better accuracy.
+  \end{block}
+\end{frame}
+
+\begin{frame}{CatBoost: Categorical Boosting}
+  \framesubtitle{Ordered boosting and native categorical support}
+  \begin{itemize}
+    \item \alert{CatBoost}, developed by Yandex, addresses two problems:
+  \end{itemize}
+  \begin{block}{Ordered boosting (target leakage prevention)}
+    In standard gradient boosting, gradients are computed using the same examples that train
+    the tree, leading to \alert{prediction shift}. CatBoost uses ordered boosting: for each
+    example, the gradient is computed from a model trained on a random subset \emph{excluding}
+    that example, yielding unbiased gradient estimates.
+  \end{block}
+  \begin{block}{Native categorical feature handling}
+    CatBoost handles categorical features internally using ordered target statistics: for each
+    category, the target statistic is computed from a random prefix of the data (respecting a
+    permutation), avoiding target leakage while providing informative representations.
+  \end{block}
+\end{frame}
+
+\begin{frame}{CatBoost: Symmetric Trees}
+  \begin{itemize}
+    \item CatBoost uses \alert{symmetric (oblivious) trees} as weak learners.
+    \item In a symmetric tree, all nodes at the same depth use the \alert{same feature and
+          the same split threshold}.
+    \item This is more constrained than asymmetric trees (used by XGBoost and LightGBM) but
+          has advantages:
+  \end{itemize}
+  \begin{block}{Benefits of symmetric trees}
+    \begin{itemize}
+      \item Highly regular computation patterns.
+      \item Very fast inference (can be implemented as simple lookup tables).
+      \item Less prone to overfitting.
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item CatBoost is particularly fast for \alert{prediction after training}, making it
+          attractive for production deployment.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Comparison: XGBoost, LightGBM, CatBoost}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{center}
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Feature} & \textbf{XGBoost} & \textbf{LightGBM} & \textbf{CatBoost} \\
+    \midrule
+    Split finding & Exact / approx & Histogram & Histogram \\
+    Tree growth & Level-wise & Leaf-wise & Level-wise \\
+    Regularization & Explicit & Explicit & Ordered boosting \\
+    Categorical features & Manual encoding & Manual encoding & Native \\
+    Speed (training) & Fast & Very fast & Moderate \\
+    Speed (inference) & Fast & Fast & Very fast \\
+    GPU support & Yes & Yes & Yes \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item All three are excellent choices; selection depends on dataset characteristics and
+          computational constraints.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Practical Considerations}
+
+\begin{frame}{Hyperparameter Tuning in Gradient Boosting}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Hyperparameter} & \textbf{Typical values / guidance} \\
+    \midrule
+    Number of trees $M$ & 100--1000; use early stopping \\
+    Learning rate $\nu$ & 0.01--0.1 (smaller is better) \\
+    Tree depth & 3--6 (shallow trees) \\
+    Min samples per leaf & 20--50 (prevents overfitting) \\
+    Row subsampling & 0.5--0.8 \\
+    Column subsampling & 0.5--1.0 \\
+    Regularization $\lambda$ & 0--10 (L2 penalty on weights) \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item Gradient boosting is more sensitive to hyperparameters than random forests.
+    \item Use grid search or Bayesian optimization with cross-validation.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Early Stopping}
+  \begin{itemize}
+    \item \alert{Early stopping} monitors performance on a validation set during training.
+    \item Training stops when validation error stops improving for a specified number of
+          iterations (patience).
+    \item This is the \alert{most reliable way} to select the number of trees $M$.
+  \end{itemize}
+  \begin{block}{Procedure}
+    \begin{enumerate}
+      \item Split data into training and validation sets.
+      \item Train the model, evaluating validation error after each iteration.
+      \item Stop when validation error has not improved for $p$ consecutive iterations.
+      \item Return the model at the iteration with the best validation error.
+    \end{enumerate}
+  \end{block}
+  \begin{itemize}
+    \item Typical patience: $p = 10$--$50$ iterations.
+    \item Early stopping prevents overfitting and saves computational time.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Ensemble Methods: When to Use Which?}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{center}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Method} & \textbf{Best for} & \textbf{Key strength} \\
+    \midrule
+    Bagging & High-variance learners & Variance reduction \\
+    Random Forests & General-purpose, robust & Out-of-box performance \\
+    AdaBoost & Binary classification & Simplicity, interpretability \\
+    Gradient Boosting & Structured data, competitions & Bias reduction, accuracy \\
+    XGBoost & Large datasets & Speed, scalability \\
+    LightGBM & High-dimensional sparse data & Extreme speed \\
+    CatBoost & Categorical features & Native categorical support \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Strengths and Limitations of Ensemble Methods}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Strengths}
+        \begin{itemize}
+          \item \alert{State-of-the-art accuracy} on structured data.
+          \item Handle complex interactions.
+          \item Robust to overfitting (with proper regularization).
+          \item Feature importance estimates.
+          \item Flexible (work with various losses).
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Limitations}
+        \begin{itemize}
+          \item Loss of interpretability.
+          \item Computationally expensive (boosting).
+          \item Sensitive to hyperparameters (boosting).
+          \item Require careful tuning.
+          \item Not well-suited for unstructured data (images, text).
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item For structured/tabular data, ensembles are the \alert{method of choice}.
+    \item For images, text, and audio, deep learning typically outperforms ensembles.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Summary}
+
+\begin{frame}{Summary: Core Concepts}
+  \renewcommand{\arraystretch}{1.5}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Concept} & \textbf{Definition / Key idea} \\
+    \midrule
+    Ensemble & Combination of multiple models \\
+    Bootstrap & Resample with replacement, size $n$ \\
+    OOB & Out-of-bag examples ($\approx 36.8\%$) \\
+    Bagging & Bootstrap + aggregate (variance $\downarrow$) \\
+    Random Forest & Bagging + feature randomization \\
+    Boosting & Sequential, adaptive weighting (bias $\downarrow$) \\
+    Weak learner & Error $< 1/2$ (shallow trees) \\
+    AdaBoost & Exponential loss, weight updates \\
+    Gradient boosting & Fit to pseudo-residuals $-\partial L/\partial f$ \\
+    Learning rate $\nu$ & Shrinkage, regularization \\
+    Early stopping & Stop when validation error stops improving \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Summary: Key Formulas}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Bootstrap \& Bagging}
+        \begin{itemize}
+          \item OOB probability: $(1 - 1/n)^n \to e^{-1}$
+          \item Bagging (regr.): $\hat{f} = \frac{1}{B}\sum_b \hat{f}^{(b)}$
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{AdaBoost}
+        \begin{itemize}
+          \item Weight: $w_i^{(j+1)} = w_i^{(j)} e^{-\alpha_j t_i y_j(\mathbf{x}_i)}$
+          \item $\alpha_j = \frac{1}{2}\ln\frac{1-\epsilon^{(j)}}{\epsilon^{(j)}}$
+          \item Final: $H(\mathbf{x}) = \text{sign}(\sum_j \alpha_j y_j)$
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Gradient Boosting}
+        \begin{itemize}
+          \item Pseudo-residual: $r_i = -\frac{\partial L}{\partial f(\mathbf{x}_i)}$
+          \item Update: $f_m = f_{m-1} + \nu \cdot h_m$
+          \item Margin: $\text{margin}_i = t_i f(\mathbf{x}_i)$
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Random Forest}
+        \begin{itemize}
+          \item Features per split: $m \approx \sqrt{p}$ (classif.)
+          \item Features per split: $m \approx p/3$ (regr.)
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Summary: Methods at a Glance}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Bagging / Random Forests}
+        \begin{itemize}
+          \item Parallel training.
+          \item Deep trees (low bias, high variance).
+          \item Variance reduction through averaging.
+          \item OOB error estimation.
+          \item Robust, easy to use.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Hyperparameters}
+        \begin{itemize}
+          \item Random Forest: $B$, $m$, min leaf size.
+          \item Boosting: $M$, $\nu$, depth, subsampling.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Boosting (AdaBoost, Gradient)}
+        \begin{itemize}
+          \item Sequential training.
+          \item Shallow trees (weak learners).
+          \item Bias reduction through corrections.
+          \item Adaptive weighting of examples.
+          \item Powerful but needs regularization.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Modern Implementations}
+        \begin{itemize}
+          \item XGBoost: second-order, explicit reg.
+          \item LightGBM: histograms, leaf-wise.
+          \item CatBoost: ordered boosting, categoricals.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Final Remarks}
+  \begin{itemize}
+    \item \alert{Ensemble methods} are among the most powerful and widely used techniques in
+          machine learning, particularly for structured/tabular data.
+    \item They achieve state-of-the-art performance in many real-world applications and
+          competitions (e.g., Kaggle).
+    \item \alert{Random forests} provide excellent out-of-the-box performance with minimal tuning.
+    \item \alert{Gradient boosting} (XGBoost, LightGBM, CatBoost) often achieves the highest
+          accuracy but requires careful hyperparameter tuning and regularization.
+    \item The key to success: understanding the bias--variance trade-off, selecting appropriate
+          base learners, and applying proper regularization.
+  \end{itemize}
+  \begin{block}{Practical advice}
+    Start with random forests for quick exploration; move to gradient boosting for maximum
+    performance. Always use cross-validation or OOB error for honest evaluation.
+  \end{block}
+\end{frame}
+
+%\end{document}

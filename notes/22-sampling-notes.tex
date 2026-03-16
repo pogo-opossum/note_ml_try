@@ -1,0 +1,409 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Monte Carlo sampling}
+
+\section*{Sampling methods and Bayesian estimation}
+
+In Bayesian estimation, most quantities of interest are defined in terms of probability distributions rather than single point estimates. Given a set of observed data $\mathbf{X}$ and a probabilistic model parameterized by $\theta$, Bayesian inference aims at characterizing the posterior distribution
+\begin{myequation}
+p(\theta | \mathbf{X}) = \frac{p(\mathbf{X}| \theta)\,p(\theta)}{p(\mathbf{X})},
+\end{myequation}
+which combines prior information with the evidence provided by the data through the likelihood. In practice, however, the normalization constant
+\begin{myequation}
+p(\mathbf{X}) = \int p(\mathbf{X}| \theta)\,p(\theta)\,d\theta
+\end{myequation}
+is rarely available in closed form, especially when $\theta$ is high-dimensional or the likelihood function is complex. This integral sums (or integrates) the likelihood weighted by the prior over the entire parameter space, a computation that is tractable only in a handful of conjugate models.
+
+As a consequence, Bayesian estimation is fundamentally an integration problem. Posterior expectations, marginal distributions, predictive distributions, and model evidence all involve integrals over probability distributions that are typically analytically intractable. For example, the posterior mean of a quantity $f(\theta)$ is given by
+\begin{myequation}
+\mathbb{E}[f(\theta)| \mathbf{X}] = \int f(\theta)\,p(\theta| \mathbf{X})\,d\theta,
+\end{myequation}
+and the predictive distribution for a new observation $\mathbf{x}$ requires marginalizing the likelihood over the posterior:
+\begin{myequation}
+p(\mathbf{x}| \mathbf{X}) = \int p(\mathbf{x}| \theta)\,p(\theta| \mathbf{X})\,d\theta.
+\end{myequation}
+Neither of these expressions admits a general closed-form solution, which is why computational strategies for approximating integrals over posterior distributions are indispensable.
+
+Sampling-based methods provide a general and powerful strategy to approximate these integrals when closed-form solutions are unavailable. Rather than attempting to compute integrals explicitly, Bayesian inference can be reformulated in terms of expectations with respect to probability distributions and approximated by empirical averages over samples. From this perspective, drawing samples from a distribution becomes equivalent to representing it numerically, allowing inference to be performed through finite collections of random variables. The core insight is that the empirical average of a function over a set of samples from a distribution converges, as the number of samples grows, to the true expectation of that function under the distribution. This convergence, which follows from the law of large numbers, does not require the normalization constant of the distribution to be known, making Monte Carlo methods exceptionally well suited to Bayesian computation.
+
+This viewpoint shifts the emphasis of Bayesian computation from analytical manipulation to the construction of effective sampling procedures. Techniques such as Monte Carlo integration, importance sampling, and Markov chain Monte Carlo are therefore not auxiliary numerical tools appended to a primarily analytical framework, but rather core components of practical Bayesian estimation. They enable posterior exploration, uncertainty quantification, and predictive inference in models where deterministic approaches fail.
+
+The following sections develop this sampling-based perspective progressively, starting from basic Monte Carlo integration and the inversion method, then examining rejection sampling and importance sampling, and culminating in Markov chain methods designed to sample from complex, high-dimensional posterior distributions encountered in realistic Bayesian modeling.
+
+\subsection*{Monte Carlo integration and sampling-based approximations}
+
+The computation of integrals of the form
+\begin{myequation}
+\int_a^b g(x)\,dx
+\end{myequation}
+is a recurring problem in numerical analysis, statistics, and probabilistic modeling, especially when the function $g(x)$ is highly non-linear, high-dimensional, or expensive to evaluate. In such cases, classical deterministic quadrature methods quickly become impractical. In one dimension, methods like Gaussian quadrature or the trapezoidal rule achieve high accuracy with a modest number of function evaluations, but their cost grows exponentially with the number of dimensions---a phenomenon known as the \emph{curse of dimensionality}. This makes them essentially infeasible for the multi-dimensional integrals that arise routinely in Bayesian inference over moderate to large parameter spaces, and alternative stochastic approaches become necessary.
+
+The key idea underlying Monte Carlo methods is to reinterpret integration as an expectation with respect to a probability distribution. Suppose that the integrand $g(x)$ can be written as the product of a function $f(x)$ and a probability density $p(x)$ supported on $[a,b]$, that is,
+\begin{myequation}
+g(x) = f(x)\,p(x),
+\end{myequation}
+with $p(x)\ge 0$ and $\int_a^b p(x)\,dx = 1$. Under this assumption, the integral can be rewritten as
+\begin{myequation}
+\int_a^b g(x)\,dx
+= \int_a^b f(x)\,p(x)\,dx
+= \mathbb{E}_{p(x)}[f(x)].
+\end{myequation}
+This reformulation shifts the problem from numerical integration to the estimation of an expectation value, which opens the door to probabilistic approximation methods.
+
+If we are able to draw independent samples $x^{(1)},\ldots,x^{(n)} \sim p(x)$, the expectation can be approximated by the empirical average
+\begin{myequation}
+\mathbb{E}_{p(x)}[f(x)]
+\approx
+\frac{1}{n}\sum_{i=1}^n f\!\left(x^{(i)}\right).
+\end{myequation}
+This estimator is unbiased, and its variance decreases proportionally to $1/n$, independently of the dimensionality of $x$. This dimension-independence is one of the most striking and practically consequential properties of Monte Carlo methods: adding more variables to the problem does not, by itself, increase the number of samples required to achieve a given precision. This makes Monte Carlo integration the method of choice whenever the integrand is defined over a high-dimensional space.
+
+From a probabilistic perspective, this approximation corresponds to replacing the true distribution $p(x)$ with the empirical distribution
+\begin{myequation}
+\overline{p}_n(x)
+=
+\frac{1}{n}\sum_{i=1}^n \delta\!\left(x - x^{(i)}\right),
+\end{myequation}
+where $\delta(\cdot)$ denotes the Dirac delta distribution. The empirical distribution $\overline{p}_n$ assigns equal probability mass $1/n$ to each observed sample, and zero probability mass everywhere else. In this sense, Monte Carlo integration can be interpreted as performing the exact expectation with respect to an approximate, sample-based representation of the target distribution. As $n \to \infty$, the empirical distribution converges weakly to $p(x)$, and expectations computed under $\overline{p}_n$ converge to those computed under $p(x)$.
+
+\medskip
+
+The practical difficulty in this framework lies in the assumption that samples can be drawn directly from $p(x)$. In many relevant applications---most notably in Bayesian posterior computation---the distribution $p(x)$ is known only up to a normalization constant or through an implicit definition, making direct sampling infeasible. We therefore need general strategies to generate samples from arbitrary distributions using simpler random sources.
+
+We assume the availability of a (pseudo-)random generator $\mathcal{R}$ that produces values approximately uniformly distributed on $[0,1]$. The central question then becomes how to transform a sequence of uniform random numbers into a sequence of samples distributed according to a desired density $p(x)$.
+
+In the simplest case, where the cumulative distribution function (CDF)
+\begin{myequation}
+F(x) = \int_{-\infty}^x p(\xi)\,d\xi
+\end{myequation}
+is known and invertible, sampling can be achieved by the so-called \emph{inversion method}. If $U\sim \mathrm{Unif}(0,1)$, we define
+\begin{myequation}
+X = F^{-1}(U),
+\end{myequation}
+so that $X\sim p(x)$. Equivalently, $U=F(X)$ almost surely. The intuition behind this result is straightforward: the CDF maps the support of $p$ onto the unit interval $[0,1]$, and a uniform draw on $[0,1]$ corresponds, after inversion, to a draw that respects the shape of $p$. Regions where $p$ is large correspond to wide intervals in the CDF, and are therefore more likely to be selected.
+
+As an illustrative example, consider the exponential distribution
+\begin{myequation}
+p(x | \lambda) = \lambda e^{-\lambda x}, \qquad x \ge 0.
+\end{myequation}
+Its CDF is
+\begin{myequation}
+F(x) = 1 - e^{-\lambda x}.
+\end{myequation}
+Setting $U = F(X)$ and solving for $X$ yields
+\begin{align*}
+e^{-\lambda X} &= 1 - U, \\
+X &= -\frac{1}{\lambda}\ln(1 - U),
+\end{align*}
+which provides an explicit and computationally cheap sampling rule: a single uniform draw, followed by a logarithm, suffices to produce an exponential sample. Note that since $1 - U$ is also uniformly distributed on $(0,1)$, we can equivalently write $X = -\frac{1}{\lambda}\ln(U)$.
+
+Unfortunately, for most distributions of interest, the inverse CDF is not available in closed form. The Gaussian distribution is a prime example: while its CDF is well-defined and smooth, its inverse has no elementary expression and must be computed numerically. In high-dimensional or non-standard settings, the situation is even more challenging. This limitation motivates the development of more general sampling techniques---rejection sampling, importance sampling, and Markov chain Monte Carlo (MCMC) methods---which are the subject of the sections that follow.
+
+\medskip
+\subsection*{Rejection sampling}
+
+Rejection sampling addresses a common situation in computational statistics: we are interested in a target distribution $p(x)$ that is difficult (or impossible) to sample from directly, yet it can be evaluated pointwise (possibly up to a multiplicative constant). This setting is especially frequent in Bayesian inference, where the object of interest is a posterior density known only through its unnormalized form $\pi(\theta) = p(\mathbf{X}|\theta)\,p(\theta)$, with the normalization constant $Z = p(\mathbf{X})$ being precisely the intractable quantity we wish to avoid computing.
+
+Assume $p(x)$ is a density on a state space $\mathcal{X}$ that we can evaluate for any given $x$, but from which we cannot easily generate independent draws. Rejection sampling replaces direct sampling from $p$ with a two-step procedure based on a \emph{proposal density} $q(x)$, chosen to be easy to sample from. The core requirement is that the proposal must be able to \emph{cover} the target distribution: there must exist a finite constant $K > 0$ such that
+\begin{myequation}
+p(x) \le K\,q(x)\qquad \forall x \in \mathcal{X}.
+\end{myequation}
+This inequality is sometimes called an \emph{envelope condition}, because the scaled proposal $Kq(x)$ forms an upper envelope for $p(x)$ over the entire state space. The constant $K$ controls how conservative this envelope is: smaller values of $K$ correspond to a tighter envelope, and therefore to a more efficient algorithm. Geometrically, the curve $y = Kq(x)$ lies everywhere above $y = p(x)$, and the ratio $p(x)/Kq(x)$ is always in $[0,1]$, which makes it interpretable as an acceptance probability.
+
+The operational mechanism is as follows. First, draw a candidate value $\tilde{X}$ from the proposal distribution,
+\begin{myequation}
+\tilde{X} \sim q(x).
+\end{myequation}
+Then draw an auxiliary random variable $U\sim \mathrm{Unif}(0,1)$ and accept $\tilde{X}$ if
+\begin{myequation}
+U \le \frac{p(\tilde{X})}{K\,q(\tilde{X})}.
+\end{myequation}
+If accepted, set $X=\tilde{X}$ and return $X$ as a sample; otherwise, reject and repeat the entire procedure from the beginning. The envelope condition guarantees that the ratio falls in $[0,1]$, so the acceptance criterion is well defined.
+
+An equivalent and geometrically illuminating formulation is obtained by drawing
+\begin{myequation}
+U^* \sim \mathrm{Unif}\bigl(0, K\,q(\tilde{X})\bigr)
+\end{myequation}
+and accepting if $U^* \le p(\tilde{X})$. In either case, the accepted points are distributed exactly according to $p(x)$. Intuitively, the method samples uniformly under the curve of the envelope $Kq(x)$ and retains only those points that also fall under the curve of $p(x)$: regions where $p(x)$ is large relative to $Kq(x)$ accept with high probability, while regions where $p(x)$ is small relative to $Kq(x)$ accept rarely, correcting for the over-representation induced by $q$.
+
+\medskip
+
+A crucial quantitative property follows directly from this construction: if $p$ and $q$ are normalized densities, then the unconditional probability of accepting a proposal is $1/K$:
+\begin{myequation}
+\mathbb{P}(\text{accept})
+= \int q(x)\,\frac{p(x)}{Kq(x)}\,dx
+= \frac{1}{K}\int p(x)\,dx
+= \frac{1}{K}.
+\end{myequation}
+Hence the expected number of proposals required per accepted sample equals $K$. This result has a direct implication for algorithm design: a tighter envelope (smaller $K$) leads to fewer wasted proposals and greater computational efficiency. In practice, finding a tight envelope often requires problem-specific knowledge about the shape of $p$.
+
+\medskip
+
+Rejection sampling is particularly useful in Bayesian inference, where the posterior is available only up to a normalization constant. Consider the posterior
+\begin{myequation}
+p(\theta | \mathbf{X}) = \frac{p(\mathbf{X}| \theta)\,p(\theta)}{p(\mathbf{X})}.
+\end{myequation}
+The evidence
+\begin{myequation}
+Z \equiv p(\mathbf{X}) = \int p(\mathbf{X}| \theta)\,p(\theta)\,d\theta
+\end{myequation}
+is typically intractable, so the posterior is available only through the unnormalized density
+\begin{myequation}
+\pi(\theta) \equiv p(\mathbf{X}| \theta)\,p(\theta),
+\qquad
+p(\theta|\mathbf{X}) = \frac{\pi(\theta)}{Z}.
+\end{myequation}
+Rejection sampling can still be applied in this setting, because the acceptance test involves only the ratio $\pi(\tilde{\Theta}) / (C\,q(\tilde{\Theta}))$, and this ratio does not require knowledge of $Z$. Specifically, if we can find a proposal $q(\theta)$ and a constant $C>0$ such that
+\begin{myequation}
+\pi(\theta) \le C\,q(\theta)\qquad \forall \theta,
+\end{myequation}
+then we propose $\tilde{\Theta}\sim q(\theta)$ and accept if
+\begin{myequation}
+U \le \frac{\pi(\tilde{\Theta})}{C\,q(\tilde{\Theta})},
+\end{myequation}
+with $U\sim \mathrm{Unif}(0,1)$. Accepted samples follow the normalized posterior $p(\theta|\mathbf{X})$ even though $Z$ is never computed explicitly. This is a remarkable property: the normalization constant, which is the main obstruction to Bayesian computation, simply cancels in the acceptance ratio.
+
+Once posterior samples $\theta^{(1)},\ldots,\theta^{(n)} \sim p(\theta| \mathbf{X})$ are available, they yield Monte Carlo approximations for Bayesian integrals. For any integrable function $f(\theta)$, the posterior expectation is approximated by
+\begin{myequation}
+\mathbb{E}[f(\theta)| \mathbf{X}]
+= \int f(\theta)\,p(\theta| \mathbf{X})\,d\theta
+\approx \frac{1}{n}\sum_{i=1}^n f\!\left(\theta^{(i)}\right).
+\end{myequation}
+Similarly, the predictive distribution for a new observation $x$ is approximated by
+\begin{myequation}
+p(x| \mathbf{X})
+= \int p(x| \theta)\,p(\theta| \mathbf{X})\,d\theta
+\approx \frac{1}{n}\sum_{i=1}^n p\!\left(x| \theta^{(i)}\right),
+\end{myequation}
+which is simply the average likelihood evaluated at each posterior sample, marginalized over parameter uncertainty.
+
+An additional benefit of rejection sampling in the Bayesian context is that the acceptance rate provides an estimator of the marginal likelihood $Z = p(\mathbf{X})$, which is of independent interest for model comparison. The acceptance probability satisfies
+\begin{myequation}
+\mathbb{P}(\text{accept})
+= \int q(\theta)\,\frac{\pi(\theta)}{Cq(\theta)}\,d\theta
+= \frac{1}{C}\int \pi(\theta)\,d\theta
+= \frac{Z}{C}.
+\end{myequation}
+Therefore, if the algorithm is run for $N$ proposals and $N_{\mathrm{acc}}$ are accepted, a consistent estimator of $Z$ is
+\begin{myequation}
+\widehat{Z} = C\,\frac{N_{\mathrm{acc}}}{N}.
+\end{myequation}
+This means that rejection sampling simultaneously produces posterior samples and an estimate of the model evidence, without any additional computational cost.
+
+\medskip
+
+Despite its conceptual clarity and exactness, rejection sampling is not universally practical. Its fundamental limitation emerges in high-dimensional spaces, where it can be extremely difficult to find an envelope constant $K$ (or $C$ in the unnormalized case) that is finite and not prohibitively large. The difficulty is a geometric one: in high dimensions, probability mass concentrates in thin shells, and a simple proposal $q$ may spread its mass over regions that receive negligible probability under $p$, resulting in a very large envelope constant and a correspondingly tiny acceptance rate. This is a limitation of efficiency rather than correctness---the algorithm remains exact even when $K$ is large, but the computational cost becomes prohibitive. For this reason, rejection sampling is often most useful in low-dimensional problems, or as a building block inside more elaborate schemes.
+
+\subsection*{Importance sampling}
+
+Importance sampling provides a complementary perspective on Monte Carlo integration, particularly well suited to situations in which the target distribution $p(x)$ cannot be sampled from directly but can be evaluated pointwise, possibly up to a normalization constant. Rather than generating samples from $p$ and discarding some of them (as rejection sampling does), importance sampling uses \emph{all} generated samples but corrects for the discrepancy between the sampling distribution and the target through multiplicative weights. The central idea is to decouple the problem of sampling from the problem of weighting: samples are drawn from a more convenient distribution, and the resulting bias is corrected by assigning each sample an importance weight reflecting how well the proposal approximates the target at that point.
+
+Suppose we are interested in computing
+\begin{myequation}
+\mathbb{E}_{p}[f(X)] = \int f(x)\,p(x)\,dx,
+\end{myequation}
+but direct sampling from $p(x)$ is impractical. Let $q(x)$ be an alternative density that is easy to sample from and whose support covers that of $p(x)$, meaning
+\begin{myequation}
+q(x) > 0 \quad \text{whenever} \quad p(x) > 0.
+\end{myequation}
+This support condition is essential: if there were regions where $p$ assigns positive probability but $q$ assigns none, those regions would be entirely missed by the estimator and the result would be biased. Under this condition, we can introduce the identity
+\begin{myequation}
+\int f(x)\,p(x)\,dx
+= \int f(x)\,\frac{p(x)}{q(x)}\,q(x)\,dx
+= \mathbb{E}_{q}\!\left[f(X)\,w(X)\right],
+\end{myequation}
+where the \emph{importance weight} is defined as the density ratio
+\begin{myequation}
+w(x) \equiv \frac{p(x)}{q(x)}.
+\end{myequation}
+This quantity measures how much more (or less) probable a point $x$ is under the target $p$ than under the proposal $q$. Drawing i.i.d.\ samples $x^{(1)},\ldots,x^{(n)}\sim q(x)$ and averaging their weighted function values yields the importance sampling estimator
+\begin{myequation}
+\int f(x)\,p(x)\,dx
+\approx
+\frac{1}{n}\sum_{i=1}^n w\!\left(x^{(i)}\right)\,f\!\left(x^{(i)}\right).
+\end{myequation}
+This estimator is unbiased and consistent: it converges to the true expectation as $n \to \infty$ by the law of large numbers applied to the product $w(x)f(x)$ under $q$.
+
+\medskip
+
+In the Bayesian context, where the posterior is available only through its unnormalized form, importance sampling takes on a particularly convenient form. Recall that
+\begin{myequation}
+p(\theta | \mathbf{X}) = \frac{\pi(\theta)}{Z},
+\qquad
+\pi(\theta)=p(\mathbf{X}|\theta)\,p(\theta),
+\qquad
+Z=p(\mathbf{X}).
+\end{myequation}
+Since $Z$ is unknown, the weights $w(\theta) = p(\theta|\mathbf{X})/q(\theta)$ cannot be computed directly. However, one can work with the unnormalized weights
+\begin{myequation}
+w(\theta) \equiv \frac{\pi(\theta)}{q(\theta)} = Z\,\frac{p(\theta|\mathbf{X})}{q(\theta)},
+\end{myequation}
+and observe that
+\begin{myequation}
+\mathbb{E}\!\left[f(\Theta)| \mathbf{X}\right]
+= \int f(\theta)\,p(\theta|\mathbf{X})\,d\theta
+= \frac{1}{Z}\int f(\theta)\,\pi(\theta)\,d\theta
+= \frac{1}{Z}\int f(\theta)\,\frac{\pi(\theta)}{q(\theta)}\,q(\theta)\,d\theta.
+\end{myequation}
+With samples $\theta^{(1)},\ldots,\theta^{(n)}\sim q(\theta)$ and unnormalized weights $w(\theta^{(i)}) = \pi(\theta^{(i)})/q(\theta^{(i)})$, the constant $Z$ cancels in the ratio, yielding the \emph{self-normalized} importance sampling estimator
+\begin{myequation}
+\mathbb{E}\!\left[f(\Theta)| \mathbf{X}\right]
+\approx
+\frac{\sum_{i=1}^n w\!\left(\theta^{(i)}\right)\,f\!\left(\theta^{(i)}\right)}
+{\sum_{i=1}^n w\!\left(\theta^{(i)}\right)}.
+\end{myequation}
+This estimator is not exactly unbiased (due to the ratio form), but it is consistent, and it has the important advantage of not requiring knowledge of $Z$. As a byproduct, the denominator itself provides a consistent estimator of the marginal likelihood:
+\begin{myequation}
+\widehat{Z} = \frac{1}{n}\sum_{i=1}^n w\!\left(\theta^{(i)}\right),
+\end{myequation}
+which can be useful for model comparison. Furthermore, the predictive distribution for a new observation $x$ is approximated by the weighted average of likelihoods evaluated at the posterior samples:
+\begin{myequation}
+p(x| \mathbf{X})
+= \int p(x| \theta)\,p(\theta| \mathbf{X})\,d\theta
+\approx
+\frac{\sum_{i=1}^n w\!\left(\theta^{(i)}\right)\,p\!\left(x| \theta^{(i)}\right)}
+{\sum_{i=1}^n w\!\left(\theta^{(i)}\right)}.
+\end{myequation}
+
+\medskip
+
+The efficiency of importance sampling depends critically on the choice of the proposal distribution $q(x)$. If $q(x)$ closely resembles $p(x)$, the weights are nearly constant and the estimator behaves almost as well as direct Monte Carlo from $p$; in fact, one can show that the optimal proposal (minimizing the variance of the importance sampling estimator of $\mathbb{E}_p[f]$) is proportional to $|f(x)|\,p(x)$, although this optimal choice is rarely available in practice since it depends on the quantity being estimated. Conversely, if $q(x)$ assigns substantial probability mass to regions where $p(x)$ is very small, those regions generate samples with tiny weights that contribute little to the estimate, effectively wasting computational effort. More dangerously, if $q$ fails to cover regions where $p$ is large, those regions are not sampled at all, and the estimator is catastrophically biased. In high-dimensional problems, this sensitivity often renders naive importance sampling impractical: even small geometric discrepancies between $q$ and $p$ can lead to weight degeneracy, where one or a few samples receive nearly all the total weight and the effective sample size collapses. This motivates adaptive schemes that iteratively refine the proposal, and ultimately the use of MCMC methods, which avoid the weighting approach altogether.
+
+\subsection*{Applying Markov chains}
+
+The limitations of both rejection and importance sampling in high-dimensional settings motivate a fundamentally different class of methods, based not on independent sampling but on the simulation of a carefully designed stochastic process. Markov chain Monte Carlo (MCMC) techniques generate samples by constructing a Markov chain whose stationary distribution coincides with the target distribution $p(x)$. By running the chain long enough, the distribution of its state converges to $p(x)$, and the states visited by the chain can be used as (correlated) samples from the target. Crucially, MCMC requires only pointwise evaluation of $p(x)$ up to a normalization constant, which makes it especially suitable for Bayesian inference. The price paid for this generality is that successive samples are correlated, which reduces the effective sample size compared to independent Monte Carlo; however, this is usually a tolerable cost given the otherwise infeasible alternative.
+
+\subsubsection*{Markov chains}
+
+A Markov chain is a stochastic process $\{X_t\}_{t\ge 0}$ taking values in a state space $\mathcal{X}$, whose defining property is that the future evolution depends on the past only through the present state. Formally, the \emph{Markov property} states that
+\begin{myequation}
+\mathbb{P}(X_t = x_i | X_{t-1} = x_j, X_{t-2} = x_k, \ldots, X_0 = x_\ell)
+=
+\mathbb{P}(X_t = x_i | X_{t-1} = x_j)
+= P_{ji},
+\end{myequation}
+for all $t>0$ and all states $x_i,x_j\in\mathcal{X}$. Here $P_{ji}$ denotes the one-step transition probability from state $x_j$ to state $x_i$. The collection of all such probabilities forms the \emph{transition matrix} $P$, whose $(i,j)$-th entry is $P_{ji}$. The Markov property represents a strong form of conditional independence: given the present state, the future is independent of the entire history of the process. This memory-less structure makes Markov chains both analytically tractable and computationally efficient to simulate.
+
+Given an initial distribution $\mu_0$ over $\mathcal{X}$, the distribution $\mu_t$ of $X_t$ evolves according to
+\begin{myequation}
+\mu_t = \mu_0\,P^{\,t},
+\end{myequation}
+using the row-vector convention. Equivalently, in the column-vector convention, one writes $\mu_t = P^{\,t}\mu_0$. In either case, a Markov chain defines a linear dynamical system acting on probability distributions: repeatedly multiplying by the transition matrix advances the distribution forward in time.
+
+\medskip
+
+A probability distribution $\pi$ on $\mathcal{X}$ is called \emph{stationary} (or invariant) if it is left unchanged by the chain dynamics:
+\begin{myequation}
+\pi = \pi P,
+\end{myequation}
+or equivalently,
+\begin{myequation}
+\pi(x_i) = \sum_{x_j\in\mathcal{X}} \pi(x_j)\,P_{ji}\qquad \forall x_i\in\mathcal{X}.
+\end{myequation}
+When the chain is initialized with $X_0\sim \pi$, the marginal distribution of $X_t$ remains $\pi$ for all $t \geq 0$: the distribution is preserved over time. This is the equilibrium condition that MCMC methods exploit: if we can design a chain whose stationary distribution is the target posterior $p(\theta|\mathbf{X})$, then running the chain and collecting its states eventually produces samples that are approximately drawn from the posterior.
+
+A Markov chain is said to be \emph{ergodic} if it satisfies two conditions: \emph{irreducibility} (every state can be reached from every other state in a finite number of steps) and \emph{aperiodicity} (the chain does not oscillate deterministically between subsets of states). Under ergodicity, the chain admits a unique stationary distribution $\pi$, and crucially, the distribution of $X_t$ converges to $\pi$ from \emph{any} initial state:
+\begin{myequation}
+\lim_{t\to\infty} \mathbb{P}(X_t = x | X_0 = x_0) = \pi(x)
+\qquad \forall x_0\in\mathcal{X}.
+\end{myequation}
+Moreover, by the ergodic theorem, time averages along a single trajectory converge almost surely to the expectation under $\pi$: for any integrable function $f:\mathcal{X}\to\mathbb{R}$,
+\begin{myequation}
+\frac{1}{T}\sum_{t=1}^T f(X_t) \xrightarrow[T\to\infty]{\text{a.s.}} \mathbb{E}_{\pi}[f(X)].
+\end{myequation}
+This ergodic theorem is the foundation of MCMC: it guarantees that, even though consecutive samples are correlated, their time average still converges to the correct expectation. In practice, one discards an initial segment of the trajectory---the \emph{burn-in}---during which the chain may not yet have converged to $\pi$, and then uses the remaining samples for estimation.
+
+\medskip
+
+A sufficient condition for stationarity that is widely used in MCMC design is \alert{detailed balance}. The chain satisfies detailed balance with respect to $\pi$ if, for all $x_i,x_j\in\mathcal{X}$,
+\begin{myequation}
+\pi(x_j)\,P_{ji} = \pi(x_i)\,P_{ij}.
+\end{myequation}
+This condition has a clear physical interpretation: at stationarity, the probability flux from state $x_j$ to state $x_i$ equals the probability flux from $x_i$ to $x_j$. Summing over all $x_j$ gives stationarity:
+\begin{myequation}
+\sum_{x_j}\pi(x_j)\,P_{ji} = \pi(x_i)\sum_{x_j}P_{ij} = \pi(x_i),
+\end{myequation}
+since $\sum_{x_j}P_{ij}=1$ (the rows of a transition matrix sum to one). Detailed balance is therefore a convenient sufficient condition for designing Markov chains with a desired stationary distribution, and it is the principle behind the Metropolis--Hastings algorithm described below.
+
+\subsubsection*{Use of Markov chains for Monte Carlo}
+
+To perform Monte Carlo estimation using a Markov chain, one simulates the chain
+\begin{myequation}
+X_0, X_1, X_2,\ldots
+\end{myequation}
+starting from an arbitrary initial state, and (after discarding a burn-in period to allow convergence to the stationary distribution) uses the remaining states to approximate expectations under $\pi$. The length of the burn-in must be chosen carefully: if too short, the initial transient behavior may bias the estimates; if too long, computational resources are wasted. While theoretical bounds on burn-in length exist, in practice they are often too conservative to be directly useful, and heuristics based on convergence diagnostics (such as monitoring trace plots or computing the Gelman--Rubin statistic from multiple chains) are commonly employed.
+
+Successive samples in an MCMC chain are generally correlated, since the next state depends on the current one. This correlation reduces the effective sample size: intuitively, a chain that moves slowly through the state space produces samples that are nearly identical over many steps, providing little new information per step. Nevertheless, ergodicity guarantees the consistency of time averages, and the correlation can be partially mitigated by \emph{thinning} (retaining only every $k$-th sample) or by running multiple independent chains in parallel.
+
+\subsubsection*{How to build the Markov chain}
+
+Given a difficult-to-sample target distribution $p(x)$, the goal is to construct an ergodic Markov chain with transition kernel $p(x| x')$ that satisfies two requirements: first, drawing a new state $x \sim p(\cdot| x')$ should be computationally easy given the current state $x'$; and second, the stationary distribution of the chain should be the target $p(x)$. As discussed above, the detailed balance condition
+\begin{myequation}
+p(x)\,p(x'| x) = p(x')\,p(x| x'),
+\end{myequation}
+is a sufficient condition for stationarity, and most MCMC algorithms are constructed so as to satisfy it.
+
+\medskip
+
+The Metropolis--Hastings algorithm provides a general and elegant recipe for constructing such a transition kernel for any target $p(x)$. The algorithm operates as follows. Let the current state be $x$ and let $q(x'| x)$ be a proposal distribution that is easy to sample from---for instance, a Gaussian centered at $x$. A candidate state $x'\sim q(\cdot| x)$ is proposed and accepted with the Metropolis--Hastings probability
+\begin{myequation}
+\alpha(x,x')
+=
+\min\!\left(1,\frac{p(x')\,q(x| x')}{p(x)\,q(x'| x)}\right).
+\end{myequation}
+If accepted, the chain moves to $x'$; otherwise, it remains at $x$. The acceptance probability has an intuitive interpretation: it is high when the proposed state $x'$ is more probable under $p$ than the current state $x$, and it is reduced (but not necessarily zero) when $x'$ is less probable. The term $q(x|x')/q(x'|x)$ corrects for any asymmetry in the proposal distribution. When the proposal is symmetric---that is, $q(x'|x) = q(x|x')$ for all $x,x'$---the correction disappears and the acceptance probability simplifies to $\min(1, p(x')/p(x))$, which is the original Metropolis algorithm.
+
+The resulting Markov transition kernel is
+\begin{myequation}
+p(x'| x)
+=
+q(x'| x)\,\alpha(x,x')
++
+\left(1-\int q(y| x)\,\alpha(x,y)\,dy\right)\delta_{x}(x'),
+\end{myequation}
+where $\delta_x(\cdot)$ denotes a point mass at $x$. The second term accounts for the probability of the chain staying at its current state when a proposal is rejected. This kernel satisfies detailed balance with respect to $p(x)$ and therefore leaves $p(x)$ invariant. To verify this, note that for $x \neq x'$:
+\begin{myequation}
+p(x)\,p(x'|x) = p(x)\,q(x'|x)\,\alpha(x,x') = \min\!\left(p(x)\,q(x'|x),\, p(x')\,q(x|x')\right),
+\end{myequation}
+which is symmetric in $x$ and $x'$, confirming that $p(x)\,p(x'|x) = p(x')\,p(x|x')$.
+
+A key practical advantage of Metropolis--Hastings is that only the ratio $p(x')/p(x)$ appears in the acceptance probability, so the normalization constant of $p$ cancels. This makes the algorithm directly applicable to unnormalized posteriors in Bayesian inference, where $p(\theta|\mathbf{X}) \propto \pi(\theta) = p(\mathbf{X}|\theta)\,p(\theta)$, without ever requiring the computation of the evidence $Z = p(\mathbf{X})$.
+
+\subsection*{Gibbs sampling}
+
+Gibbs sampling is a particular instance of MCMC that is especially well suited to multivariate problems in which the joint distribution of interest is defined over a vector
+\begin{myequation}
+\mathbf{x} = (x_1,\ldots,x_m), \qquad m>1.
+\end{myequation}
+Rather than proposing a new global state from a single proposal distribution (as Metropolis--Hastings does), Gibbs sampling updates one component at a time by sampling from its \emph{full conditional distribution} given the remaining components. The appeal of this approach is that, in many Bayesian models, the full conditionals have a tractable, recognizable form (often belonging to a standard parametric family), even when the joint distribution is complex and does not admit direct sampling.
+
+Formally, we assume that for each component $x_k$, the full conditional
+\begin{myequation}
+p(x_k | \mathbf{x}_{-k}),
+\qquad
+\mathbf{x}_{-k} = (x_1,\ldots,x_{k-1},x_{k+1},\ldots,x_m),
+\end{myequation}
+is available and easy to sample from. The notation $\mathbf{x}_{-k}$ denotes the vector of all components except the $k$-th. This conditional is obtained by fixing all components except $x_k$ and computing the marginal density of the joint over $x_k$ alone, which is possible whenever the joint density $p(\mathbf{x})$ can be evaluated pointwise.
+
+Starting from an initial state $\mathbf{x}^{(0)}$, one iteration of the Gibbs sampler (in its systematic-scan variant) produces $\mathbf{x}^{(t)}$ from $\mathbf{x}^{(t-1)}$ through the following sequential updates:
+\begin{myalign}
+x_1^{(t)} &\sim p\!\left(x_1 | x_2^{(t-1)},\ldots,x_m^{(t-1)}\right),\\
+x_2^{(t)} &\sim p\!\left(x_2 | x_1^{(t)},x_3^{(t-1)},\ldots,x_m^{(t-1)}\right),\\
+&\ \vdots\\
+x_m^{(t)} &\sim p\!\left(x_m | x_1^{(t)},\ldots,x_{m-1}^{(t)}\right).
+\end{myalign}
+Note that, when updating component $x_k$, the most recently updated values of all previously updated components are used, not the values from the previous iteration. This ``immediately-use-updated-values'' convention, known as systematic scan, is the standard variant and leads to slightly faster mixing than the alternative of using all values from the previous iteration. The generic update rule for component $k$ at iteration $t$ can be written compactly as
+\begin{myequation}
+x_k^{(t)} \sim p\!\left(x_k \,\Big|\, x_1^{(t)},\ldots,x_{k-1}^{(t)},x_{k+1}^{(t-1)},\ldots,x_m^{(t-1)}\right),
+\end{myequation}
+reflecting the use of updated components for indices less than $k$ and previous-iteration values for indices greater than $k$.
+
+Unlike Metropolis--Hastings, Gibbs sampling requires no rejection step: each conditional update is accepted with probability one, because each sample is drawn exactly from the correct full conditional distribution given the current values of all other components. The efficiency of the sampler therefore depends entirely on how well the full conditionals mix, rather than on a choice of proposal scale. This can be both a strength and a limitation: when the components are nearly independent, Gibbs sampling mixes very efficiently; when the components are highly correlated, each conditional update moves very little, and the sampler can mix slowly.
+
+Gibbs sampling can be viewed as a special case of Metropolis--Hastings in which the proposal distribution for component $x_k$ coincides with the full conditional $p(x_k|\mathbf{x}_{-k})$. Under this proposal, the Metropolis--Hastings acceptance probability evaluates to one identically, since $p(\mathbf{x}')\,q(\mathbf{x}|\mathbf{x}') = p(\mathbf{x})\,q(\mathbf{x}'|\mathbf{x})$ when $q$ is chosen as the full conditional. This connection confirms that Gibbs sampling preserves the target joint distribution $p(\mathbf{x})$ as its stationary distribution. Under mild conditions on the joint distribution (essentially, that it is positive and the full conditionals are compatible), the resulting Markov chain is ergodic, and the ergodic theorem guarantees that time averages over the Gibbs chain converge almost surely to expectations under $p(\mathbf{x})$.
+
+%\end{document}
+
+
+%\end{document}

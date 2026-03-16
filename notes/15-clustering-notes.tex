@@ -1,0 +1,984 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Clustering}
+
+Clustering is one of the central tasks in unsupervised learning. Its defining characteristic is
+that the goal of organising data into meaningful groups is pursued \emph{without} any
+reliance on ground-truth labels. This stands in sharp contrast to classification, where the
+training phase is guided by known targets and the learning objective is explicitly tied to
+predictive accuracy. In clustering, the data arrive unlabeled and the aim is fundamentally
+exploratory: we seek to uncover latent structure, recurring patterns, or meaningful groupings
+that are only implicit in the geometry of the observations, with no external supervision to tell
+us whether a proposed partition is correct or not. In practice, clustering serves as a
+preliminary step for data understanding, for feature engineering, or as a component inside
+larger pipelines---for instance, to compress data, to initialize mixture models, or to detect
+anomalies.
+
+\subsection*{Clustering Problem Setup}
+
+Let $\mathbf{X}=(\mathbf{x}_1,\ldots,\mathbf{x}_n)$ be a dataset of $n$ points in
+$\mathbb{R}^d$. A clustering task seeks to partition the dataset into $k$ clusters
+$C_1,\ldots,C_k$ so that points falling in the same cluster are, in some sense,
+\emph{similar}, while points belonging to different clusters are \emph{dissimilar}. The
+precise meanings of ``similar'' and ``dissimilar'' are not universal: they depend on the
+choice of a distance or similarity function and, more broadly, on the inductive bias we wish
+to impose---compactness, separation, density, connectivity, and so on. For the methods
+discussed in this chapter, similarity will be expressed primarily in terms of distances in
+$\mathbb{R}^d$.
+
+Rather than treating clustering as a purely combinatorial partitioning problem, it is often
+more illuminating to view it as an \emph{optimization} problem: we define a quantitative
+notion of cluster quality and then search for the grouping that optimises it. This perspective
+makes the learning objective explicit and, as will become clear when we study $k$-means,
+also suggests practical algorithmic strategies for finding good solutions.
+
+\subsubsection*{Cluster representation}
+
+A convenient way to represent a clustering is to make explicit both \emph{where} clusters
+are located in feature space and \emph{which} points belong to each cluster. For this reason
+we typically introduce two objects: a set of \textbf{prototypes} and an
+\textbf{assignment matrix}.
+
+Each cluster is summarised by a prototype $\mathbf{m}_j\in\mathbb{R}^d$, for
+$j=1,\ldots,k$. Intuitively, $\mathbf{m}_j$ plays the role of a representative point for
+cluster $C_j$; in many algorithms it corresponds to the ``center'' of the cluster, although
+the precise meaning of ``center'' depends on the loss function and on the metric in use.
+
+To encode membership, each data point $\mathbf{x}_i$ is associated with an assignment
+vector $\mathbf{r}_i\in\{0,1\}^k$. The entry $r_{ij}$ indicates whether $\mathbf{x}_i$
+belongs to cluster $C_j$:
+\begin{myequation}
+r_{ij}=
+\begin{cases}
+1 & \text{if } \mathbf{x}_i \text{ is assigned to cluster } C_j\\
+0 & \text{otherwise.}
+\end{cases}
+\end{myequation}
+This is a \alert{1-of-$k$ encoding}: for each $i$ exactly one component of $\mathbf{r}_i$
+equals $1$ and all others equal $0$. In other words, the clustering is \emph{hard}: every
+point is assigned to one and only one cluster. As we shall see later, probabilistic models
+such as mixture models relax this constraint and allow \emph{soft} assignments, but
+$k$-means is firmly in the hard-assignment setting.
+
+\subsection*{Clustering approaches: partitional vs.\ hierarchical}
+
+Although many clustering families exist, it is useful to distinguish two broad paradigms
+that organise most classical methods: \emph{partitional} and \emph{hierarchical}
+clustering. The difference is not only algorithmic; it also affects what kind of output the
+method produces and what questions it is naturally suited to answer.
+
+Partitional methods aim directly at producing a single, flat partition of the dataset into $k$
+non-overlapping clusters. The number $k$ is typically fixed in advance (or selected by
+model selection criteria), and the algorithm searches for a clustering that optimises a cost
+function $J$ measuring cluster quality. Under this view, clustering closely resembles
+parameter estimation: we are simultaneously choosing the prototypes---or other parameters
+describing clusters---and the assignments of points to clusters. A key advantage of
+partitional methods is computational scalability: with appropriate implementations, they are
+often effective on large datasets. Typical representatives include $k$-means, $k$-medoids,
+and, with a probabilistic interpretation, mixture models.
+
+Hierarchical methods do not return a single flat partition. Instead, they produce a nested
+family of partitions organised as a tree, commonly visualised as a \emph{dendrogram}.
+Moving along the tree corresponds to changing the granularity of the description: at the
+bottom we find many small clusters, and as we move upward, clusters merge in the
+agglomerative approach (or, dually, large clusters split into smaller ones in the divisive
+approach). One practical benefit is that we do not need to commit to a specific $k$ at the
+outset; any desired number of clusters can be obtained by ``cutting'' the dendrogram at a
+chosen height. This richer description is often informative, but it typically comes with
+higher computational cost. Moreover, hierarchical decisions made early in the process
+cannot be revised later, which makes the method sensitive to the choice of linkage criterion
+and distance metric.
+
+These two paradigms are not in competition: they are complementary, and the appropriate
+choice depends on the goals of the analysis. When speed and scalability matter, or when
+there is a reasonable prior belief about the number of clusters, partitional methods are
+often preferred. When the primary goal is to understand the multi-scale structure of the
+data, or when $k$ is genuinely unknown, hierarchical methods offer a richer picture.
+
+\subsection*{The $k$-Means Algorithm}
+
+Among partitional clustering methods, $k$-means occupies a special place because of its
+simplicity, speed, and clarity of interpretation. Despite being conceptually straightforward,
+it embodies many themes that recur in more advanced unsupervised learning algorithms:
+optimisation under discrete assignments, alternating minimisation, convergence to local
+optima, and sensitivity to initialization. Understanding $k$-means in depth therefore
+provides a strong foundation for the more sophisticated methods discussed later in this
+chapter.
+
+Given a dataset $\mathbf{X}$ and a target number of clusters $k$, $k$-means searches
+simultaneously for an assignment matrix $R=(r_{ij})$ and a set of prototypes
+$M=(\mathbf{m}_1,\ldots,\mathbf{m}_k)$ that minimise the following objective:
+\begin{myequation}
+J(R,M)=\sum_{i=1}^{n}\sum_{j=1}^{k} r_{ij}\|\mathbf{x}_i-\mathbf{m}_j\|^2.
+\end{myequation}
+This quantity is known as the \alert{within-cluster sum of squares}. It measures how tightly
+each cluster concentrates around its prototype: because $r_{ij}$ is zero for all clusters
+except the one to which $\mathbf{x}_i$ is assigned, each point contributes only through its
+squared distance to the prototype of its own cluster.
+
+\paragraph{Interpretation.}
+The objective makes the inductive bias of $k$-means explicit. Minimising $J$ encourages
+\emph{compact} clusters in Euclidean space: points should lie close to their cluster center,
+and a good clustering is one in which most of the squared distances $\|\mathbf{x}_i-
+\mathbf{m}_j\|^2$ (for the assigned $j$) are small. This bias fits well when clusters are
+roughly spherical---or, more precisely, when cluster structure is well captured by Euclidean
+distance and means---but it becomes restrictive in the presence of elongated, curved, or
+density-based cluster shapes. Keeping this limitation in mind is important when deciding
+whether $k$-means is the right tool for a given problem.
+
+\subsubsection*{Algorithm: alternating optimisation}
+
+Jointly optimising $R$ and $M$ is difficult because $R$ is discrete and the objective is not
+convex in the pair $(R,M)$. The classical $k$-means algorithm addresses this by
+\alert{alternating optimisation}: it iteratively improves one set of variables while keeping
+the other fixed. Each individual step is simple and has a closed-form solution, but together
+they produce a monotone decrease of the objective that guarantees convergence.
+
+The assignment step minimises $J$ with respect to $R$, keeping $M$ fixed. With the
+prototypes fixed, the best assignment for each point is obtained by choosing the nearest
+prototype in squared Euclidean distance:
+\begin{myequation}
+r_{ij}=
+\begin{cases}
+1 & \text{if } j=\argmin{\ell}\ \|\mathbf{x}_i-\mathbf{m}_{\ell}\|^2\\
+0 & \text{otherwise.}
+\end{cases}
+\end{myequation}
+Geometrically, this step partitions the space into Voronoi-like regions around the current
+prototypes: each point is assigned to the region of the closest prototype, and the decision
+boundaries are piecewise linear hyperplanes equidistant from neighbouring prototypes.
+
+The update step then minimises $J$ with respect to $M$, keeping $R$ fixed. For a given
+cluster index $j$, differentiating $J$ with respect to $\mathbf{m}_j$ and setting the gradient
+to zero yields a straightforward calculation:
+\begin{myalign}
+\frac{\partial J}{\partial \mathbf{m}_j} &= 2\sum_{i=1}^{n} r_{ij}(\mathbf{m}_j-\mathbf{x}_i)=0\\
+\Rightarrow \mathbf{m}_j &= \frac{\sum_{i=1}^{n} r_{ij}\mathbf{x}_i}{\sum_{i=1}^{n} r_{ij}}
+= \frac{1}{n_j}\sum_{i\in C_j}\mathbf{x}_i,
+\end{myalign}
+where $n_j=\sum_{i=1}^{n} r_{ij}$ is the number of points assigned to cluster $C_j$. The
+optimal prototype is therefore the \emph{mean} of all points currently assigned to that
+cluster---which is precisely why the algorithm is called $k$-\textit{means}. Geometrically,
+the centroid is the unique point that minimises the sum of squared distances to any given
+set of points, a classical result from elementary statistics.
+
+\subsubsection*{Convergence properties}
+
+A useful feature of $k$-means is that it is guaranteed to make progress in terms of the
+objective at every iteration. After each full cycle of assignment followed by update, the cost
+cannot increase:
+\begin{myequation}
+J^{(t+1)}\leq J^{(t)}.
+\end{myequation}
+The argument is embedded directly in the construction of the two steps. The assignment
+step chooses, for each point, the cluster that minimises its contribution to $J$ given the
+current prototypes: any reassignment of a point to a closer prototype cannot increase the
+total cost. The update step then replaces each prototype by the centroid of its currently
+assigned cluster: since the centroid minimises the within-cluster sum of squares, updating
+the prototypes can only reduce $J$ further. Because $J(R,M)\geq 0$ always holds, this
+monotone decrease implies that the algorithm converges in a finite number of steps, since
+there are only finitely many possible assignment matrices and the cost strictly decreases
+unless a fixed point has already been reached.
+
+It is important, however, not to overstate this result. The objective is not convex, and
+monotone descent does \emph{not} imply convergence to the global optimum. In practice,
+$k$-means typically converges to a \textbf{local} minimum of $J$, and different
+initializations can lead to qualitatively different solutions. This is not a pathological edge
+case: it is a fundamental aspect of the optimisation landscape induced by discrete
+assignments and squared distances. In datasets with complex structure or with clusters of
+comparable within-cluster variance, the algorithm may converge to partitions that differ
+substantially from the globally optimal one.
+
+\subsubsection*{Initialization and stopping criteria}
+
+The simplest initialization strategy selects $k$ prototypes uniformly at random among the
+data points, and then begins alternating between assignment and update. Because different
+random starts can lead to different local minima, it is common practice to run the algorithm
+multiple times from different starting configurations and retain the final clustering with the
+smallest attained cost. More sophisticated initialization schemes, such as $k$-means++,
+improve over pure random initialization by choosing starting prototypes that are spread out
+across the dataset, which tends to produce better solutions and faster convergence.
+
+Stopping can be decided in several equivalent ways. One may halt after a fixed number of
+iterations, or when the cost improvement becomes negligible, i.e., when
+$|J^{(t)}-J^{(t-1)}|<\epsilon$ for a chosen tolerance $\epsilon$. Another natural stopping
+criterion is to stop when the assignments no longer change between iterations: this indicates
+that the algorithm has reached a fixed point at which the Voronoi partition induced by the
+current prototypes is consistent with those same prototypes being the centroids of their
+respective clusters.
+
+\subsection*{$k$-Means Example}
+
+The following sequence of figures illustrates the evolution of $k$-means on a
+two-dimensional dataset with $k=3$. The geometric meaning of the alternating steps
+becomes visible: assignments carve the plane into decision regions, while prototype updates
+move the centers toward the centroids of the currently assigned points. Even in this simple
+example, one can observe how the algorithm quickly reorganises the prototypes during the
+first few iterations and then settles into a stable configuration.
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{kmeans0.pdf}
+\caption{Original dataset}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{kmeans1.pdf}
+\caption{Random initialization}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{kmeans2.pdf}
+\caption{After iteration 1}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{kmeans3.pdf}
+\caption{After iteration 2}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{kmeans4.pdf}
+\caption{After iteration 3}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{kmeans5.pdf}
+\caption{Final clustering}
+\end{subfigure}
+\end{figure}
+
+\medskip
+\noindent Figure caption: The algorithm alternates between assigning points to the nearest
+prototype---thus inducing decision regions in the plane---and recomputing prototypes as
+cluster means. In many practical datasets, convergence is reached in a small number of
+iterations.
+
+\subsubsection*{Cost curve}
+
+A complementary perspective on convergence is obtained by monitoring the objective value
+over iterations. The monotone decrease predicted by theory typically appears clearly in
+practice, with a rapid initial drop followed by progressively smaller improvements as the
+algorithm approaches a stable configuration. Figure~\ref{f:cf} shows a representative cost
+curve: the steep descent in the first few iterations reflects large reorganisations of the
+assignment matrix, while the subsequent plateau indicates that only marginal adjustments
+are being made and the algorithm is close to a fixed point.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{kmeansobj.pdf}
+\caption{Cost function $J(R,M)$ over iterations. The cost decreases monotonically and
+stabilises as the algorithm converges.}\label{f:cf}
+\end{figure}
+
+\subsection*{Choosing the number of clusters $k$}
+
+The value of $k$ is a crucial hyperparameter in partitional clustering: it controls the
+granularity of the partition and strongly affects the interpretation of the result. If $k$ is too
+small, distinct groups may be merged and the clustering will be overly coarse. If $k$ is too
+large, the algorithm may fragment meaningful clusters into smaller pieces, often fitting
+noise rather than genuine structure. Selecting $k$ is therefore not a minor technical detail
+but a substantive modelling decision.
+
+\subsubsection*{Elbow method}
+
+A simple and widely used heuristic is the \alert{elbow method}. The idea is to run
+$k$-means for a range of values of $k$---say, $k=1,2,\ldots,10$---and to plot the achieved
+cost $J(k)$ as a function of $k$. Because adding more clusters increases the flexibility of
+the model, the cost necessarily decreases as $k$ grows. However, there typically exists a
+point beyond which the improvement becomes marginal: the ``elbow'' of the curve, where
+the decrease starts to flatten, is taken as a reasonable compromise between fit quality and
+model complexity.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{clusteringgraph.pdf}
+\caption{Elbow method: cost vs.\ number of clusters. The elbow indicates a good choice of
+$k$ where additional clusters provide diminishing returns.}
+\end{figure}
+
+While intuitive, the elbow method is not always decisive: in some datasets the curve
+decreases smoothly without a clear kink, making the ``elbow'' difficult to identify
+unambiguously. In those cases, it is useful to complement this heuristic with more
+principled, model-based criteria, which we now discuss.
+
+\subsubsection*{Other model selection criteria}
+
+Information-theoretic criteria provide a systematic way to balance fit quality against
+model complexity, making explicit the trade-off between explaining the data well and
+avoiding unnecessary parameters. To apply such criteria, we need to embed $k$-means in
+a probabilistic framework.
+
+Although $k$-means is not inherently probabilistic, it can be embedded in a simple
+generative model. Assume that, conditional on belonging to cluster $j$, points are
+distributed according to an isotropic Gaussian centered at $\mathbf{m}_j$ with covariance
+$\sigma^2\mathbf{I}$:
+\begin{myequation}
+p(\mathbf{x}_i \mid \text{cluster } j)=\frac{1}{(\sqrt{2\pi}\sigma)^d}
+\exp\!\left(-\frac{\|\mathbf{x}_i-\mathbf{m}_j\|^2}{2\sigma^2}\right).
+\end{myequation}
+Given hard assignments, the likelihood of the full dataset is
+\begin{myequation}
+L=\prod_{i=1}^{n} p(\mathbf{x}_i \mid C_{j_i}),
+\end{myequation}
+where $j_i$ denotes the cluster assigned to $\mathbf{x}_i$. Taking logarithms gives
+\begin{myequation}
+\ln L=\sum_{i=1}^{n}\left[-d\ln(\sqrt{2\pi}\sigma)
+-\frac{\|\mathbf{x}_i-\mathbf{m}_{j_i}\|^2}{2\sigma^2}\right].
+\end{myequation}
+Ignoring constants that do not depend on $k$, we obtain
+\begin{myequation}
+\ln L \propto -\frac{1}{2\sigma^2}\sum_{i=1}^{n}\|\mathbf{x}_i-\mathbf{m}_{j_i}\|^2
+= -\frac{J(R,M)}{2\sigma^2}.
+\end{myequation}
+This reveals a key connection: minimising the $k$-means objective $J(R,M)$ is equivalent
+to maximising the likelihood under the isotropic Gaussian assumption. This equivalence is
+not merely a mathematical curiosity; it provides the justification for applying standard
+model selection tools to the $k$-means problem.
+
+\paragraph{Akaike Information Criterion (AIC).}
+AIC trades off goodness of fit against complexity through the formula
+\begin{myequation}
+\text{AIC}(k)=2\cdot(\text{number of parameters})-2\ln L.
+\end{myequation}
+In $k$-means with $k$ prototypes in $d$ dimensions, the number of mean parameters is
+$kd$, so
+\begin{myequation}
+\text{AIC}(k)=2kd-2\ln L=2kd+\frac{J(R,M)}{\sigma^2}.
+\end{myequation}
+The interpretation is transparent: increasing $k$ typically decreases $J(R,M)$ (better fit),
+but simultaneously increases the penalty $2kd$ (greater model complexity). AIC balances
+these two competing effects, and the selected $k$ is the one that \emph{minimises} it.
+
+\paragraph{Bayesian Information Criterion (BIC).}
+BIC is motivated by Bayesian arguments and imposes a stronger penalty on model
+complexity:
+\begin{myequation}
+\text{BIC}(k)=(\text{number of parameters})\cdot \ln n - 2\ln L.
+\end{myequation}
+For $k$-means:
+\begin{myequation}
+\text{BIC}(k)=kd\cdot \ln n+\frac{J(R,M)}{\sigma^2}.
+\end{myequation}
+Compared to AIC, the penalty term $kd\ln n$ grows with the sample size $n$, meaning that
+with more data BIC becomes increasingly conservative and tends to prefer simpler models
+unless the fit improvement is clearly justified by the evidence. In practice, when
+$n$ is large, BIC often selects fewer clusters than AIC, reflecting its stronger guard against
+overfitting.
+
+\paragraph{Silhouette coefficient.}
+The silhouette coefficient is a distance-based criterion that does not require a probabilistic
+model. It evaluates clustering quality by combining two complementary intuitions: points
+should be close to other points in their own cluster (compactness) and far from points in
+other clusters (separation). Consider a point $\mathbf{x}_i$ assigned to cluster $C_j$, and
+define $a_i$ as the average distance from $\mathbf{x}_i$ to all other points in the same
+cluster:
+\begin{myequation}
+a_i=\frac{1}{|C_j|-1}\sum_{\mathbf{x}_\ell\in C_j,\ \ell\neq i} d(\mathbf{x}_i,\mathbf{x}_\ell).
+\end{myequation}
+A small $a_i$ indicates that $\mathbf{x}_i$ sits well within its cluster. Next, define $b_i$
+as the smallest average distance from $\mathbf{x}_i$ to the points of any other cluster:
+\begin{myequation}
+b_i=\min_{k\neq j}\ \frac{1}{|C_k|}\sum_{\mathbf{x}_\ell\in C_k} d(\mathbf{x}_i,\mathbf{x}_\ell).
+\end{myequation}
+A large $b_i$ means that the nearest alternative cluster is still far away, which is
+desirable. The silhouette value for $\mathbf{x}_i$ combines these two quantities as follows:
+\begin{myequation}
+s_i=\frac{b_i-a_i}{\max(a_i,b_i)}.
+\end{myequation}
+By construction, $s_i\in[-1,1]$. Values close to $+1$ indicate that the point is well
+clustered (small $a_i$ and large $b_i$); values close to $0$ indicate a borderline point
+that lies between two clusters; and negative values suggest that $\mathbf{x}_i$ may have
+been assigned to the wrong cluster. The global quality of a clustering is then summarised by
+the average silhouette coefficient:
+\begin{myequation}
+S=\frac{1}{n}\sum_{i=1}^{n} s_i,
+\end{myequation}
+and a common strategy is to select the value of $k$ that maximises $S$. Unlike AIC and
+BIC, the silhouette does not assume any generative model; it is therefore applicable
+whenever a distance function between points is available, even when no probabilistic
+interpretation is attached to the clusters.
+
+Beyond these quantitative criteria, \textbf{domain knowledge} remains one of the most
+reliable guides: if the application provides strong prior expectations about how many groups
+should exist or what they should represent, that information can and should inform the
+choice of $k$. Quantitative criteria and domain expertise are best used in conjunction rather
+than as substitutes for one another.
+
+\subsection*{Advantages and limitations of $k$-means}
+
+It is useful to conclude this section with a balanced assessment of when $k$-means is an
+appropriate choice and when its inherent assumptions become restrictive.
+
+On the side of advantages, $k$-means is simple to implement and computationally
+efficient. With a per-iteration cost that scales as $O(nkd)$ under standard assumptions, it
+remains practical even for large datasets and serves as a common baseline and a frequent
+component in larger systems. It performs well when clusters are compact, convex, and
+roughly spherical in Euclidean space, which is a reasonable description of many real-world
+datasets.
+
+On the side of limitations, the same design choices that make $k$-means fast also define
+its boundaries. Because it optimises a non-convex objective, it is sensitive to initialisation
+and may converge to poor local minima---a risk that grows with the number of clusters and
+the complexity of the data. It requires specifying $k$ in advance, which is not always
+natural in truly exploratory settings where the number of groups is itself a quantity of
+interest. Most importantly, the squared Euclidean objective implicitly assumes clusters that
+are similar in size and shape; it struggles with non-convex, elongated, or manifold-like
+clusters. Furthermore, because prototypes are means, outliers can exert a disproportionate
+influence and distort cluster centers, leading to unstable or misleading partitions.
+
+These limitations motivate the methods introduced in the rest of this chapter:
+hierarchical clustering, which avoids fixing $k$ in advance and produces a richer
+multi-scale description of the data, and probabilistic mixture models, which relax the
+spherical-cluster assumption and replace deterministic assignments with a principled
+treatment of uncertainty.
+
+\subsection*{Hierarchical Clustering}
+
+\subsubsection*{Overview}
+
+In many exploratory scenarios, the question of interest is not only \emph{``how do I
+partition the data into $k$ groups?''} but also \emph{``which groupings are plausible at
+different levels of detail?''} Hierarchical clustering addresses precisely this point. Rather
+than committing to a single flat partition, it produces a \alert{tree-structured} description
+of the dataset that encodes a whole \emph{family} of partitions, ranging from very
+fine-grained (many small clusters) to very coarse (a single large cluster). This output is
+visualised as a \alert{dendrogram}, a diagram in which every cut at a fixed height
+corresponds to a distinct partition. The conceptual difference with respect to $k$-means is
+therefore fundamental: instead of requiring the analyst to choose a granularity in advance,
+hierarchical clustering defers that decision and presents the full spectrum of plausible
+groupings together.
+
+The hierarchy can be constructed in two symmetric ways. In the \textbf{agglomerative}
+(bottom-up) approach, we begin with the most fragmented description possible---each
+data point forming its own cluster---and then progressively merge clusters according to a
+chosen notion of similarity. In the \textbf{divisive} (top-down) approach, we start from the
+opposite extreme---all points in a single cluster---and repeatedly split clusters until every
+point is in its own singleton. Although both perspectives are meaningful, agglomerative
+hierarchical clustering is more commonly used in practice, largely because it admits simpler
+and more efficient implementations. Divisive procedures, by contrast, often require solving
+a harder optimisation problem at each split, which makes them computationally demanding.
+
+To make these ideas precise, let $\mathbf{X}=(\mathbf{x}_1,\ldots,\mathbf{x}_n)$ with
+$\mathbf{x}_i\in\mathbb{R}^d$, and let $d(\cdot,\cdot)$ denote a distance (or
+dissimilarity) between individual points. Since hierarchical clustering builds clusters by
+comparing not only single points but also sets of points, a key modelling choice is how to
+lift the point-to-point distance $d$ into a distance between clusters. This is the role of the
+\emph{linkage criterion}, which is introduced in the next section.
+
+\subsubsection*{Agglomerative hierarchical clustering}
+
+Agglomerative clustering begins from $n$ singleton clusters and merges them step by step
+until only a single cluster remains. The procedure is greedy: at each iteration it merges the
+two clusters that are currently the most similar---equivalently, the least distant---according
+to the chosen linkage criterion. Formally, let
+$\mathcal{C}^{(t)}=\{C_1^{(t)},\ldots,C_{m_t}^{(t)}\}$ be the current collection of
+clusters at iteration $t$, where $m_t$ decreases from $n$ down to $1$.
+
+The algorithm is initialised by setting $\mathcal{C}^{(0)}=\big\{\{\mathbf{x}_1\},\ldots,
+\{\mathbf{x}_n\}\big\}$, i.e., every point is its own cluster. At each subsequent iteration
+$t=0,1,\ldots,n-2$, the inter-cluster distances $d_{\text{link}}(C_a^{(t)},C_b^{(t)})$ are
+computed for all pairs of distinct clusters in $\mathcal{C}^{(t)}$, the closest pair is
+identified,
+\begin{myequation}
+(C_p^{(t)},C_q^{(t)}) \in \argmin{C_a^{(t)}\neq C_b^{(t)}} d_{\text{link}}(C_a^{(t)},C_b^{(t)}),
+\end{myequation}
+and these two clusters are merged into a new cluster
+$C_{\text{new}}^{(t+1)}=C_p^{(t)}\cup C_q^{(t)}$, replacing them in the collection. The
+full sequence of merges, together with the distance at which each merge occurred,
+constitutes the dendrogram.
+
+This greedy construction has an important consequence that is worth emphasising: once
+two clusters have been merged, the decision is never revisited. There is no mechanism for
+correcting a premature merge. For this reason, the choice of linkage criterion is not a
+minor technicality but the main mechanism controlling the geometry of the resulting
+hierarchy, and different choices can lead to qualitatively different dendrograms even when
+the underlying point-to-point distance is the same.
+
+\subsubsection*{Cluster similarity and linkage criteria}
+
+A linkage criterion specifies how to compute a distance between two clusters from the
+underlying distance between individual points. Different criteria correspond to different
+implicit notions of what a ``good'' cluster should look like. In all cases, $C_1$ and $C_2$
+denote two clusters (sets of points) and $d(\mathbf{x}_i,\mathbf{x}_j)$ is the base distance
+between points, most often the Euclidean distance.
+
+\paragraph{Single linkage.}
+Single linkage defines the distance between two clusters as the distance between their
+closest pair of points:
+\begin{myequation}
+d_{\text{SL}}(C_1,C_2)=\min_{\mathbf{x}_i\in C_1,\ \mathbf{x}_j\in C_2} d(\mathbf{x}_i,\mathbf{x}_j).
+\end{myequation}
+This criterion treats two clusters as similar as soon as \emph{any} bridge of nearby points
+exists between them. As a result, it often produces long, chain-like clusters, a
+phenomenon known as the \emph{chaining effect}. This behaviour can be desirable when
+the true clusters are non-convex and connected by paths of close neighbours, but it also
+makes single linkage sensitive to noise and outliers: a single stray point can connect two
+otherwise well-separated groups, causing them to merge prematurely.
+
+\paragraph{Complete linkage.}
+Complete linkage takes the opposite perspective and measures the distance between two
+clusters through their farthest pair of points:
+\begin{myequation}
+d_{\text{CL}}(C_1,C_2)=\max_{\mathbf{x}_i\in C_1,\ \mathbf{x}_j\in C_2} d(\mathbf{x}_i,\mathbf{x}_j).
+\end{myequation}
+Under this criterion, two clusters are considered similar only if \emph{all} points in one
+cluster are relatively close to \emph{all} points in the other. This tends to create compact,
+relatively spherical clusters and largely eliminates the chaining effect. The drawback is
+that the maximum distance is determined by the farthest pair of points, which may be
+atypical, so complete linkage can be overly conservative when clusters are irregular in
+shape.
+
+\paragraph{Group average linkage.}
+Group average linkage (also known as average linkage) balances the previous two
+extremes by using the average pairwise distance across all pairs of points from different
+clusters:
+\begin{myequation}
+d_{\text{GA}}(C_1,C_2)=\frac{1}{|C_1|\cdot |C_2|}
+\sum_{\mathbf{x}_i\in C_1}\sum_{\mathbf{x}_j\in C_2} d(\mathbf{x}_i,\mathbf{x}_j).
+\end{myequation}
+By averaging over all cross-cluster pairs, this criterion is often more robust than single
+linkage and less stringent than complete linkage. It merges clusters when they are close
+\emph{on average}, yielding a natural compromise between connectivity and compactness.
+In practice, average linkage is frequently the preferred choice when there is no strong
+a priori reason to favour either extreme.
+
+The linkage choice can dramatically change the resulting dendrogram even when the
+underlying point distance $d$ is held fixed. Hierarchical clustering is therefore best
+understood as a \emph{framework} rather than a single algorithm: the specific hierarchy
+produced depends jointly on the point distance and the linkage criterion, each encoding a
+distinct modelling assumption about the shape and structure of clusters.
+
+\subsubsection*{Interpreting a dendrogram}
+
+A dendrogram is a rooted binary tree that summarises the entire merging process. Its
+leaves correspond to individual data points, each internal node corresponds to a merge
+between two clusters, and the height (vertical position) of each internal node encodes the
+linkage distance $d_{\text{link}}$ at which the corresponding merge took place. The height
+therefore has an immediate and interpretable meaning: merges occurring at low heights
+involve very similar clusters, while merges occurring at high heights indicate that the
+algorithm had to join rather dissimilar groups because all more natural alternatives had
+already been exhausted. In this sense, the dendrogram provides a visual map of similarity
+relationships across the entire dataset and can be read as a multi-scale description of its
+structure.
+
+A practical advantage of this representation is that it naturally induces a partition for
+\emph{any} desired number of clusters without requiring a new run of the algorithm.
+Cutting the dendrogram horizontally at height $h$ produces as many clusters as there are
+connected subtrees below the cut: a lower cut yields more clusters (a finer partition),
+while a higher cut yields fewer (a coarser partition). This flexibility allows the analyst to
+explore plausible values of $k$ a posteriori by inspecting the dendrogram, looking for
+heights at which large gaps appear---indicating that a merge at that level combines two
+genuinely dissimilar groups---and deciding on a cut accordingly.
+
+\subsubsection*{Example dendrogram}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{iris2.pdf}
+\caption{Dendrogram from hierarchical clustering on a dataset. The height of each merge
+indicates the dissimilarity between merged clusters. Cutting at different heights yields
+different numbers of clusters.}
+\end{figure}
+
+\subsubsection*{Properties and practical considerations}
+
+Hierarchical clustering has several characteristic properties worth summarising. First, it
+does not require specifying $k$ in advance: the dendrogram implicitly contains solutions for
+all possible values of $k$, which is particularly useful in exploratory analysis where the
+number of groups is not known a priori. Second, in the agglomerative setting, the sequence
+of merge heights is monotone non-decreasing: the algorithm always merges the closest
+available pair, so as clusters grow the next merge can only occur at the same or higher
+dissimilarity. This monotonicity is precisely what makes the dendrogram a consistent and
+well-defined representation of the process.
+
+At the same time, hierarchical clustering is sensitive to the linkage criterion. Because
+merges are irreversible, two different linkage choices can produce qualitatively different
+hierarchies on the same data. When interpretability is the primary goal, it is therefore often
+informative to compare dendrograms obtained with different linkages and assess how robust
+the observed structure is to this modelling choice.
+
+Regarding the practical trade-off with $k$-means: when the dataset is large and a specific
+number of clusters is known or can be reliably estimated, $k$-means is often preferred
+because of its speed and scalability. Hierarchical clustering, by contrast, is especially
+valuable when the primary goal is to \textbf{understand structure}: it supports
+small-to-moderate datasets, helps diagnose whether multiple granularities are plausible,
+and offers an interpretable, parameter-free picture of how clusters relate to each other
+across scales.
+
+\section*{Probabilistic Clustering: Mixture Models}
+
+The clustering methods introduced so far---$k$-means and hierarchical clustering---are
+primarily \emph{geometric}: they define clusters through distances and partitions of the
+feature space, but they make no explicit statement about \emph{how the data might have
+been generated}. In many applications, however, it is natural and productive to assume that
+the observed points are realisations of an underlying random process. From this
+perspective, a cluster is not merely a region of space but rather a \emph{population}
+described by a probability distribution. This motivates a \alert{probabilistic approach} to
+clustering, in which we posit a statistical model for the data and interpret clusters as the
+latent components of that model.
+
+\subsection*{The mixture model framework}
+
+\subsubsection*{Motivation}
+
+The central idea is to describe the data distribution as a \alert{mixture} of simpler
+component distributions. Generating a point $\mathbf{x}$ from a mixture can be thought of
+as a two-stage process: first choose a component (which we interpret as a cluster)
+according to some prior probabilities, then sample the point from the distribution associated
+with the chosen component. This viewpoint introduces two important differences with
+respect to $k$-means. First, cluster membership becomes a \emph{latent} random variable
+rather than a deterministic label: we cannot observe which component generated a given
+point, and the goal of learning is to recover this latent structure from the data. Second,
+because the model is probabilistic, we can quantify uncertainty: a point may plausibly
+belong to more than one cluster with non-negligible probability, and the model makes this
+ambiguity explicit rather than suppressing it.
+
+This probabilistic formulation brings several benefits beyond producing a partition of the
+dataset. It naturally yields \emph{soft assignments}, supports likelihood-based reasoning
+and model comparison, and enables principled criteria such as AIC and BIC to guide the
+choice of the number of components. Moreover, because we can select different distribution
+families for the components, the same conceptual framework extends seamlessly from
+continuous measurements to count data, binary vectors, and many other data types.
+
+\subsubsection*{Mathematical definition}
+
+A \alert{mixture model} is defined as a weighted sum of component distributions:
+\begin{myequation}
+p(\mathbf{x}\mid\boldsymbol{\pi},\boldsymbol{\Theta})=\sum_{k=1}^{K}\pi_k\,q(\mathbf{x}\mid\boldsymbol{\theta}_k),
+\end{myequation}
+where $K$ is the number of components, $\pi_k$ are the \alert{mixing coefficients}
+satisfying $\sum_{k=1}^{K}\pi_k=1$ and $0\leq \pi_k\leq 1$, and
+$q(\mathbf{x}\mid\boldsymbol{\theta}_k)$ is the $k$-th component distribution with
+parameters $\boldsymbol{\theta}_k$. We collect the mixing coefficients in
+$\boldsymbol{\pi}=(\pi_1,\ldots,\pi_K)$ and the component parameters in
+$\boldsymbol{\Theta}=(\boldsymbol{\theta}_1,\ldots,\boldsymbol{\theta}_K)$.
+
+The interpretation is straightforward but important. The coefficient $\pi_k$ represents the
+probability that a randomly sampled point was generated by component $k$
+\emph{before} observing the point itself: it is the \emph{prior} prevalence of cluster $k$
+in the population. The function $q(\cdot\mid\boldsymbol{\theta}_k)$ then describes how
+points are distributed \emph{within} that cluster. Because the mixture is a convex
+combination of valid densities or mass functions, it is itself a valid probability distribution:
+it is nonnegative and integrates (or sums) to $1$ over its domain.
+
+Although many expositions restrict attention to mixtures whose components all belong to
+the same parametric family, the definition does not require this. Components from different
+families can in principle be combined. In practice, however, using a single family is both
+simpler and better motivated: it allows clusters to differ only through their parameters
+(e.g., their mean and covariance in the Gaussian case), making the estimated components
+directly comparable.
+
+\subsubsection*{Choice of component distributions}
+
+The component family should be chosen to match the nature of the observations. For
+continuous real-valued data in $\mathbb{R}^d$, the canonical choice is the multivariate
+Gaussian, leading to Gaussian mixture models. For count data, Poisson mixtures are
+natural; for binary vectors, mixtures of Bernoulli distributions provide a basic but flexible
+model. Using the same family for all components simplifies parameter estimation, because
+each component can be updated using the same type of sufficient statistics, while still
+allowing considerable flexibility through different parameter values. One should keep in
+mind, however, that the mixture family is a modelling assumption: if the chosen
+components poorly match the true data-generating mechanism, the inferred clusters may be
+unstable or difficult to interpret.
+
+\subsection*{Clustering via mixture models}
+
+The connection between mixture models and clustering becomes explicit once we introduce
+a latent variable $z\in\{1,\ldots,K\}$ indicating which component generated a given
+observation $\mathbf{x}$. Under the generative story, one first draws
+$z\sim\text{Categorical}(\boldsymbol{\pi})$, then draws
+$\mathbf{x}\sim q(\cdot\mid\boldsymbol{\theta}_z)$. Marginalising out the unobserved $z$
+recovers the mixture formula introduced above. In this setting, clustering amounts to
+inferring---at least approximately---which component generated each observation, given
+the fitted parameters. Because $z$ is latent, we do not obtain a single deterministic
+assignment unless we explicitly force one; instead, we obtain \emph{posterior probabilities}
+of membership, which carry information about ambiguity that a hard assignment would
+discard.
+
+\subsubsection*{Soft vs.\ hard assignments and responsibilities}
+
+For a given point $\mathbf{x}$, Bayes' theorem gives the posterior probability that it was
+generated by component $k$:
+\begin{myequation}
+\gamma_k(\mathbf{x})=p(z=k\mid\mathbf{x})=
+\frac{\pi_k\,q(\mathbf{x}\mid\boldsymbol{\theta}_k)}
+{\sum_{j=1}^{K}\pi_j\,q(\mathbf{x}\mid\boldsymbol{\theta}_j)}.
+\end{myequation}
+The quantity $\gamma_k(\mathbf{x})$ is called the \alert{responsibility} of component $k$ for
+$\mathbf{x}$. It satisfies $0\leq \gamma_k(\mathbf{x})\leq 1$ and
+$\sum_{k=1}^{K}\gamma_k(\mathbf{x})=1$, so it defines a proper probability distribution
+over clusters for the specific point $\mathbf{x}$. If, for instance,
+$\gamma_1(\mathbf{x})=0.9$ and $\gamma_2(\mathbf{x})=0.1$, then $\mathbf{x}$ is
+strongly associated with component $1$, yet the model acknowledges a non-negligible
+probability of belonging to component $2$. This is precisely the kind of uncertainty
+information that is absent in hard clustering methods like $k$-means.
+
+When a hard partition is needed, one can still obtain it from a mixture model by assigning
+each point to the component with the largest responsibility---a maximum a posteriori
+decision rule. However, the soft assignments are often more informative, especially near
+overlapping regions where the data do not clearly support a crisp decision boundary.
+
+\subsection*{Parameter estimation by maximum likelihood}
+
+\subsubsection*{The likelihood and the missing-data difficulty}
+
+Given a dataset $\mathbf{X}=(\mathbf{x}_1,\ldots,\mathbf{x}_n)$, the likelihood under the
+mixture model is
+\begin{myequation}
+L(\boldsymbol{\pi},\boldsymbol{\Theta}\mid\mathbf{X})
+=\prod_{i=1}^{n}p(\mathbf{x}_i\mid\boldsymbol{\pi},\boldsymbol{\Theta})
+=\prod_{i=1}^{n}\sum_{k=1}^{K}\pi_k\,q(\mathbf{x}_i\mid\boldsymbol{\theta}_k),
+\end{myequation}
+and the corresponding log-likelihood is
+\begin{myequation}
+\ell(\boldsymbol{\pi},\boldsymbol{\Theta}\mid\mathbf{X})
+=\sum_{i=1}^{n}\log\!\left(\sum_{k=1}^{K}\pi_k\,q(\mathbf{x}_i\mid\boldsymbol{\theta}_k)\right).
+\end{myequation}
+Maximising $\ell$ with respect to $\boldsymbol{\pi}$ and $\boldsymbol{\Theta}$ is, in
+general, nontrivial. The logarithm contains a sum over components, which couples the
+parameters in a nonlinear way, and the mixing coefficients must satisfy the simplex
+constraint $\sum_{k=1}^{K}\pi_k=1$. Setting the gradient to zero does not yield a closed-
+form solution. The conceptual root of this difficulty is that the data are \alert{incomplete}:
+we observe each $\mathbf{x}_i$, but we do not observe which component $z_i$ generated
+it. If the component indicators $(z_1,\ldots,z_n)$ were known, parameter estimation would
+reduce to standard maximum likelihood for each component separately, plus a simple
+frequency estimate of the mixing proportions. The EM algorithm exploits precisely this
+intuition, iteratively constructing a tractable surrogate for the incomplete-data likelihood.
+
+\subsection*{The expectation--maximization (EM) algorithm for mixtures}
+
+EM is a general strategy for maximum likelihood estimation in latent-variable models that
+will be introduced in its full generality later. For mixture models, it suffices to observe that
+it alternates between two steps: computing posterior responsibilities (a probabilistic
+``completion'' of the missing labels) and updating parameters as if those soft labels were
+observed.
+
+\subsubsection*{Computing responsibilities (the E step)}
+
+Given current parameter estimates $\boldsymbol{\pi}^{(t)}$ and $\boldsymbol{\Theta}^{(t)}$,
+the E step computes, for each point $\mathbf{x}_i$ and each component $k$,
+\begin{myequation}
+\gamma_k^{(t)}(\mathbf{x}_i)=
+\frac{\pi_k^{(t)}\,q(\mathbf{x}_i\mid\boldsymbol{\theta}_k^{(t)})}
+{\sum_{j=1}^{K}\pi_j^{(t)}\,q(\mathbf{x}_i\mid\boldsymbol{\theta}_j^{(t)})}.
+\end{myequation}
+This step updates our beliefs about cluster membership: it computes the posterior
+distribution of $z_i$ given $\mathbf{x}_i$ under the current model parameters. The
+responsibilities $\gamma_k^{(t)}(\mathbf{x}_i)$ can be thought of as fractional labels: rather
+than deciding definitively which component generated $\mathbf{x}_i$, the E step distributes
+one unit of ``membership'' across all components in proportion to how well each component
+explains the observation.
+
+\subsubsection*{Updating parameters (the M step)}
+
+The M step updates the parameters by maximising the expected complete-data
+log-likelihood under the responsibilities just computed:
+\begin{myequation}
+\mathbb{E}_{\gamma}\!\left[\ell(\boldsymbol{\pi},\boldsymbol{\Theta}\mid\mathbf{X})\right]
+=\sum_{i=1}^{n}\sum_{k=1}^{K}\gamma_k(\mathbf{x}_i)\log q(\mathbf{x}_i\mid\boldsymbol{\theta}_k)
++\sum_{k=1}^{K}\sum_{i=1}^{n}\gamma_k(\mathbf{x}_i)\log \pi_k.
+\end{myequation}
+The key point is that the responsibilities act as fractional membership indicators: each
+observation contributes to each component, but with a weight equal to how strongly the
+model associates that observation with that component. The M step thereby turns the
+intractable incomplete-data maximisation into a weighted version of standard maximum
+likelihood, which is typically tractable in closed form.
+
+A fundamental property of the EM algorithm is monotonicity: each full iteration---one E
+step followed by one M step---does not decrease the log-likelihood:
+\begin{myequation}
+\ell^{(t+1)}\geq \ell^{(t)}.
+\end{myequation}
+This guarantees convergence, though generally only to a \textbf{local} maximum of the
+likelihood. In practice, convergence is often reached in a moderate number of iterations,
+but different initializations can lead to different local optima. For this reason, it is common
+to run EM multiple times from different starting points and retain the solution with the
+largest achieved likelihood.
+
+\subsection*{Gaussian mixture models (GMM)}
+
+\subsubsection*{Model definition}
+
+The most widely used mixture model for clustering in $\mathbb{R}^d$ is the \alert{Gaussian
+mixture model} (GMM), in which each component is a multivariate Gaussian:
+\begin{myequation}
+q(\mathbf{x}\mid\boldsymbol{\theta}_k)=\mathcal{N}(\mathbf{x}\mid\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)
+=\frac{1}{(2\pi)^{d/2}|\boldsymbol{\Sigma}_k|^{1/2}}
+\exp\!\left(-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu}_k)^T\boldsymbol{\Sigma}_k^{-1}(\mathbf{x}-\boldsymbol{\mu}_k)\right),
+\end{myequation}
+with parameters $\boldsymbol{\theta}_k=(\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)$, a
+mean vector and a covariance matrix. Compared with $k$-means, the GMM is a strictly
+richer model: the covariance matrix $\boldsymbol{\Sigma}_k$ allows each component to be
+elliptical, oriented, and of a size different from the others. In $k$-means, the implicit
+assumption of spherical clusters of comparable variance corresponds to taking all
+$\boldsymbol{\Sigma}_k = \sigma^2 \mathbf{I}$, so the GMM with general covariances is a
+strict generalisation.
+
+\subsubsection*{EM for GMMs}
+
+With the Gaussian choice, the E step takes the form
+\begin{myequation}
+\gamma_k^{(t)}(\mathbf{x}_i)=
+\frac{\pi_k^{(t)}\,\mathcal{N}(\mathbf{x}_i\mid\boldsymbol{\mu}_k^{(t)},\boldsymbol{\Sigma}_k^{(t)})}
+{\sum_{j=1}^{K}\pi_j^{(t)}\,\mathcal{N}(\mathbf{x}_i\mid\boldsymbol{\mu}_j^{(t)},\boldsymbol{\Sigma}_j^{(t)})}.
+\end{myequation}
+To express the M step compactly, we define the effective (soft) cluster size
+\begin{myequation}
+n_k=\sum_{i=1}^{n}\gamma_k^{(t)}(\mathbf{x}_i).
+\end{myequation}
+Note that $n_k$ is in general not an integer: it represents the total fractional membership
+allocated to component $k$ across all data points. The M-step updates are then weighted
+versions of the usual sample estimators:
+\begin{myequation}
+\pi_k^{(t+1)}=\frac{1}{n}\sum_{i=1}^{n}\gamma_k^{(t)}(\mathbf{x}_i)=\frac{n_k}{n},
+\end{myequation}
+\begin{myequation}
+\boldsymbol{\mu}_k^{(t+1)}=
+\frac{\sum_{i=1}^{n}\gamma_k^{(t)}(\mathbf{x}_i)\mathbf{x}_i}{\sum_{i=1}^{n}\gamma_k^{(t)}(\mathbf{x}_i)}
+=\frac{1}{n_k}\sum_{i=1}^{n}\gamma_k^{(t)}(\mathbf{x}_i)\mathbf{x}_i,
+\end{myequation}
+\begin{myequation}
+\boldsymbol{\Sigma}_k^{(t+1)}=
+\frac{1}{n_k}\sum_{i=1}^{n}\gamma_k^{(t)}(\mathbf{x}_i)\,
+(\mathbf{x}_i-\boldsymbol{\mu}_k^{(t+1)})(\mathbf{x}_i-\boldsymbol{\mu}_k^{(t+1)})^T.
+\end{myequation}
+These formulas make the role of responsibilities transparent: points with large $\gamma_k$
+strongly influence the parameters of component $k$, while points with small $\gamma_k$
+contribute only marginally. The structure of the updates is therefore a natural weighted
+generalisation of the standard sample mean and sample covariance, with the
+responsibilities playing the role of the observation weights.
+
+\subsection*{Poisson mixture models}
+
+The mixture framework is not limited to continuous data. For \emph{count} observations, a
+Poisson distribution is a natural choice for the component density. In the simplest
+univariate case, the component distribution is
+\begin{myequation}
+q(x\mid\boldsymbol{\theta}_k)=q(x\mid\lambda_k)=\frac{e^{-\lambda_k}\lambda_k^x}{x!},
+\end{myequation}
+where $\lambda_k>0$ is the rate parameter of component $k$. The EM algorithm for
+Poisson mixtures mirrors the general case. The E step is identical in structure:
+\begin{myequation}
+\gamma_k^{(t)}(x_i)=
+\frac{\pi_k^{(t)}\,q(x_i\mid\lambda_k^{(t)})}{\sum_{j=1}^{K}\pi_j^{(t)}\,q(x_i\mid\lambda_j^{(t)})}.
+\end{myequation}
+In the M step, the mixing coefficients update exactly as before, giving $\pi_k^{(t+1)}=
+n_k/n$, and maximising the expected log-likelihood with respect to $\lambda_k$ yields
+\begin{myequation}
+\lambda_k^{(t+1)}=
+\frac{\sum_{i=1}^{n}\gamma_k^{(t)}(x_i)\,x_i}{\sum_{i=1}^{n}\gamma_k^{(t)}(x_i)}
+=\frac{1}{n_k}\sum_{i=1}^{n}\gamma_k^{(t)}(x_i)\,x_i.
+\end{myequation}
+The updated rate is therefore the \emph{responsibility-weighted} sample mean of the
+counts: an intuitively natural result, since the sample mean is the maximum likelihood
+estimator for the Poisson rate in the fully observed case. The Poisson mixture illustrates
+how the EM algorithm extends gracefully to non-Gaussian component families, with the
+same structural logic and the same closed-form convenience.
+
+\subsection*{Model selection for mixture models}
+
+Once mixture models have been fitted for different values of $K$, we still need to decide
+how many components provide an adequate description of the data. Because mixture
+models define a likelihood, we can use information criteria that explicitly trade off fit
+quality against model complexity. The \textbf{Akaike information criterion (AIC)} and the
+\textbf{Bayesian information criterion (BIC)} are:
+\begin{myequation}
+\text{AIC}(K)=2\cdot(\text{number of parameters})-2\ln L,
+\end{myequation}
+\begin{myequation}
+\text{BIC}(K)=(\text{number of parameters})\cdot\ln n-2\ln L.
+\end{myequation}
+Both criteria penalise models with more parameters, but BIC imposes a stronger penalty
+when $n$ is large, reflecting the Bayesian argument that a model with more parameters
+requires more evidence from the data to justify. For a GMM with $K$ components in $d$
+dimensions, the number of free parameters is $K\big(d+d(d+1)/2\big)+K-1$, accounting
+for $K$ mean vectors, $K$ covariance matrices (each with $d(d+1)/2$ free entries), and
+$K$ mixing coefficients subject to one linear constraint. Lower values of AIC or BIC
+indicate a preferable model according to the respective criterion.
+
+The key advantage of these criteria over the heuristics used for $k$-means is that they are
+\emph{derived} from a coherent statistical model rather than from geometric intuition.
+Minimising AIC or BIC provides a principled answer to the question of how many
+components are needed, and BIC in particular is asymptotically consistent: under suitable
+regularity conditions and correct model specification, it selects the true number of
+components as $n\to\infty$.
+
+\subsection*{GMM vs.\ $k$-means: key differences}
+
+Although both $k$-means and Gaussian mixture models are widely used to discover
+structure in unlabeled data, they embody two rather different views of what a cluster is and
+how it should be inferred. Understanding these differences is important both for choosing
+between the two methods and for interpreting their respective outputs.
+
+In $k$-means, a cluster is essentially a geometric region of the feature space: each
+observation is assigned to exactly one prototype, and the outcome is a \emph{hard}
+partition of the dataset. Once the algorithm has converged, every point belongs to one and
+only one cluster, with no explicit representation of ambiguity. A GMM, by contrast, treats
+cluster membership as a latent random variable. Rather than producing a binary decision, it
+returns \emph{soft} assignments in the form of responsibilities $\gamma_k(\mathbf{x})$,
+which can be interpreted as posterior probabilities. This probabilistic output is particularly
+informative when clusters overlap or when points lie near boundaries, because it provides
+an explicit quantification of uncertainty that $k$-means lacks entirely.
+
+The difference in perspective is also reflected in the learning objectives. The $k$-means
+algorithm minimises a purely geometric criterion, the within-cluster sum of squares $J$,
+which encourages clusters to be compact around their centroids. GMMs are fitted by
+maximising the likelihood $L$ under a generative model, thereby shifting from a
+distance-based cost to a likelihood-based criterion. This shift has immediate consequences
+for model selection: while $k$-means relies on heuristic procedures such as the elbow
+method or the silhouette coefficient, GMMs can be compared in a principled way using
+information criteria such as AIC and BIC, which explicitly balance goodness of fit against
+model complexity.
+
+Another important distinction concerns the shapes of clusters that each method can
+represent. By construction, $k$-means tends to produce roughly spherical clusters of
+comparable scale, since it relies on Euclidean distances to centroids. GMMs are more
+flexible: each component has its own covariance matrix $\boldsymbol{\Sigma}_k$, allowing
+clusters to be elliptical, oriented, and of different sizes and densities. This added flexibility
+comes at a computational cost: the $k$-means updates are fast and typically require only a
+few iterations, while fitting a GMM involves running EM with more expensive iterations that
+may converge more slowly, especially in high dimensions or with full covariances.
+
+Finally, the two methods differ in interpretability. A $k$-means solution is best understood
+as a geometric partition induced by distances to prototypes, whereas a GMM provides a
+fully generative probabilistic description of the data: clusters are not just regions of space
+but components of a mixture distribution, and assignments are naturally probabilistic. This
+makes GMMs particularly appealing when uncertainty matters, when cluster shapes are
+not spherical, or when one wants likelihood-based tools for comparing models with different
+values of $K$.
+
+\subsection*{Practical considerations}
+
+Mixture models are especially appealing when one needs more than a partition: they
+provide uncertainty-aware membership, a coherent probabilistic interpretation, and
+likelihood-based tools for model comparison. They also naturally accommodate clusters
+with different volumes and orientations (in the Gaussian case) and can be adapted to
+non-Gaussian data by choosing appropriate component families.
+
+These advantages come with genuine costs. EM is more computationally demanding than
+$k$-means, and its convergence to a local optimum makes initialisation important; multiple
+random starts are often necessary. In GMMs with full covariances, one must also be aware
+of degeneracies such as near-singular covariance matrices, which can arise when a
+component collapses around very few points. More generally, richer models carry more
+parameters, so reliable estimation requires sufficient data, and the chosen component
+family must be a reasonable approximation to the true data-generating process.
+
+A common practical workflow reflects this trade-off: begin with $k$-means as a fast
+exploratory tool and as a source of good initializations for EM; move to mixture models
+when soft assignments or a likelihood-based interpretation are needed; standardise features
+before fitting Gaussian components; and compare several values of $K$ through AIC and
+BIC, complementing these criteria with domain knowledge and qualitative inspection of the
+resulting clusters.
+%\end{document}

@@ -1,0 +1,1524 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+%\input{header.tex}
+%
+%\title{Notes on Machine Learning}
+%\class{Course of Machine Learning}
+%\course{Master Degree in Computer Science}
+%\university{University of Rome ``Tor Vergata''}
+%\acyear{2025-2026}
+%\author{Giorgio Gambosi}
+%
+%\begin{document}
+%
+%\maketitle
+
+\chapter{Some notes on Statistical Learning Theory}
+\alert{Statistical learning theory} provides the theoretical foundation for understanding machine learning. It asks a fundamental question: given that we've chosen a hypothesis class $\mathcal{H}$ and collected a training set of some size $n$, what can we guarantee about the quality of the predictor we'll find? Put differently, under what conditions is learning actually possible?
+
+This is not a question about specific algorithms or datasets, but rather about the general structure of the learning problem. The theory gives us precise mathematical answers that apply to any learning scenario, revealing universal principles that govern whether and how quickly we can learn.
+
+\section*{Learning Algorithms and the Role of Hypothesis Classes}
+
+A learning algorithm $\mathcal{A}$ is fundamentally a procedure that takes training data and produces a predictor. However, a learning algorithm cannot be entirely free-form. It must operate within some structured framework, which is the \alert{hypothesis class} $\mathcal{H}$. The hypothesis class specifies the set of candidate functions the algorithm is allowed to choose from. In other words, we're saying to the algorithm: ``Choose the best predictor you can find, but it must be from this predefined set.''
+
+This constraint is what we call the algorithm's \alert{inductive bias}. It's the learner's prior belief about what kind of solution is likely to work. Every learning algorithm must encode this bias somehow, whether explicitly or implicitly. The choice of hypothesis class is therefore one of the most consequential decisions in machine learning practice.
+
+Formally, we can denote the predictor returned by algorithm $\mathcal{A}$ when applied to training set $\mathcal{T}$ as $h^{\mathcal{A}}_{\mathcal{T}}$. This notation emphasizes that the learned predictor depends both on which algorithm we use and which training data we received.
+
+\subsubsection*{Empirical Risk Minimization}
+
+Among all possible learning algorithms, one stands out for its simplicity and prevalence: \alert{Empirical Risk Minimization} (ERM). The ERM algorithm is beautifully straightforward: given a training set $\mathcal{T}$ and a hypothesis class $\mathcal{H}$, it returns the predictor in $\mathcal{H}$ that achieves the lowest training error:
+
+\begin{myequation}
+h_{\mathcal{T}} = \argmin{h \in \mathcal{H}} \overline{\mathcal{R}}_{\mathcal{T}}(h)
+\end{myequation}
+
+where $\overline{\mathcal{R}}_{\mathcal{T}}(h)$ is the empirical risk---the average loss on the training set.
+
+The intuition behind ERM is compelling: if we want a predictor that works well in general, we should choose one that works well on the data we have. This greedy approach seems natural, almost obvious. Yet this apparent simplicity masks a subtle danger. The algorithm is optimizing with respect to the training data, and it's entirely possible for the training data to be misleading. A predictor could fit the training set perfectly while generalizing poorly to the rest of the population---the problem of overfitting that we've discussed before.
+
+The central question of statistical learning theory is therefore: under what conditions is ERM (or other learning algorithms) actually reliable? When does minimizing training error lead to low true error? The answer depends critically on the hypothesis class.
+
+\subsubsection*{The Fundamental Question}
+
+The core question that motivates statistical learning theory is the following: given a hypothesis class $\mathcal{H}$, a loss function $L$, and a distribution $p$ over the data, can we guarantee that applying a learning algorithm like ERM to a sufficiently large training set will produce a predictor with small true risk?
+
+This question is not about specific data or specific problems. Rather, it asks: what properties of the hypothesis class determine whether learning is possible at all? Some hypothesis classes are ``learnable'' - meaning that with enough data, we can find good predictors. Others are ``too complex'' and resist learning because the set of possible functions is so large that we can always find functions fitting the training data perfectly while failing on new data.
+
+The theory answers this question, showing that learnability depends on:
+\begin{enumerate}
+\item The size of the hypothesis class (roughly, how many functions it contains)
+\item The amount of training data available
+\item How accurately and confidently we need to learn (our tolerance for error)
+\end{enumerate}
+
+The relationships between these quantities are not obvious, understanding them is the essence of statistical learning theory. In Figure~\ref{f:slt} the overall situation is sketched. Above, the case of a deterministic relation between item and target value is shown. We assume a set $\X$ of items has been sampled from the population $\cX$ under probability distribution $p_{\scalebox{0.4}{$M$}}(\x)$ and the corresponding target values $\t$ are associated by applying the (unknown) function $f$. ERM (indeed, any learning algorithm) selects, given the resulting training set $\mathcal{T}=(\X,\t)$, a predictor $h_{\mathcal{T}}$ from the hypothesis class $\cH$, which is a subset of the set $\mathcal{F}$ of all possible predictors. When applied to $\mathcal{T}$, the selected predictor has minimum empirical risk $\oR_{\mathcal{T}}(h_{\mathcal{T}})$, while when the expectation over all possible training sets, sampled selecting $\X$ according to $p_{\scalebox{0.4}{$M$}}$, is taken into account, the risk $\mathcal{R}_{p_{\scalebox{0.4}{$M$}},f}(h_{\mathcal{T}})$ is not necessarily the minimum one: this means that $h_{\mathcal{T}}$ behaves well on known data and more poorly when applied to new data (overfitting). Observe that under the realizability hypothesis, $\oR_{\mathcal{T}}(h_{\mathcal{T}})=0$.
+Below, the same is shown in the more general case when a probabilistic relation is assumed between items and target values. Here the same training set $\mathcal{T}$ is assumed sampled from the population $\cXY$ under distribution $p(\x,t)=p_{\scalebox{0.4}{$M$}}(\x)p_{\scalebox{0.4}{$C$}}(t|\x)$.
+
+\begin{figure}[ht]
+\begin{center}
+	\includegraphics[width=.9\textwidth]{fig1.pdf}
+	\caption{Sketch of the situation.}\label{f:slt}
+\end{center}
+
+\end{figure}
+
+
+
+\subsection*{Learning with Finite Hypothesis Classes Under Realizability}
+
+The simplest type of restriction on $\mathcal{H}$ is assuming the number of possible predictors is upper bounded. In this case, choosing $h_{\mathcal{T}}$ will not overfit, provided $\mathcal{T}$ is sufficiently large, that is a sufficient number of examples of the application of $f$ is available\footnote{Our considerations will be limited here to the task of binary classification with $0-1$ loss function, and we will refer to the simpler scenario where there is a functional, albeit unknown, relation between items and target values, i.e. classes.}.
+
+Let us first limit ourselves to the case when there exists some predictor in $h^*\in\mathcal{H}$ which does not make any error in classifying items in $\mathcal{X}$, that is such that
+\begin{myequation}
+	\mathcal{R}_{p_{\scalebox{0.4}{$M$}},f}(h^*)=\ev{p_{\scalebox{0.4}{$M$}},f}{L(h^*(\x),f(\x))}=\ev{p_{\scalebox{0.4}{$M$}},f}{\lvert \x\in\cX: h^*(\x)\neq f(\x)\rvert}=0
+\end{myequation}
+This is denoted as \alert{realizability assumption} and, since the 0-1- loss is a non negative function, it implies that\footnote{With probability 1, since the expectation equal to $0$ does not rule out the possibility of single points (that is sets of measure $0$) in $\mathcal{X}$ misclassified by $h^*$.} it correctly classifies all the elements in any subset of $\cX$, that is for any possible set $\X$ of elements sampled from $\cX$, which implies that for any training set $\mathcal{T}=(\X,\t)$, where $t_i=f(\x_i)$ by assumption, it results
+
+\begin{myequation}
+	\mathcal{\overline R}_{\mathcal{T}}(h^*)=\frac{1}{|\mathcal{T}|}\sum_{(x,t)\in\mathcal{T}}L(h^*(x),t)=\frac{\lvert (\x,t)\in\mathcal{T}: h^*(\x)\neq t\rvert}{\lvert\mathcal{T}\rvert}=0
+\end{myequation}
+
+
+Realizability is a strong assumption -- it assumes our hypothesis class contains a perfect model of the world. While unrealistic in practice, this idealized setting isolates the challenge of learning from finite samples, separate from the problem of approximating a complex reality with a restricted model class. %\subsubsection*{ERM Under Realizability: Guaranteed Zero Training Error}
+
+When we apply Empirical Risk Minimization (ERM) to a training set, the algorithm finds a predictor with minimum training error. 
+
+Realizability also implies that for any training set $\mathcal{T}$ the predictor returned by ERM is optimal when applied to $\mathcal{T}$, that is $\oR_{\mathcal{T}}(h_{\mathcal{T}})=0$: this derives from the observation that, given $\mathcal{T}$, there exists at least one predictor (that is $h^*$) which correctly classifies all elements in it. Since ERM returns a predictor, say it $h_{\mathcal{T}}$, which best classifies such elements it must be $\oR_{\mathcal{T}}(h_{\mathcal{T}})=0$. Note that, as a special case, it might be $h_{\mathcal{T}}=h^*$, that is ERM returns precisely $h^*$: in this case, the predictor returned by ERM on $\mathcal{T}$ is optimal on the whole elements population $\cX$. However, it may also happen that $h_{\mathcal{T}}\neq h^*$, which implies that the predictor returned by ERM on $\mathcal{T}$ is optimal on $\mathcal{T}$ (that is $\oR_{\mathcal{T}}(h_{\mathcal{T}})=0$), but it may return incorrect predictions on some elements not in $\mathcal{T}$ (that is, $\mathcal{R}_{p_{\scalebox{0.4}{$M$}},f}(h_{\mathcal{T}})>0$).
+In fact, ERM might return any predictor from the set of all functions that achieve zero training error -- a set that could contain many functions. Some of these functions are genuinely good (close in behavior to $h^*$), while others are misleadingly good: they happened to classify all training examples correctly purely by coincidence, despite being terrible on the rest of the population. This is the core overfitting problem.
+
+The challenge is therefore to understand when we can trust that zero training error implies low true error. This depends on whether the training set is \alert{representative} of the population.
+
+\subsubsection*{Bad Predictors and Datasets}
+
+To formalize the notion of a misleading training set, we introduce a parameter $\varepsilon > 0$ representing our acceptable error tolerance. We call a predictor $h \in \mathcal{H}$ \alert{bad} if its true risk exceeds this threshold:
+
+\begin{myequation}
+\mathcal{R}_{p_M, f}(h) > \varepsilon
+\end{myequation}
+
+A bad predictor is one that makes mistakes on more than a fraction $\varepsilon$ of the population -- too many mistakes to be practically useful. Let $\mathcal{H}_B$ denote the set of all bad predictors.
+
+A training set $\mathcal{T}$ is called \alert{bad} (or misleading) if at least one bad predictor achieves zero training error on it:
+
+\begin{myequation}
+\exists h \in \mathcal{H}_B: \overline{\mathcal{R}}_{\mathcal{T}}(h) = 0
+\end{myequation}
+
+This is the failure case we want to avoid. A bad training set creates the illusion that a poor predictor is good, because the predictor happens to classify all training examples correctly despite making many errors elsewhere. If ERM returns such a bad predictor, we call the training set \alert{very bad}. So, a training set is very bad if applying ERM on it returns a predictor which performs no error in classifying its elements, while failing in classifying at least a fraction $\varepsilon$ of all the possible elements. The probability of obtaining a bad (or very bad) training set is what we need to bound.
+
+
+Assume now that, given $\cH$, we want to study for which values of $n=|\mathcal{T}|$ the probability that our training set is a bad one is sufficiently small, for example, less than a given $\delta\in (0,1)$. Hence we are interested into,
+
+\begin{myequation}
+\prob{\mathcal{T}\sim p^n}{\exists h\in\cH_B: \oR_\mathcal{T}(h)=0}\leq\delta
+\end{myequation}
+
+Consider any single bad predictor $h\in \mathcal{H}_B$. By definition, $h$ misclassifies at least a fraction $\varepsilon$ of the population. When we draw a training set by sampling $n$ objects independently\footnote{Recall that we assume the training set was obtained by independently sampling each element from $\cX$ with distribution $p_{\scalebox{0.4}{$M$}}$ and then either setting $t_i=f(\x_i)$ or independently sampling from $\cX\times\cY$ with distribution $p$. } from $p_M$, what is the probability that $h$ happens to classify all $n$ objects correctly?
+
+Since $h$ by hypothesis misclassifies at least a fraction $\varepsilon$ of the population, it correctly classifies at most a fraction $1 - \varepsilon$. For a single random object, the probability of correct classification is then  $p_{h}\leq 1 - \varepsilon$. For $n$ independent objects, the probability that $h$ correctly classifies all of them is $p_{h}^{n}\leq (1-\varepsilon)^n$.
+
+Using the inequality $1 - x \le e^{-x}$ for $x \in [0,1]$:
+
+\begin{myequation}
+(1 - \varepsilon)^n \le e^{-\varepsilon n}
+\end{myequation}
+
+This bounds the probability that a specific bad predictor $h$ fools us, $p_{h}^n\leq e^{-\varepsilon n}$. But we are concerned about \emph{any} bad predictor succeeding, not just one. The \alert{union bound} states that the probability of at least one event occurring is bounded by the sum of individual event probabilities. Applying this:
+
+\begin{myequation}
+\prob{\mathcal{T}\sim p^n}{\exists h \in \mathcal{H}_B: \overline{\mathcal{R}}_{\mathcal{T}}(h) = 0} \le \sum_{h \in \mathcal{H}_B}p_{h}^{n}\leq \sum_{h \in \mathcal{H}_B} e^{-\varepsilon n} = |\mathcal{H}_B| \, e^{-\varepsilon n}
+\end{myequation}
+
+and since, bad predictors are just a fraction of all predictors, $|\mathcal{H}_B| \le |\mathcal{H}|$ and
+
+\begin{myequation}
+\prob{\mathcal{T}\sim p^n}{\exists h \in \mathcal{H}_B: \overline{\mathcal{R}}_{\mathcal{T}}(h) = 0}  \le |\mathcal{H}| \, e^{-\varepsilon n}
+\end{myequation}
+So, we have shown that the probability that a random training set of size $n$ is a bad one is at most $|\mathcal{H}| \, e^{-\varepsilon n}$. %As a consequence, the probability that is  \emph{good} (representative) is at least  $1-|\mathcal{H}| \, e^{-\varepsilon n}$
+
+Then setting
+\begin{myequation}
+|\mathcal{H}| \, e^{-\varepsilon n} \le \delta
+\end{myequation}
+implies that the probability that a random training set $\mathcal{T}$ is bad is itself bounded by $\delta$.
+
+
+Rearranging the above inequality to solve for the required training set size, we have
+
+\begin{myequation}
+e^{-\varepsilon n} \le \frac{\delta}{|\mathcal{H}|}
+\end{myequation}
+
+Taking natural logarithms of both sides:
+
+\begin{myequation}
+-\varepsilon n \le \ln\frac{\delta}{|\mathcal{H}|} = \ln \delta - \ln|\mathcal{H}|
+\end{myequation}
+
+Dividing by $-\varepsilon$ (and reversing the inequality):
+
+\begin{myequation}
+n \ge \frac{1}{\varepsilon}(\ln|\mathcal{H}| - \ln\delta) = \frac{1}{\varepsilon}\ln\frac{|\mathcal{H}|}{\delta}
+\end{myequation}
+
+Since $n$ must be an integer, we have:
+
+\begin{myequation}\label{eq:sample-complexity-finite}
+n \ge \left\lceil \frac{1}{\varepsilon}\ln\frac{|\mathcal{H}|}{\delta}\right\rceil
+\end{myequation}
+
+This is the \alert{sample complexity} for learning with finite hypothesis classes under realizability. It specifies the minimum training set size needed to ensure that with probability at least $1 - \delta$, ERM returns a predictor whose true risk is at most $\varepsilon$.
+
+%\subsubsection*{Analyzing the Components of Sample Complexity}
+
+The formula above deserves careful interpretation, as each component reveals important principles about learning.
+
+\emph{The Role of Accuracy.} The accuracy parameter $\varepsilon$ appears in the denominator, creating an inverse relationship. If we want to halve the acceptable error (going from $\varepsilon$ to $\varepsilon/2$), the required training set size doubles. More generally, if we reduce $\varepsilon$ by a factor of $c$, sample complexity increases by a factor of $c$. This linear (non-logarithmic) dependence means that achieving high accuracy is fundamentally expensive in terms of data requirements. This reflects a deep fact about learning: there's no escape from accuracy's cost.
+
+For example, with $|\mathcal{H}| = 1000$ and $\delta = 0.05$, requiring $\varepsilon = 0.1$ error needs $n \ge \frac{1}{0.1}\ln(20000) \approx 100$ examples. Requiring $\varepsilon = 0.01$ error needs $n \ge \frac{1}{0.01}\ln(20000) \approx 1000$ examples -- ten times as much data for ten times better accuracy.
+
+\emph{The Role of Confidence.} The confidence parameter $\delta$ appears inside a logarithm in the numerator. If we want higher confidence by reducing $\delta$ by a factor of $c$ (say from $\delta = 0.1$ to $\delta' = 0.01$, a 10-fold reduction), the required sample size increases by $\frac{1}{\varepsilon}\ln c$. For typical values, this is a modest increase. Increasing from 90\% to 99\% confidence (reducing $\delta$ from 0.1 to 0.01) requires adding only $\frac{1}{\varepsilon}\ln 10 \approx \frac{2.3}{\varepsilon}$ additional examples.
+
+This logarithmic sensitivity to $\delta$ versus linear sensitivity to $\varepsilon$ reveals an asymmetry: we can achieve high confidence relatively cheaply by collecting more data, but achieving high accuracy requires fundamental increases in data collection proportional to the accuracy improvement demanded.
+
+\emph{The Role of Class Complexity.} The hypothesis class size appears as $\ln|\mathcal{H}|$, giving a logarithmic relationship. If the class size increases from $|\mathcal{H}| = 100$ to $|\mathcal{H}| = 10,000$ (a 100-fold increase), the required sample size increases by only $\frac{1}{\varepsilon}\ln 100 \approx \frac{4.6}{\varepsilon}$. This is remarkably favorable: even classes with millions of functions remain learnable with reasonable amounts of data.
+
+However, this logarithmic advantage critically depends on finiteness. The bound becomes useless for infinite classes where $\ln|\mathcal{H}| = \infty$. For infinite classes -- which include most real-world hypothesis classes like neural networks with continuous weights -- we need fundamentally different analytical tools.
+
+%\subsubsection*{Concrete Numerical Examples}
+\medskip
+Let us illustrate these relationships with specific numbers. Suppose our hypothesis class has $|\mathcal{H}| = 10,000$ predictors, and we want accuracy $\varepsilon = 0.1$ and confidence $\delta = 0.05$ (95\% success probability). The required sample size is:
+
+\begin{myequation}
+n \ge \frac{1}{0.1}\ln\frac{10,000}{0.05} = 10 \, \ln(200,000) \approx 10 \times 12.2 = 122 \text{ examples}
+\end{myequation}
+
+Now suppose we improve accuracy to $\varepsilon = 0.02$:
+
+\begin{myequation}
+n \ge \frac{1}{0.02}\ln(200,000) \approx 50 \times 12.2 = 610 \text{ examples}
+\end{myequation}
+
+A five-fold improvement in accuracy requires five times more data. By contrast, if we only increase confidence from 95\% to 99\% (reducing $\delta$ from 0.05 to 0.01) while keeping $\varepsilon = 0.1$:
+
+\begin{myequation}
+n \ge \frac{1}{0.1}\ln\frac{10,000}{0.01} = 10 \, \ln(1,000,000) \approx 10 \times 13.8 = 138 \text{ examples}
+\end{myequation}
+
+Only 16 additional examples are needed for four times higher confidence, illustrating the logarithmic advantage.
+
+\subsubsection*{Bad Datasets vs. Very Bad Datasets}
+
+It's worth clarifying the distinction between a bad dataset and a very bad dataset, as this affects how we interpret the bound. A bad dataset is one where at least one bad predictor achieves zero training error. However, ERM might not return that bad predictor  --  it might return another predictor with zero training error that is actually good. A very bad dataset is the worse case where ERM specifically returns a bad predictor.
+
+The bound we have derived covers the probability of obtaining a bad dataset. Since ERM returns one of the zero-training-error predictors, being good or bad depends on which one it picks. In the worst case, it picks a bad one. However, in many practical scenarios, ERM will pick a good predictor among those with zero training error, especially if the dataset is large. The union bound is deliberately pessimistic, ensuring the bound holds in worst-case scenarios.
+
+\subsubsection*{The Importance of the Finiteness Assumption}
+
+A critical observation is that this entire analysis relies on the hypothesis class being finite. The union bound, which aggregates failure probabilities across $|\mathcal{H}|$ predictors, would yield a meaningless bound (infinity) for infinite classes. This distinction -- between finite and infinite classes -- is profound:
+
+\begin{itemize}
+\item Every finite class, no matter how large, is learnable. The logarithmic dependence on $|\mathcal{H}|$ means even classes with trillions of functions are learnable with polynomial sample complexity.
+\item Infinite classes require different analysis. We cannot simply count the number of functions. Instead, we use measures of complexity like VC dimension, which capture the effective size of an infinite class.
+\end{itemize}
+
+This explains why the theoretical study of learning focuses so heavily on characterizing hypothesis class complexity. For finite classes, complexity is simply size. For infinite classes, we need more sophisticated notions.
+
+
+
+\subsection*{PAC Learning: Formalizing Learnability}
+
+We now formalize the concepts developed in the previous sections. The framework we introduce is called \alert{Probably Approximately Correct} (PAC) learning, and it provides a precise mathematical definition of what we assume it means for a learning problem to be solvable. This definition will allow us to characterize exactly which hypothesis classes are learnable and to understand the role of sample complexity.
+
+%\subsubsection*{PAC Learnability Under Realizability}
+
+We begin with the simplest setting: when the realizability assumption holds and we use 0-1 loss for binary classification.
+
+\begin{definition}[PAC Learnability]
+A hypothesis class $\mathcal{H}$ is \alert{PAC learnable} if there exist a function $m_{\mathcal{H}}: (0,1)^2 \to \mathbb{N}$ (the sample complexity function) and a learning algorithm $\mathcal{A}$ such that the following holds:
+
+For every accuracy parameter $\varepsilon \in (0,1)$, every confidence parameter $\delta \in (0,1)$, every distribution $p_M$ over the domain $\mathcal{X}$, and every labeling function $f: \mathcal{X} \to \{0,1\}$, if the realizability assumption is satisfied (meaning there exists $h^* \in \mathcal{H}$ with $\mathcal{R}_{p_M, f}(h^*) = 0$), then when $\mathcal{A}$ is applied to a training set $\mathcal{T}$ of size $n \geq m_{\mathcal{H}}(\varepsilon, \delta)$ generated by sampling $n$ independent examples from $p_M$ and labeling them with $f$, the algorithm returns a predictor $h_{\mathcal{T}}$ such that
+
+\begin{myequation}
+\mathcal{R}_{p_M, f}(h_{\mathcal{T}}) \leq \varepsilon
+\end{myequation}
+
+with probability at least $1 - \delta$ (over the randomness in sampling the training set).
+\end{definition}
+
+This definition captures the essential meaning of learning. The accuracy parameter $\varepsilon$ quantifies the ``approximately correct'' part: we don't demand perfect performance, only error at most $\varepsilon$. The confidence parameter $\delta$ quantifies the ``probably'' part: we don't need success for every possible training set, only for a fraction $1 - \delta$ of them. The sample complexity function $m_{\mathcal{H}}(\varepsilon, \delta)$ specifies how much data is necessary to achieve these goals, and it generally depends on the hypothesis class properties (for finite classes, it grows logarithmically with $|\mathcal{H}|$, as we've seen).
+
+From the analysis in the previous section, we know that for finite hypothesis classes ERM is a PAC learning algorithm with sample complexity
+
+\begin{myequation}
+m_{\mathcal{H}}(\varepsilon, \delta) \leq \left\lceil \frac{1}{\varepsilon}\ln\frac{|\mathcal{H}|}{\delta}\right\rceil
+\end{myequation}
+
+However, the definition allows for other algorithms $\mathcal{A}$ that might achieve better sample complexity than ERM. In principle, $m_{\mathcal{H}}(\varepsilon, \delta)$ could be smaller than the ERM bound above. In practice, for finite classes, ERM is optimal (up to constants), so achieving better dependence is not possible.
+
+\subsubsection*{The Bayes Predictor}
+
+
+%When we move beyond the realizability assumption, labels are generated stochastically. Let $p_C(t|\mathbf{x})$ denote the conditional probability of label $t$ given features $\mathbf{x}$. In this probabilistic framework, there exists an optimal predictor that minimizes true risk:
+%
+%\begin{myequation}
+%h^*(\mathbf{x}) = \argmin{y \in \{0,1\}} \ev{t \sim p_C(\cdot|\mathbf{x})}{L(y, t)}
+%\end{myequation}
+%
+%For binary classification with 0-1 loss, this optimal predictor has a particularly simple form. If we predict $y = 0$, the expected loss is $p_C(t=1|\mathbf{x})$ (the probability we're wrong). If we predict $y = 1$, the expected loss is $p_C(t=0|\mathbf{x}) = 1 - p_C(t=1|\mathbf{x})$. We should predict whichever label incurs lower expected loss:
+%
+%\begin{myequation}
+%h_{\text{Bayes}}(\mathbf{x}) = \begin{cases} 1 & \text{if } p_C(t=1|\mathbf{x}) \geq 0.5 \\ 0 & \text{otherwise} \end{cases}
+%\end{myequation}
+%
+%This is the \alert{Bayes predictor}, the best possible classifier for the problem. Its risk, denoted $\mathcal{R}^* = \mathcal{R}_p(h_{\text{Bayes}})$, represents the unavoidable error inherent in the stochasticity of label generation -- no algorithm can do better.
+%
+%The Bayes predictor is unattainable in practice because it requires knowledge of the true conditional distribution $p_C(t|\mathbf{x})$, which we never have. Moreover, a fundamental result called the \emph{No Free Lunch theorem} (see later) states that without additional assumptions about the problem structure, no learning algorithm can guarantee finding a predictor as good as Bayes for every possible distribution. Learning is only possible because real problems have structure.
+
+In the agnostic (non-realizable) setting, we abandon the assumption that a perfect classifier exists within our hypothesis class. Instead, labels are generated according to some unknown stochastic process: even given full knowledge of the features $\mathbf{x}$, the label $t$ may not be deterministically determined. This is a much more realistic model of the world -- think of medical diagnosis, where two patients with identical symptoms may have different outcomes, or spam detection, where the same email might be labeled differently by different users. We capture this uncertainty through the conditional probability $p_C(t|\mathbf{x})$, which describes the distribution of labels given a particular input $\mathbf{x}$.
+
+In this probabilistic framework, the goal of learning shifts: rather than finding a hypothesis that perfectly separates the data, we seek a predictor that minimizes the \emph{expected} loss under the true data-generating distribution. Remarkably, even in this fully general stochastic setting, there exists an optimal predictor -- one that achieves the lowest possible true risk among all measurable functions. This predictor is defined pointwise: for each input $\mathbf{x}$, it selects the label $y$ that minimizes the expected loss when $t$ is drawn from the conditional distribution:
+\begin{myequation}
+h^*(\mathbf{x}) = \argmin{y \in \{0,1\}} \ev{t \sim p_C(\cdot|\mathbf{x})}{L(y, t)}
+\end{myequation}
+To make this concrete, consider binary classification under the 0-1 loss. At a given point $\mathbf{x}$, we must choose between predicting $y = 0$ or $y = 1$. If we predict $y = 0$, we incur a loss of 1 whenever the true label is $t = 1$, which happens with probability $p_C(t=1|\mathbf{x})$; our expected loss is therefore $p_C(t=1|\mathbf{x})$. Conversely, if we predict $y = 1$, we are wrong whenever $t = 0$, giving an expected loss of $p_C(t=0|\mathbf{x}) = 1 - p_C(t=1|\mathbf{x})$. The optimal decision is simply to predict the more probable label -- that is, to predict $y = 1$ whenever doing so incurs a lower expected loss than predicting $y = 0$:
+\begin{myequation}
+h_{\text{Bayes}}(\mathbf{x}) = \begin{cases} 1 & \text{if } p_C(t=1|\mathbf{x}) \geq 0.5 \\ 0 & \text{otherwise} \end{cases}
+\end{myequation}
+This is the \alert{Bayes predictor} (also called the Bayes optimal classifier), and it represents the theoretical gold standard for classification. Its associated risk $\mathcal{R}^* = \mathcal{R}_p(h_{\text{Bayes}})$ is known as the \emph{Bayes error rate} or \emph{Bayes risk}. This quantity captures the irreducible uncertainty in the problem: it is the error that persists even with unlimited data and unlimited computational power, arising purely from the inherent ambiguity in the label-generating process. No learning algorithm, regardless of its sophistication, can achieve a true risk lower than $\mathcal{R}^*$.
+
+Despite its theoretical optimality, the Bayes predictor is unattainable in practice for a fundamental reason: it requires complete knowledge of the true conditional distribution $p_C(t|\mathbf{x})$, which is precisely what we are trying to learn from data. We never have direct access to this distribution -- if we did, there would be no learning problem to solve. The best any algorithm can do is to approximate this ideal using a finite sample.
+
+This observation leads naturally to a deeper question: can we at least guarantee that, given enough data, a learning algorithm will find a predictor whose risk approaches $\mathcal{R}^*$? The answer turns out to depend critically on the structure of the problem. A fundamental result known as the \emph{No Free Lunch theorem} (discussed in detail later) formalizes this by showing that without additional assumptions on the data-generating distribution or the hypothesis class, no learning algorithm can universally guarantee convergence to the Bayes risk across all possible distributions. In other words, learning is not possible in complete generality -- it is only tractable because real-world problems exhibit exploitable structure, such as smoothness, sparsity, or other inductive biases that constrain the space of plausible distributions.
+
+\subsection*{Agnostic PAC Learning}
+
+Since the Bayes predictor is unreachable and the realizability assumption rarely holds, we need a more pragmatic learning framework. In \emph{agnostic} learning, we acknowledge that our hypothesis class might not contain any perfect predictor. Instead, we accept the best predictor available in our class, which has some non-zero error. We ask: can our learning algorithm find a predictor nearly as good as the best in the class?
+
+\begin{definition}[Agnostic PAC Learnability]
+A hypothesis class $\mathcal{H}$ is \alert{agnostic PAC learnable} if there exist a function $m_{\mathcal{H}}: (0,1)^2 \to \mathbb{N}$ and a learning algorithm $\mathcal{A}$ such that
+for every accuracy parameter $\varepsilon \in (0,1)$, every confidence parameter $\delta \in (0,1)$, and every distribution $p$ over $\mathcal{X} \times \mathcal{Y}$, when $\mathcal{A}$ is applied to a training set $\mathcal{T}$ of size $n \geq m_{\mathcal{H}}(\varepsilon, \delta)$ generated by sampling $n$ independent pairs from $p$, the algorithm returns a predictor $h_{\mathcal{T}}$ such that
+
+\begin{myequation}
+\mathcal{R}_p(h_{\mathcal{T}}) \leq \min_{h \in \mathcal{H}} \mathcal{R}_p(h) + \varepsilon
+\end{myequation}
+
+with probability at least $1 - \delta$ (over the randomness in sampling).
+\end{definition}
+
+This definition is more modest than PAC learnability. We don't compare ourselves to zero error or to the Bayes risk. Instead, we compare to the best error achievable within our hypothesis class, denoted $\mathcal{R}_p(h^*) = \min_{h \in \mathcal{H}} \mathcal{R}_p(h)$. This decomposition separates learning into two challenges: approximation error (how well the best in our class approximates the truth) and estimation error (how well we estimate the best in the class). %Statistical learning theory addresses estimation error; approximation error is addressed by choosing good hypothesis classes.
+
+Notice that agnostic PAC learnability generalizes PAC learnability: if the realizability assumption holds, the best predictor in the class has zero error, so the definition reduces to ordinary PAC learning.
+
+\subsubsection*{Extending to General Loss Functions}
+
+The framework extends naturally beyond 0-1 loss to any bounded loss function.
+
+\begin{definition}[Agnostic PAC Learnability with General Loss]
+A hypothesis class $\mathcal{H}$ is \alert{agnostic PAC learnable} with respect to a loss function $L: \mathcal{Y} \times \mathcal{Y} \to [0, M]$ if there exist a function $m_{\mathcal{H}}: (0,1)^2 \to \mathbb{N}$ and a learning algorithm $\mathcal{A}$ such that for every $\varepsilon, \delta \in (0,1)$ and every distribution $p$ over $\mathcal{X} \times \mathcal{Y}$, when $\mathcal{A}$ is applied to a training set $\mathcal{T}$ of size $n \geq m_{\mathcal{H}}(\varepsilon, \delta)$, it returns $h_{\mathcal{T}}$ satisfying
+
+\begin{myequation}
+\mathcal{R}_p(h_{\mathcal{T}}) = \ev{(\mathbf{x}, t) \sim p}{L(h_{\mathcal{T}}(\mathbf{x}), t)}\leq \min_{h \in \mathcal{H}} \ev{(\mathbf{x}, t) \sim p}{L(h(\mathbf{x}), t)}+ \varepsilon
+\end{myequation}
+
+with probability at least $1 - \delta$.
+\end{definition}
+
+This generalization allows application to regression, cost-sensitive classification, and many other learning problems beyond binary classification with 0-1 loss.
+
+%\subsubsection*{Empirical Risk vs True Risk: Representative Training Sets}
+%
+%For ERM to work, a critical condition must hold: empirical risk must be a good proxy for true risk. Specifically, the empirical risk of every predictor in $\mathcal{H}$ should closely approximate its true risk. This is formalized through the concept of a representative training set.
+%
+%\begin{definition}[$\varepsilon$-Representative Sample]
+%A training set $\mathcal{T}$ is $\varepsilon$-representative with respect to hypothesis class $\mathcal{H}$, loss function $L$, and distribution $p(\mathbf{x}, t)$ if for every predictor $h \in \mathcal{H}$:
+%
+%\begin{myequation}
+%\left| \overline{\mathcal{R}}_{\mathcal{T}}(h) - \mathcal{R}_p(h) \right| \leq \varepsilon
+%\end{myequation}
+%
+%In other words, each predictor's training error differs from its true error by at most $\varepsilon$.
+%\end{definition}
+%
+%This definition ensures that the rankings of predictors are essentially preserved: if one predictor is better than another on the population, it will likely be better on the training set as well (up to an $\varepsilon$ margin).
+%
+%Why does representativeness matter? Suppose a training set $\mathcal{T}$ is $\frac{\varepsilon}{2}$-representative. Then for the predictor $h_{\mathcal{T}}$ returned by ERM, we have that:
+%\begin{enumerate}
+%\item by representativeness
+%\begin{myequation}
+%\overline{\mathcal{R}}_{\mathcal{T}}(h^*) \leq \mathcal{R}_p(h^*) + \frac{\varepsilon}{2}
+%\end{myequation}
+%where $h^{*}$ is the optimal predictor $h^* = \arg\min_{h \in \mathcal{H}} \mathcal{R}_p(h)$
+%\item
+%since ERM minimizes empirical risk
+%\begin{myequation}
+%\overline{\mathcal{R}}_{\mathcal{T}}(h_{\mathcal{T}}) \leq \overline{\mathcal{R}}_{\mathcal{T}}(h^*) \leq \mathcal{R}_p(h^*) + \frac{\varepsilon}{2}
+%\end{myequation}
+%
+%\item finally, by representativeness again:
+%
+%\begin{myequation}
+%\mathcal{R}_p(h_{\mathcal{T}}) \leq \overline{\mathcal{R}}_{\mathcal{T}}(h_{\mathcal{T}}) + \frac{\varepsilon}{2} \leq \mathcal{R}_p(h^*) + \varepsilon
+%\end{myequation}
+%\end{enumerate}
+%Thus, representativeness directly guarantees the agnostic PAC property. If we can show that a training set is representative with high probability, we've solved the learning problem.
+%
+%%\subsubsection*{Uniform Convergence}
+%
+%The question now becomes: when can we guarantee that a random training set is representative? The answer is provided by \alert{uniform convergence}.
+%
+%\begin{definition}[Uniform Convergence]
+%A hypothesis class $\mathcal{H}$ has the \alert{uniform convergence} property with respect to a loss function $L$ if there exists a function $m_{\mathcal{H}}^{\text{UC}}: (0,1)^2 \to \mathbb{N}$ such that 
+%for every $\varepsilon, \delta \in (0,1)$ and every distribution $p(\mathbf{x}, t)$, if $\mathcal{T}$ is a dataset of $n \geq m_{\mathcal{H}}^{\text{UC}}(\varepsilon, \delta)$ independent pairs drawn from $p$, then with probability at least $1 - \delta$, the sample $\mathcal{T}$ is $\varepsilon$-representative.
+%\end{definition}
+%
+%The intuition is subtle: it's not enough that a single predictor converges to its true risk. We need \emph{all} predictors in the class to simultaneously converge. This is harder than standard statistical convergence because we're making $|\mathcal{H}|$ statements at once.
+%
+%For finite classes, the union bound directly provides uniform convergence. We can bound the probability that any predictor's empirical risk deviates from its true risk, sum over all $|\mathcal{H}|$ predictors (ensuring each has only $\frac{\delta}{|\mathcal{H}|}$ failure probability), and ensure the total failure probability is at most $\delta$. This gives:
+%
+%\begin{myequation}
+%m_{\mathcal{H}}^{\text{UC}}(\varepsilon, \delta) \leq \left\lceil \frac{1}{\varepsilon^2} \ln\frac{2|\mathcal{H}|}{\delta}\right\rceil
+%\end{myequation}
+%
+%\subsubsection*{Summary}
+%
+%We've now established a chain of implications:
+%
+%\begin{myequation}
+%\text{Uniform Convergence} \implies \text{$\varepsilon$-Representativeness} \implies \text{Agnostic PAC Learnability}
+%\end{myequation}
+%
+%More precisely: if $\mathcal{H}$ has uniform convergence property with function $m_{\mathcal{H}}^{\text{UC}}$, then $\mathcal{H}$ is agnostic PAC learnable with sample complexity:
+%
+%\begin{myequation}
+%m_{\mathcal{H}}(\varepsilon, \delta) \leq m_{\mathcal{H}}^{\text{UC}}\left(\frac{\varepsilon}{2}, \delta\right)
+%\end{myequation}
+%
+%and ERM is a successful agnostic PAC learning algorithm for $\mathcal{H}$.
+%
+%This means that to prove agnostic PAC learnability, we only need to prove uniform convergence. And for finite classes, uniform convergence is automatic via the union bound.
+
+\subsubsection*{Empirical Risk vs True Risk: Representative Training Sets}
+
+A central challenge in machine learning is that we never have access to the true data-generating distribution $p(\mathbf{x}, t)$ -- we only observe a finite sample drawn from it. Empirical Risk Minimization (ERM) is built on the hope that optimizing performance on this finite sample will translate into good performance on the underlying population. But when is this hope justified? The answer hinges on a precise relationship between empirical risk and true risk.
+
+For ERM to work, a critical condition must hold: empirical risk must be a good proxy for true risk. It is not sufficient that this holds for a single predictor or on average -- we need it to hold \emph{simultaneously} for every predictor in $\mathcal{H}$. If even one predictor has a large gap between its empirical and true risk, ERM might select it as the apparent best hypothesis while it performs poorly on the population. This requirement is formalized through the concept of a representative training set.
+
+\begin{definition}[$\varepsilon$-Representative Sample]
+A training set $\mathcal{T}$ is $\varepsilon$-representative with respect to hypothesis class $\mathcal{H}$, loss function $L$, and distribution $p(\mathbf{x}, t)$ if for every predictor $h \in \mathcal{H}$:
+
+\begin{myequation}
+\left| \overline{\mathcal{R}}_{\mathcal{T}}(h) - \mathcal{R}_p(h) \right| \leq \varepsilon
+\end{myequation}
+
+In other words, each predictor's training error differs from its true error by at most $\varepsilon$.
+\end{definition}
+
+Intuitively, a representative training set is one that faithfully mirrors the population: the empirical risk landscape over $\mathcal{H}$ is a uniformly accurate reflection of the true risk landscape. This definition ensures that the rankings of predictors are essentially preserved -- if one predictor is better than another on the population, it will likely appear better on the training set as well, up to an $\varepsilon$ margin. In particular, a predictor that looks good empirically cannot be catastrophically bad in truth.
+
+Why does representativeness matter for learning? The following argument makes the connection explicit. Suppose a training set $\mathcal{T}$ is $\frac{\varepsilon}{2}$-representative. Then for the predictor $h_{\mathcal{T}}$ returned by ERM, we can bound its true risk relative to the best possible predictor in $\mathcal{H}$ through a short chain of inequalities:
+\begin{enumerate}
+\item by representativeness
+\begin{myequation}
+\overline{\mathcal{R}}_{\mathcal{T}}(h^*) \leq \mathcal{R}_p(h^*) + \frac{\varepsilon}{2}
+\end{myequation}
+where $h^{*}$ is the optimal predictor $h^* = \arg\min_{h \in \mathcal{H}} \mathcal{R}_p(h)$
+\item
+since ERM minimizes empirical risk
+\begin{myequation}
+\overline{\mathcal{R}}_{\mathcal{T}}(h_{\mathcal{T}}) \leq \overline{\mathcal{R}}_{\mathcal{T}}(h^*) \leq \mathcal{R}_p(h^*) + \frac{\varepsilon}{2}
+\end{myequation}
+
+\item finally, by representativeness again:
+
+\begin{myequation}
+\mathcal{R}_p(h_{\mathcal{T}}) \leq \overline{\mathcal{R}}_{\mathcal{T}}(h_{\mathcal{T}}) + \frac{\varepsilon}{2} \leq \mathcal{R}_p(h^*) + \varepsilon
+\end{myequation}
+\end{enumerate}
+We may then conclude that if the training set is $\frac{\varepsilon}{2}$-representative, then ERM returns a predictor whose true risk is within $\varepsilon$ of the best achievable risk in $\mathcal{H}$. This is precisely the agnostic PAC guarantee. Representativeness is therefore not merely a technical convenience -- it is the exact condition needed to make ERM work. If we can show that a training set drawn from $p$ is representative with high probability, we have, in a rigorous sense, solved the learning problem.
+
+The question now becomes: when can we guarantee that a random training set is representative? Clearly, a very small sample may fail to represent the population accurately. But how large must the sample be, and does this depend on the distribution $p$ we are sampling from? The answer is provided by the property of \alert{uniform convergence}, which captures exactly when we can make such guarantees in a distribution-free manner.
+
+\begin{definition}[Uniform Convergence]
+A hypothesis class $\mathcal{H}$ has the \alert{uniform convergence} property with respect to a loss function $L$ if there exists a function $m_{\mathcal{H}}^{\text{UC}}: (0,1)^2 \to \mathbb{N}$ such that 
+for every $\varepsilon, \delta \in (0,1)$ and every distribution $p(\mathbf{x}, t)$, if $\mathcal{T}$ is a dataset of $n \geq m_{\mathcal{H}}^{\text{UC}}(\varepsilon, \delta)$ independent pairs drawn from $p$, then with probability at least $1 - \delta$, the sample $\mathcal{T}$ is $\varepsilon$-representative.
+\end{definition}
+
+Several aspects of this definition deserve emphasis. First, the guarantee holds for \emph{every} distribution $p$ -- we do not need to know or assume anything about the data-generating process. Second, the function $m_{\mathcal{H}}^{\text{UC}}(\varepsilon, \delta)$ gives an explicit sample complexity: a bound on how many examples suffice to ensure representativeness with confidence $1 - \delta$ and accuracy $\varepsilon$. Third, and most subtly, convergence must be \emph{uniform} over the entire hypothesis class. It is not enough that each individual predictor's empirical risk concentrates around its true risk -- we need all predictors in $\mathcal{H}$ to do so \emph{simultaneously}. This is a strictly harder requirement than pointwise convergence, because we are effectively making $|\mathcal{H}|$ statistical guarantees at once, and any one of them could fail.
+
+%For finite hypothesis classes, uniform convergence follows from the probabilistic argument given in the case of realizability: for any fixed predictor $h$, the probability that its empirical risk deviates from its true risk by more than $\varepsilon$ decays exponentially in the sample size. To extend this to the entire class, we apply the union bound and obtain that the probability that \emph{any} predictor in $\mathcal{H}$ exhibits a large deviation is at most the sum of the individual failure probabilities. By allocating a failure budget of $\frac{\delta}{|\mathcal{H}|}$ to each predictor and summing, we ensure the total failure probability is at most $\delta$. This yields the following sample complexity bound:
+%
+%\begin{myequation}
+%m_{\mathcal{H}}^{\text{UC}}(\varepsilon, \delta) \leq \left\lceil \frac{1}{\varepsilon^2} \ln\frac{2|\mathcal{H}|}{\delta}\right\rceil
+%\end{myequation}
+For finite hypothesis classes, uniform convergence follows from a straightforward application of the union bound. Fix any single predictor $h \in \mathcal{H}$: by standard concentration inequalities, the probability that its empirical risk deviates from its true risk by more than $\varepsilon$ is small and decays exponentially in the sample size. Call this event a \emph{failure} for $h$.
+
+We want to bound the probability that \emph{at least one} predictor in $\mathcal{H}$ fails -- because if any predictor has a large gap between empirical and true risk, the sample is not representative. The union bound gives exactly this: the probability that at least one failure occurs is at most the sum of the individual failure probabilities. We therefore allocate a failure budget of $\frac{\delta}{|\mathcal{H}|}$ to each predictor, so that when we sum over all $|\mathcal{H}|$ predictors, the total failure probability is at most $\delta$. 
+
+The idea is essentially a backwards application of the union bound: we want the probability that \emph{any} predictor fails to be at most $\delta$. The union bound tells us that this probability is at most the sum of individual failure probabilities:
+\begin{myequation}
+P(\text{some } h \text{ fails}) \leq \sum_{h \in \mathcal{H}} P(h \text{ fails})
+\end{myequation}
+We want the left hand side to be at most $\delta$. A sufficient condition is therefore that the right hand side is at most $\delta$. Since there are $|\mathcal{H}|$ terms in the sum and we want their total to be at most $\delta$, the simplest choice is to make each term equal to $\frac{\delta}{|\mathcal{H}|}$ -- this is what ``allocating a failure budget of $\frac{\delta}{|\mathcal{H}|}$ to each predictor'' means. We are dividing the total error allowance $\delta$ equally among all predictors, so that the sum is exactly $\delta$.
+
+This then becomes a constraint on the sample size: we need the sample to be large enough that for each individual predictor $h$, the probability of a large deviation is at most $\frac{\delta}{|\mathcal{H}|}$. Since this individual probability decays exponentially in $n$, we can solve for the minimum $n$ that satisfies this constraint -- and that is precisely what the sample complexity bound expresses.
+
+The larger $|\mathcal{H}|$ is, the smaller the budget $\frac{\delta}{|\mathcal{H}|}$ allocated to each predictor, and therefore the larger the sample needed to push each individual failure probability below that threshold. This is why the bound grows with $|\mathcal{H}|$, though only logarithmically.
+
+
+
+Requiring each individual failure probability to be at most $\frac{\delta}{|\mathcal{H}|}$ then determines how large the sample must be, yielding:
+
+\begin{myequation}
+m_{\mathcal{H}}^{\text{UC}}(\varepsilon, \delta) \leq \left\lceil \frac{1}{\varepsilon^2} \ln\frac{2|\mathcal{H}|}{\delta}\right\rceil
+\end{myequation}
+
+This bound has an intuitive structure: the required sample size grows logarithmically in the size of the hypothesis class and logarithmically in the inverse confidence $1/\delta$, while growing as $1/\varepsilon^2$ in the desired accuracy. The logarithmic dependence on $|\mathcal{H}|$ is particularly encouraging -- even a hypothesis class of astronomical size (say, $2^{1000}$ predictors) requires only a modest increase in sample size compared to a class of size 2. This is the mathematical reason why large but structured hypothesis classes can be learned efficiently from finite data.
+
+\medskip
+
+In summary, we have now established a coherent chain of implications connecting a probabilistic property of random samples to the fundamental goal of agnostic PAC learning:
+
+\begin{myequation}
+\text{Uniform Convergence} \implies \text{$\varepsilon$-Representativeness} \implies \text{Agnostic PAC Learnability}
+\end{myequation}
+
+More precisely, if $\mathcal{H}$ has uniform convergence property with function $m_{\mathcal{H}}^{\text{UC}}$, then $\mathcal{H}$ is agnostic PAC learnable with sample complexity:
+
+\begin{myequation}
+m_{\mathcal{H}}(\varepsilon, \delta) \leq m_{\mathcal{H}}^{\text{UC}}\left(\frac{\varepsilon}{2}, \delta\right)
+\end{myequation}
+
+and ERM is a successful agnostic PAC learning algorithm for $\mathcal{H}$. The factor of $\frac{\varepsilon}{2}$ reflects the two applications of representativeness in the risk bound derived earlier -- each step contributes half the total error budget.
+
+This means that to prove agnostic PAC learnability, it suffices to prove uniform convergence -- a purely probabilistic statement about random samples. And for finite hypothesis classes, uniform convergence follows automatically from the union bound, establishing that any finite class is agnostic PAC learnable, with a sample complexity that grows only logarithmically in the number of hypotheses. This sets the stage for understanding which infinite hypothesis classes are learnable, a question that leads to the richer theory of VC dimension.
+
+%\subsubsection*{Summary: From Theory to Learning Algorithms}
+\medskip
+The theoretical framework introduced above provides a complete characterization of when learning is possible:
+
+\begin{itemize}
+\item for finite hypothesis classes, we have proven uniform convergence, which implies agnostic PAC learnability, which means ERM will find a predictor nearly as good as the best in the class. The sample complexity has a clear dependence on accuracy ($1/\varepsilon^2$ in the agnostic case, $1/\varepsilon$ in the realizable case), confidence ($\ln(1/\delta)$), and class size ($\ln |\mathcal{H}|$).
+
+\item for infinite classes, this simple counting argument fails. We must use more sophisticated complexity measures like VC dimension or Rademacher complexity, which capture the effective size of the class. These tools extend the same principles to infinite classes, but with more subtle mathematics.
+\end{itemize}
+
+The key insight throughout is that learning is not magic: it's governed by simple mathematical laws. The amount of data required depends predictably on how complex our hypothesis class is, how accurate we want to be, and how confident we need to be. %Understanding these relationships allows us to design learning algorithms effectively and to recognize when a learning problem is fundamentally solvable.
+
+
+\section*{PAC learnability of finite classes}
+
+Let $\cH$ be a finite hypothesis class, let $\cXY$ be a domain, and let $l:\cXY\mapsto [0, 1]$ be a loss function. Then, it is possible to prove that $\cH$ enjoys the uniform convergence property with sample complexity
+\begin{myequation}
+m_{\cH}^{UC}(\varepsilon,\delta)\leq \left\lceil\frac{1}{2\varepsilon^2}\ln\frac{2\lvert\cH\rvert}{\delta}  \right\rceil
+\end{myequation}
+
+The proof combines two ingredients: a concentration inequality that controls the deviation of empirical risk from true risk for a single predictor, and the union bound that extends this control uniformly over the entire class.
+
+Fix any $h \in \cH$. The empirical risk $\overline{\mathcal{R}}_{\mathcal{T}}(h) = \frac{1}{n}\sum_{i=1}^n L(h(\x_{i}, t_i)$ is an average of $n$ independent random variables, each taking values in $[0,1]$. Its expectation is exactly the true risk $\mathcal{R}_p(h)$. Since the loss is bounded in $[0,1]$, we can apply \alert{Hoeffding's inequality}, which states that for an average of $n$ independent random variables bounded in $[0,1]$:
+\begin{myequation}
+P\left(\left|\overline{\mathcal{R}}_{\mathcal{T}}(h) - \mathcal{R}_p(h)\right| > \varepsilon\right) \leq 2e^{-2n\varepsilon^2}
+\end{myequation}
+This is the key concentration result: the probability of a large deviation decays exponentially in $n$. We call the event $\left|\overline{\mathcal{R}}_{\mathcal{T}}(h) - \mathcal{R}_p(h)\right| > \varepsilon$ a \emph{failure} for $h$.
+
+Concerning the probability that \emph{at least one} predictor in $\cH$ fails, by the union bound we have
+\begin{myequation}
+P\left(\exists\, h \in \cH : \left|\overline{\mathcal{R}}_{\mathcal{T}}(h) - \mathcal{R}_p(h)\right| > \varepsilon\right) \leq \sum_{h \in \cH} P\left(\left|\overline{\mathcal{R}}_{\mathcal{T}}(h) - \mathcal{R}_p(h)\right| > \varepsilon\right) \leq |\cH| \cdot 2e^{-2n\varepsilon^2}
+\end{myequation}
+Since we want this total failure probability to be at most $\delta$, we set $|\cH| \cdot 2e^{-2n\varepsilon^2} \leq \delta$ and solve for $n$, obtaining
+\begin{myequation}
+2|\cH|\, e^{-2n\varepsilon^2} \leq \delta \implies e^{-2n\varepsilon^2} \leq \frac{\delta}{2|\cH|} \implies n \geq \frac{1}{2\varepsilon^2}\ln\frac{2|\cH|}{\delta}
+\end{myequation}
+
+For any $n \geq \left\lceil\frac{1}{2\varepsilon^2}\ln\frac{2|\cH|}{\delta}\right\rceil$, we thus have that with probability at least $1 - \delta$ over the draw of $\mathcal{T}$, every predictor $h \in \cH$ simultaneously satisfies $\left|\overline{\mathcal{R}}_{\mathcal{T}}(h) - \mathcal{R}_p(h)\right| \leq \varepsilon$. This is precisely the $\varepsilon$-representativeness condition holding with probability $1-\delta$, which establishes uniform convergence with the stated sample complexity.
+
+As a consequence, $\cH$ is agnostically PAC learnable using the ERM algorithm with sample complexity
+\begin{myequation}
+m_{\cH}(\varepsilon,\delta)\leq m_{\cH}^{UC}\left(\frac{\varepsilon}{2},\delta\right)\leq \left\lceil\frac{1}{\varepsilon^2}\ln\frac{2\lvert\cH\rvert}{\delta}  \right\rceil
+\end{myequation}
+
+That is, if the number of possible predictors is $m$, then by first sampling
+\begin{myequation}
+\left\lceil\frac{1}{\varepsilon^2}\ln\frac{2\lvert\cH\rvert}{\delta}  \right\rceil=\left\lceil\frac{2(\ln m-\ln\delta+\ln 2)}{\varepsilon^2}  \right\rceil
+\end{myequation}
+i.i.d. examples from $\cXY$, each one under probability distribution $p(x,y)$, and next applying $ERM$ on the resulting dataset, we obtain with probability $1-\delta$ a predictor whose expected loss over pairs in $\cXY$ is the one of best predictor among the $m$ considered, plus at most $\varepsilon$.
+Observe that the number of examples grows logarithmically wrt $m$ while decreases (logarithmically) wrt to $\delta$ and (as a square root) wrt $\varepsilon$.
+
+While this result only
+applies to finite hypothesis classes, there is a simple trick that allows us to get a
+very good estimate of the practical sample complexity of infinite hypothesis classes.
+
+Consider a hypothesis class that is parameterized by $d$ parameters. For example,
+let $\cX=\Real$, $\cY=\{-1,+1\}$, and the hypothesis class, $\cH$, be all functions of the form
+$h_\theta(x)=\text{sgn}(x-\theta)$. That is, each hypothesis is parameterized by one parameter,
+$\theta\in\Real$, and the hypothesis outputs 1 for all instances larger than $\theta$ and outputs $-1$
+for instances smaller than $\theta$. This is a hypothesis class of an infinite size. However,
+if we are going to learn this hypothesis class in practice, using a computer, we will
+probably maintain real numbers using floating point representation, say, of 64 bits.
+It follows that in practice, our hypothesis class is parameterized by the set of scalars
+that can be represented using a 64 bits floating point number. There are at most $2^{64}$
+such numbers; hence the actual size of our hypothesis class is at most $2^{64}$. More generally, if our hypothesis class is parameterized by $d$ numbers, in practice we learn
+a hypothesis class of size at most $2^{64d}$. By the above considerations, we obtain that the
+sample complexity of such classes is bounded by 
+\[
+\frac{128d+2\ln\frac{2}{\delta}}{\varepsilon^2}=\frac{128d+2\ln 2-2\ln\delta}{\varepsilon^2}
+\] 
+This upper bound on the sample complexity has the deficiency of being dependent on the specific representation of real numbers used by our machine. In the following we will introduce a rigorous way to analyze the sample complexity of infinite size hypothesis classes. Nevertheless, the discretization trick can be used to get a rough estimate of the sample complexity in many practical situations.
+
+
+
+\subsection*{Relevance of the inductive bias}
+
+Whenever we choose a hypothesis class $\cH$, we actually make use of some prior knowledge about our data. We only choose the class because we believe (or hope) that it contains a good (i.e. low-risk) predictor for the task we are considering. 
+
+This begs the question whether such prior knowledge is a necessary condition for learning, or whether there can exist a ``universal learner''. Recall that a learning task is defined by an unknown probability distribution $p$ over the set of all possible examples and labelings $\cXY$, and given a training set of size $n$, we want to find a hypothesis $h\in\cH$ that has a low risk with high probability. So a universal learner would correspond to an algorithm $\mathcal{A}^*$ and a sample complexity $n$ such that $\mathcal{A}^*$ finds a low risk predictor $\cH$ with high probability, whatever is the distribution $p$. 
+
+
+The fundamental question of whether a universal learner can exist is settled by the \alert{No-Free-Lunch (NFL) Theorem}. This theorem asserts that for binary classification, no single learning algorithm can succeed on every possible task. More precisely, for any given algorithm, there exists a distribution on which it performs poorly, even though the task is simple (realizable). This negative result formalizes the necessity of inductive bias -- prior knowledge that guides the choice of hypothesis class.
+
+%\subsubsection*{Formal Statement and Interpretation}
+
+\begin{theorem}[No-Free-Lunch]
+Let $\mathcal{X}$ be a domain, and let $\mathcal{A}$ be any learning algorithm for binary classification with $0$-$1$ loss. For any sample size $n < |\mathcal{X}|/2$, there exists a distribution $\mathcal{D}$ over $\mathcal{X} \times \{0,1\}$ such that:
+\begin{enumerate}
+    \item There exists a function $h^*: \mathcal{X} \to \{0,1\}$ with zero risk, i.e., $L_{\mathcal{D}}(h^*) = 0$ (realizability).
+    \item When $\mathcal{A}$ is trained on a sample $S \sim \mathcal{D}^n$, the resulting hypothesis $h_S$ satisfies
+    \begin{myequation}
+    \PP_{S \sim \mathcal{D}^n}\left[ L_{\mathcal{D}}(h_S) \ge \frac{1}{8} \right] \ge \frac{1}{7}.
+    \end{myequation}
+    i.e. there is high error with high probability.
+\end{enumerate}
+\end{theorem}
+
+The theorem highlights a stark limitation: for every learner $\mathcal{A}$, one can construct an adversarial distribution $\mathcal{D}$ that makes $\mathcal{A}$ fail. Importantly, $\mathcal{D}$ is realizable (there exists a perfect predictor), yet $\mathcal{A}$ -- regardless of its sophistication -- produces a hypothesis with error at least $1/8$ with probability at least $1/7$. %Note that the constants $1/8$ and $1/7$ are not sharp; they can be improved, but the qualitative message remains: no algorithm is universally successful.
+
+\subsubsection*{Implications for PAC Learnability}
+
+%The NFL theorem directly implies that the class of \emph{all} binary-valued functions on an infinite domain is not PAC learnable. This is a crucial fact that underscores the need for restricting the hypothesis class.
+%
+%\begin{theorem}
+%Let $\mathcal{X}$ be an infinite set, and let $\mathcal{F} = \{ f: \mathcal{X} \to \{0,1\} \}$ be the set of all possible binary classifiers on $\mathcal{X}$. Then $\mathcal{F}$ is not PAC learnable.
+%\end{theorem}
+%
+%\begin{proof}
+%Assume, for contradiction, that $\mathcal{F}$ is PAC learnable. Then there exists an algorithm $\mathcal{A}_{\mathcal{F}}$ and a function $m_{\mathcal{F}}: (0,1)^2 \to \mathbb{N}$ such that for every $\varepsilon, \delta \in (0,1)$ and every distribution $\mathcal{D}$ over $\mathcal{X} \times \{0,1\}$ for which $\min_{h \in \mathcal{F}} L_{\mathcal{D}}(h) = 0$ (i.e., realizability holds), we have
+%\[
+%\mathbb{P}_{S \sim \mathcal{D}^m}\left[ L_{\mathcal{D}}(\mathcal{A}_{\mathcal{F}}(S)) \le \varepsilon \right] \ge 1 - \delta,
+%\]
+%provided $m \ge m_{\mathcal{F}}(\varepsilon, \delta)$.
+%
+%Now choose $\varepsilon = 1/16$ and $\delta = 1/8$ (note $\varepsilon < 1/8$ and $\delta < 1/7$). Let $n = m_{\mathcal{F}}(\varepsilon, \delta)$. Since $\mathcal{X}$ is infinite, we have $n < |\mathcal{X}|/2$. By the NFL theorem applied to $\mathcal{A}_{\mathcal{F}}$ and $n$, there exists a distribution $\mathcal{D}$ such that:
+%\begin{itemize}
+%    \item There exists $h^* \in \mathcal{F}$ with $L_{\mathcal{D}}(h^*) = 0$ (so realizability holds).
+%    \item $\mathbb{P}_{S \sim \mathcal{D}^n}\left[ L_{\mathcal{D}}(\mathcal{A}_{\mathcal{F}}(S)) \ge 1/8 \right] \ge 1/7 > \delta$.
+%\end{itemize}
+%But this contradicts the PAC guarantee, which requires that the probability of error exceeding $\varepsilon = 1/16$ is at most $\delta = 1/8$. Hence, $\mathcal{F}$ cannot be PAC learnable.
+%\end{proof}
+%
+%The corollary demonstrates that without any inductive bias -- that is, by considering the class of all possible functions -- learning is impossible. The NFL theorem constructs a distribution that exploits the algorithm's inability to generalize beyond the training set when the hypothesis space is too large.
+The NFL theorem has a profound and immediate consequence for the theory of PAC learning: it tells us that the question ``is this problem learnable?'' cannot be answered without specifying what we are willing to assume about the structure of the target function. In particular, as we show below, the class of \emph{all} binary-valued functions on an infinite domain is not PAC learnable. This is not a limitation of any particular algorithm, it is instead a fundamental impossibility result that applies to every conceivable learning procedure, and it underscores why restricting the hypothesis class is not merely a computational convenience but a logical necessity.
+
+\begin{theorem}
+Let $\mathcal{X}$ be an infinite set, and let $\mathcal{F} = \{ f: \mathcal{X} \to \{0,1\} \}$ be the set of all possible binary classifiers on $\mathcal{X}$. Then $\mathcal{F}$ is not PAC learnable.
+\end{theorem}
+
+\begin{proof}
+Assume, for contradiction, that $\mathcal{F}$ is PAC learnable. Then there exists an algorithm $\mathcal{A}_{\mathcal{F}}$ and a function $m_{\mathcal{F}}: (0,1)^2 \to \mathbb{N}$ such that for every $\varepsilon, \delta \in (0,1)$ and every distribution $\mathcal{D}$ over $\mathcal{X} \times \{0,1\}$ for which $\min_{h \in \mathcal{F}} L_{\mathcal{D}}(h) = 0$ (i.e., realizability holds), we have
+\begin{myequation}
+\PP_{S \sim \mathcal{D}^m}\left[ L_{\mathcal{D}}(\mathcal{A}_{\mathcal{F}}(S)) \le \varepsilon \right] \ge 1 - \delta,
+\end{myequation}
+provided $m \ge m_{\mathcal{F}}(\varepsilon, \delta)$.
+
+Now choose $\varepsilon = 1/16$ and $\delta = 1/8$ (note $\varepsilon < 1/8$ and $\delta < 1/7$). Let $n = m_{\mathcal{F}}(\varepsilon, \delta)$. Since $\mathcal{X}$ is infinite, we have $n < |\mathcal{X}|/2$. By the NFL theorem applied to $\mathcal{A}_{\mathcal{F}}$ and $n$, there exists a distribution $\mathcal{D}$ such that:
+\begin{itemize}
+    \item There exists $h^* \in \mathcal{F}$ with $L_{\mathcal{D}}(h^*) = 0$ (so realizability holds).
+    \item $\PP_{S \sim \mathcal{D}^n}\left[ L_{\mathcal{D}}(\mathcal{A}_{\mathcal{F}}(S)) \ge 1/8 \right] \ge 1/7 > \delta$.
+\end{itemize}
+But this contradicts the PAC guarantee, which requires that the probability of error exceeding $\varepsilon = 1/16$ is at most $\delta = 1/8$. Hence, $\mathcal{F}$ cannot be PAC learnable.
+\end{proof}
+
+The structure of this proof is worth reflecting on. The contradiction arises because PAC learnability requires a \emph{universal} guarantee -- the algorithm must succeed for every distribution over the domain. But the NFL theorem guarantees that for any algorithm and any finite sample size $n$, there always exists some distribution that the algorithm cannot handle. No matter how clever the learning procedure, if the hypothesis class is all of $\mathcal{F}$, an adversary can always find a distribution on which the algorithm fails with non-negligible probability, even when a perfect classifier exists. The specific numerical choices of $\varepsilon = 1/16$ and $\delta = 1/8$ are not essential -- they are simply convenient values that satisfy the conditions required by the NFL theorem; any sufficiently small constants would yield the same contradiction.
+
+%\subsubsection*{The Role of Inductive Bias}
+%
+%The failure of universal learning forces us to incorporate prior knowledge by restricting the hypothesis class $\mathcal{H}$ to a proper subset of $\mathcal{F}$. This restriction is the inductive bias: the assumption that a good predictor belongs to $\mathcal{H}$. The bias-variance decomposition %(Equation~\ref{eq:bias-var-decomp}) 
+%quantifies the trade-off involved in choosing $\mathcal{H}$:
+%
+%\begin{itemize}
+%    \item A small $\mathcal{H}$ may have large \emph{approximation error} (bias) but small \emph{estimation error} (variance).
+%    \item A large $\mathcal{H}$ may reduce approximation error but increase estimation error, leading to overfitting.
+%\end{itemize}
+%
+%The NFL theorem shows that if we choose $\mathcal{H} = \mathcal{F}$, the estimation error becomes uncontrollable. Therefore, successful learning requires a carefully chosen $\mathcal{H}$ that balances bias and variance based on prior knowledge about the task. This is the essence of model selection: picking a hypothesis class (or a family of classes) that is sufficiently expressive to approximate the target function yet sufficiently constrained to allow generalization from finite data.
+%
+%In summary, the No-Free-Lunch theorem establishes that learning is impossible without assumptions. Inductive bias, embodied by the choice of hypothesis class, is not a mere convenience but a fundamental necessity for generalization.
+%
+%From the No Free Lunch Theorem we can conclude that choosing a suitable hypothesis class is crucial for learning a given concept. This way we restrict ourselves to a subset of all possible functions from $\cX$
+%$\{0,1\}$, which helps us avoiding unfavourable distributions and might allow us to find a low-error hypothesis with high probability. 
+%
+%On the other hand we might exclude the best hypotheses from our set of candidates, as it might not be a member of our hypothesis class. So we might find a good approximation for the best hypothesis in our class, but this best hypothesis in the class might be a bad approximation for the true target predictor. This dilemma is often referred to as the Bias-Complexity Tradeoff .
+%
+% If we choose a hypothesis class $\cH$ and get a training set $\mathcal{T}$ as input, ERM returns a predictor $h_{\mathcal{T}}$ minimizing such that the empirical risk $\mathcal{R}_p(h)$ is minimal.
+% 
+%Now we can decompose this risk as follows:
+%\begin{myequation}\label{e4}
+%\mathcal{R}_p(h_\mathcal{T})-\mathcal{R}_p(h_\text{Bayes})=\underbrace{(\mathcal{R}_p(h_{\mathcal{T}})-\mathcal{R}_p(h^*)}_{\text{estimation error}}+ \underbrace{(\mathcal{R}_p(h^*)-\mathcal{R}_p(h_\text{Bayes}))}_{\text{approximation error}}=\varepsilon_V+\varepsilon_B
+%\end{myequation}
+%where $h^*$ is the best predictor in $\cH$ (that is such that $\mathcal{R}_p(h^*)=\min_{h\in\cH}\mathcal{R}_p(h^*)$,
+%while $h_\text{Bayes}$ is the absolute best predictor for the task (that is such that $\mathcal{R}_p(h_\text{Bayes})=\min_{h\in\mathcal{F}}\mathcal{R}_p(h^*)$, where $\mathcal{F}$ is the set of all possible predictors).
+%
+%More in detail:
+%\begin{itemize}
+%\item $\epsilon_B$ is the minimum risk achievable by any $h\in\mathcal{H}$: this is only determined by the inductive bias, and independent from the 
+%training set. It is a property of the class of hypotheses considered with respect to the prediction task. This is called \alert{bias}
+%\item $\epsilon_V$ is the difference between the above minimum risk in $\mathcal{H}$ and the risk associated to the best predictor in $\mathcal{H}$ with respect to the training set: 
+%it is related to the fact that empirical risk minimization only provides an estimate of the best predictor achievable 
+%for the given inductive bias. It is a measure of how well the  predictor computed from a particular training set approximates the best possible one. Its expectation with respect to all 
+%possible training sets is a measure of how much a predictor derived from a random training set may result in poorer performances with respect to the best possible one. This is called \alert{variance}
+%\end{itemize}
+The broader lesson is fundamental: without any inductive bias -- that is, without restricting attention to some structured subset of all possible functions -- learning is provably impossible. The NFL theorem constructs a distribution that exposes the algorithm's inability to generalize beyond the training set when no assumptions constrain the hypothesis space. Every pattern the algorithm observes on the training set is consistent with exponentially many labelings of the unseen points, and with no prior structure to guide generalization, there is no principled basis for preferring one over another.
+
+This is why hypothesis classes, structural assumptions, and inductive biases are not optional features of a learning framework -- they are preconditions for learning to be possible at all. The art of machine learning lies precisely in choosing assumptions that are strong enough to make learning tractable, yet weak enough to remain valid in the problems we care about.
+
+\subsection*{The Role of Inductive Bias and the Bias–Variance Trade-off}
+
+The failure of universal learning forces us to incorporate prior knowledge by restricting the hypothesis class to a proper subset $\mathcal{H} \subsetneq \mathcal{F}$. By committing to $\mathcal{H}$, we are asserting a belief that the true target function -- or a good approximation of it -- lies within this restricted class. This commitment is the \alert{inductive bias} of the learner: an a priori assumption about the structure of the problem that makes generalization possible.
+
+Choosing $\mathcal{H}$ is therefore not a neutral act. It encodes everything the learner assumes about the task before seeing any data, and it has direct consequences for the quality of the learned predictor. To make these consequences precise, we can decompose the excess risk of the predictor $h_\mathcal{T}$ returned by ERM into two distinct components, each reflecting a different source of error.
+
+Given a training set $\mathcal{T}$, ERM returns a predictor $h_{\mathcal{T}}$ that minimizes the empirical risk over $\mathcal{H}$. The total suboptimality of $h_\mathcal{T}$ relative to the absolute best possible predictor -- the Bayes predictor $h_\text{Bayes}$ -- can be decomposed as follows:
+\begin{myequation}\label{e4}
+\mathcal{R}_p(h_\mathcal{T})-\mathcal{R}_p(h_\text{Bayes})=\underbrace{(\mathcal{R}_p(h_{\mathcal{T}})-\mathcal{R}_p(h^*)}_{\text{estimation error}}+ \underbrace{(\mathcal{R}_p(h^*)-\mathcal{R}_p(h_\text{Bayes}))}_{\text{approximation error}}=\varepsilon_V+\varepsilon_B
+\end{myequation}
+where $h^*$ is the best predictor in $\cH$, that is $\mathcal{R}_p(h^*)=\min_{h\in\cH}\mathcal{R}_p(h)$, and $h_\text{Bayes}$ is the absolute best predictor over all measurable functions, that is $\mathcal{R}_p(h_\text{Bayes})=\min_{h\in\mathcal{F}}\mathcal{R}_p(h)$.
+
+The two terms in this decomposition capture fundamentally different phenomena:
+
+\begin{itemize}
+\item $\varepsilon_B = \mathcal{R}_p(h^*) - \mathcal{R}_p(h_\text{Bayes})$ is the \alert{approximation error} (or \alert{bias}). It measures the gap between the best predictor within $\mathcal{H}$ and the best predictor that could ever exist. This term is entirely determined by the choice of hypothesis class and is independent of the training data -- it reflects how much expressive power we have sacrificed by restricting to $\mathcal{H}$. If $\mathcal{H}$ is too simple to capture the true structure of the problem, $\varepsilon_B$ will be large regardless of how much data we collect.
+
+\item $\varepsilon_V = \mathcal{R}_p(h_{\mathcal{T}}) - \mathcal{R}_p(h^*)$ is the \alert{estimation error} (or \alert{variance}). It measures the gap between the predictor actually found by ERM on the training set $\mathcal{T}$ and the best predictor achievable within $\mathcal{H}$. This term arises because ERM only has access to a finite sample, so the predictor it returns is an imperfect estimate of $h^*$. Its expectation over all possible training sets quantifies how much the learned predictor fluctuates around the best-in-class predictor as the training data varies -- a large variance means that the algorithm is sensitive to the particular sample it receives, a hallmark of overfitting.
+\end{itemize}
+
+This decomposition, often referred to as the \alert{bias-complexity} or bias-variance tradeoff, reveals the fundamental tension at the heart of model selection. The two sources of error pull in opposite directions as we vary the richness of $\mathcal{H}$:
+
+\begin{itemize}
+    \item A small, highly restricted $\mathcal{H}$ limits the complexity of predictors we can represent, leading to large approximation error -- the best predictor in the class may still be far from the Bayes predictor. However, the estimation error is small because there are few hypotheses to choose among, and ERM can identify the best one reliably even from a modest training set.
+    \item A large, expressive $\mathcal{H}$ reduces approximation error by including richer predictors, but increases estimation error: with many hypotheses to consider, ERM has more opportunities to overfit the training data, selecting a predictor that looks good empirically but generalizes poorly. In the extreme case $\mathcal{H} = \mathcal{F}$, the NFL theorem shows that estimation error becomes entirely uncontrollable.
+\end{itemize}
+
+Successful learning therefore requires a carefully chosen $\mathcal{H}$ that balances these two competing sources of error. The hypothesis class must be expressive enough to bring $\varepsilon_B$ down to an acceptable level, yet constrained enough that $\varepsilon_V$ remains small with the amount of data available. This is the essence of model selection, and it is why inductive bias -- embodied by the choice of $\mathcal{H}$ -- is not a mere convenience but a fundamental necessity for generalization from finite data.
+
+
+
+%The choice of hypothesis class $\mathcal{H}$ involves a fundamental tension known as the \alert{bias–variance trade-off}. This trade-off arises from the above decomposition of the excess risk, where the approximation error (bias) $\epsilon_B$ measures how well the optimal predictor in $\mathcal{H}$ can approximate the Bayes optimal predictor $h_{\mathcal{D}}^*$. This error depends solely on the \emph{expressive power} of $\mathcal{H}$ relative to the true data-generating distribution $\mathcal{D}$. The estimation error (variance) $\epsilon_V$ measures the additional error incurred because we only observe a finite sample $S$ rather than the entire distribution.
+
+%\subsubsection*{Effects of Model Complexity}
+
+%The complexity of $\mathcal{H}$ -- often quantified by measures like VC dimension or Rademacher complexity -- directly influences this trade-off:
+%
+%\begin{enumerate}
+%    \item High Bias, Low Variance (Underfitting):
+%    When $\mathcal{H}$ is too simple (e.g., linear models for a nonlinear relationship), the approximation error is large because even the best predictor in $\mathcal{H}$ cannot capture the underlying patterns. However, the estimation error is small: different training sets $S$ yield similar predictors $h_S$, all with high but consistent error. This situation is called \emph{underfitting}. The model fails to capture the signal in the data, leading to poor performance on both training and test sets.
+%
+%    \item Low Bias, High Variance (Overfitting):
+%    When $\mathcal{H}$ is very complex (e.g., high-degree polynomials or deep neural networks), the approximation error can be very small -- $\mathcal{H}$ may even contain the Bayes optimal predictor. However, the estimation error becomes large because the algorithm has too much flexibility. Different training sets can produce wildly different predictors $h_S$, some of which fit the training data perfectly but generalize poorly. This is \emph{overfitting}: the model captures noise in the training set as if it were signal, leading to low training error but high test error.
+%\end{enumerate}
+
+\subsubsection*{The Trade-off in Practice}
+
+In practice, one rarely fixes a single hypothesis class $\mathcal{H}$. Instead, we consider a nested family of classes $\mathcal{H}_1 \subset \mathcal{H}_2 \subset \cdots \subset \mathcal{H}_k$, where complexity increases with $k$. For example:
+\begin{itemize}
+    \item Polynomial regression with increasing degree.
+    \item Decision trees with increasing depth.
+    \item Neural networks with increasing width or depth.
+\end{itemize}
+
+As we increase $k$, the approximation error (bias) decreases monotonically, while the estimation error (variance) increases. In general, if we choose a very large space $\cH$, then the
+approximation term will become small (the Bayes classifier might even be
+contained in $\cH$ or can be approximated closely by some element in it). The
+estimation error, however, will be rather large in this case: the space
+$\cH$ will contain complex functions which will lead to overfitting. The
+opposite effect will happen if the function class $\cH$ is very small.
+
+The total risk (sum of both errors) typically exhibits a U-shaped curve as a function of complexity (see Figure~\ref{fig:bias-variance-tradeoff}). The optimal complexity is where this total risk is minimized.
+
+
+\medskip
+The bias–variance trade-off provides a conceptual framework for understanding generalization. It emphasizes that learning is not merely about minimizing training error, but about finding the right balance between expressivity and simplicity.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{bias_variance1}
+\caption{The bias–variance trade-off: as model complexity increases, bias decreases but variance increases. The total risk (solid curve) has a minimum at the optimal complexity.}\label{fig:bias-variance-tradeoff}
+\end{figure}
+
+
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=0.5\linewidth]{image2.png}
+\caption{Illustration of estimation and approximation error.}\label{f2}
+\end{center}
+\end{figure}
+
+
+
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.25\textwidth]{bias_variance.png}
+\end{center}
+\caption{Graphical representation of bias and variance}\label{f2}
+\end{figure}
+
+
+Learning theory studies how rich we can make the class $\cH$ while still maintaining a reasonable estimation error. In many cases, empirical research focuses on designing good classes of predictors for a given domain. Here, "good" means classes for which the approximation error should not be excessively high. The idea is that, even if we are not experts and do not know how to construct the optimal predictor, we still have some preliminary knowledge of the specific problem, which allows us to design classes of predictors for which both the approximation error and the estimation error are not too high.
+
+In practice, one typically has a set of predictors with associated sets of hyper-parameters: a type of predictor and an assignment of values to the corresponding hyper-parameters define a class of parametric predictors, from which a specific predictor is selected through a learning algorithm such as ERM.
+
+The identification of this class, by evaluating and selecting a type of predictor and the values of the corresponding hyper-parameters, is called \alert{model selection}.
+
+\subsection*{The Vapnik-{C}ervonenkis Dimension}
+
+%The \emph{Vapnik-{C}ervonenkis dimension} (VC-dimension) is a measure of the complexity of a given hypothesis class. The measure is introduced to characterize infinite hypothesis classes in terms of their learnability.
+%
+%We know that finite hypothesis classes are PAC-learnable and that the sample complexity depends on the size of the class. However, there also exist infinite hypothesis classes that are PAC-learnable, such as the class of threshold functions on real numbers
+%\begin{myequation}
+%\cH_\theta = \lbrace {\large\mathds{1}}[x<\theta]; \theta\in\Real\rbrace.
+%\end{myequation}
+%
+%This hypothesis class is PAC-learnable with a sample complexity of $m_\cH(\varepsilon,\delta) \leq \lceil \frac{1}{\varepsilon}\log\frac{2}{\delta}\rceil$.
+%
+%Thus, finiteness is sufficient but not necessary for learnability. To define a more general and useful measure of complexity, we first need a few other definitions.
+%
+%%### Restriction of a Hypothesis Class and Shattered Sets
+%Given a subset $C = \lbrace c_{1},...,c_{m} \rbrace\subset \cX$ of $\cX$, we define the \emph{restriction} $\cH_{C}$ of $\cH$ to $C$ as the set of functions $f:C\mapsto\lbrace 0,1 \rbrace$ that can be derived from predictors in $\cH$ (i.e., such that for each $f\in C$ there exists a predictor $h\in\cH$ for which $f(c_i)=h(c_i), i=1,\ldots, m$). If we describe each function from $C$ to $\lbrace 0,1 \rbrace$ as a vector in $\lbrace 0,1 \rbrace^{|C|}$, we can formally write it as
+%
+%\begin{myequation}
+%\cH_{C} = \lbrace (h(c_{1}),...h(c_{m})): h\in\cH\rbrace.
+%\end{myequation}
+%
+%If $\cH_{C}$ is the set of all functions from $C$ to $\lbrace 0,1 \rbrace$ (and thus $\lvert\cH_{C}\rvert= 2^{\lvert C\rvert}$), this means that for every binary labeling of the elements of $C$ (and thus for every separation of the elements into two distinct classes, or even for every possible binary classification task on $C$), there exists a predictor in $\cH$ that separates the two classes, in the sense that it correctly predicts the target values of each element $c_i$. In this case, we say that $\cH$ \emph{shatters} $C$.
+%
+%For example, consider the class $\cH_\theta$ of threshold functions introduced above. Consider a set $C = \{c_1\}$: then, if we set $\theta =c_1+1$, we have $h_\theta(c_1) = 1$, and if we take $\theta=c_1-1$, we have $h_\theta(c_1)=0$. Therefore, $\cH_C$ is the set of all functions from $C$ to $\{0,1\}$, and $\cH$ shatters $C$. If we now consider a set $C= \{c_1, c_2\}$, where $c_1\leq c_2$, no $h\in\cH$ can represent the labeling $c_1=0,c_2=1$, because any threshold that assigns label 0 to $c_1$ must also assign label 0 to $c_2$. Therefore, not all functions from $C$ to $\{0,1\}$ are included in $\cH_C$, so $C$ is not shattered by $\cH$.
+%
+%%\subsection{The VC-Dimension}
+%
+%We now define the VC-Dimension $\vcd{\cH}$ of a hypothesis class $\cH$ as the size of the largest subset $C\subset \cX$ that is shattered by $\cH$.
+%
+%The motivation behind this definition is the following. From the No-Free-Lunch theorem, we know that the set of all functions from a domain to $\lbrace 0,1 \rbrace$ is not PAC-learnable. However, the proof of this statement is based on the assumption that we are considering all possible functions: it is reasonable to assume that introducing limitations on the hypothesis class might bring advantages.
+The results established so far paint a clear but incomplete picture of learnability. On one hand, we have shown that finite hypothesis classes are PAC-learnable, with sample complexity growing logarithmically in the size of the class. On the other hand, the No-Free-Lunch theorem tells us that the class of all possible functions is not learnable. The natural and pressing question is: what happens in between? Are there infinite hypothesis classes that are still learnable, and if so, what property distinguishes them from the hopelessly large class $\mathcal{F}$?
+
+The answer is yes -- there exist infinite hypothesis classes that are PAC-learnable. A canonical example is the class of threshold functions on the real line:
+\begin{myequation}
+\cH_\theta = \lbrace {\large\mathds{1}}[x<\theta]; \theta\in\Real\rbrace.
+\end{myequation}
+Despite being infinite, this class is PAC-learnable with sample complexity $m_\cH(\varepsilon,\delta) \leq \lceil \frac{1}{\varepsilon}\log\frac{2}{\delta}\rceil$. This shows conclusively that finiteness is sufficient but not necessary for learnability. The real question is therefore not whether a class is finite or infinite, but rather what intrinsic property of a hypothesis class determines whether it is learnable.
+
+To answer this question, we need more refined measures of the complexity of a hypothesis class -- one that captures not its raw size, but how richly it can express different labelings of data points. The \emph{Vapnik-Chervonenkis dimension} (VC-dimension) is precisely one such measures. It provides a combinatorial characterization of hypothesis class complexity that, as we will see, completely determines PAC learnability for binary classification. To define it precisely, we first need two auxiliary concepts: the restriction of a hypothesis class to a finite set, and the notion of shattering.
+
+\paragraph{Restriction and Shattering.} Given a finite subset $C = \lbrace c_{1},\ldots,c_{m} \rbrace\subset \cX$, the \emph{restriction} $\cH_{C}$ of $\cH$ to $C$ is the set of all distinct labelings of the points in $C$ that can be induced by predictors in $\cH$. Formally, representing each labeling as a binary vector in $\{0,1\}^{|C|}$:
+\begin{myequation}
+\cH_{C} = \lbrace (h(c_{1}),\ldots,h(c_{m})): h\in\cH\rbrace.
+\end{myequation}
+In other words, $\cH_C$ tells us which binary classification patterns over the finite set $C$ are expressible by some predictor in $\cH$. The restriction discards the behavior of predictors outside $C$ and focuses entirely on what the class can do on these specific points.
+
+The richest possible case is when $\cH_C$ contains \emph{all} $2^{|C|}$ possible binary labelings of $C$ -- that is, when $|\cH_C| = 2^{|C|}$. In this case, for every possible way of partitioning the elements of $C$ into two classes, there exists some predictor in $\cH$ that correctly labels every point according to that partition. This means the class is, in a precise sense, maximally expressive on $C$: it can represent every conceivable binary classification task on those points, no matter how arbitrary. When this holds, we say that $\cH$ \emph{shatters} $C$.
+
+%To build intuition, consider again the class $\cH_\theta$ of threshold functions. Take a singleton $C = \{c_1\}$: choosing $\theta = c_1 + 1$ gives $h_\theta(c_1) = 1$, and choosing $\theta = c_1 - 1$ gives $h_\theta(c_1) = 0$. Both labelings are achievable, so $\cH_\theta$ shatters $C$. Now consider a two-point set $C = \{c_1, c_2\}$ with $c_1 \leq c_2$. There are four possible labelings, but the labeling $(c_1 \mapsto 0, c_2 \mapsto 1)$ is not achievable by any threshold function: any $\theta$ that assigns label 0 to $c_1$ (i.e., $\theta \leq c_1$) must also assign label 0 to $c_2$, since $c_2 \geq c_1$. Therefore $\cH_C$ does not contain all four labelings, and $\cH_\theta$ does not shatter any two-point set. The class can perfectly express any labeling of a single point, but its ordered, one-dimensional structure prevents it from achieving all labelings of two or more points simultaneously.
+
+\paragraph{VC Dimension.} We are now ready to define the central concept. The \emph{VC-dimension} $\vcd{\cH}$ of a hypothesis class $\cH$ is the size of the largest finite subset $C \subset \cX$ that is shattered by $\cH$:
+\begin{myequation}
+\vcd{\cH} = \max\lbrace |C| : C \subset \cX,\ \cH \text{ shatters } C \rbrace.
+\end{myequation}
+If $\cH$ shatters sets of arbitrarily large size, we say $\vcd{\cH} = \infty$. For example, $\vcd{\cH_\theta} = 1$, since $\cH_\theta$ shatters some singleton but no two-point set.
+
+%The motivation behind this definition connects directly to what we have learned so far. The No-Free-Lunch theorem showed that the class $\mathcal{F}$ of all binary functions is not learnable precisely because it can shatter any finite set -- it places no restrictions whatsoever on how points can be labeled. The VC-dimension captures exactly this notion of ``how freely'' a hypothesis class can label arbitrary finite sets. A class with large VC-dimension can express many different labelings of large point sets, making it hard to distinguish the true target from imposters using a finite sample. A class with small VC-dimension is structurally constrained in the labelings it can produce, and this constraint -- the inductive bias -- is what makes generalization possible. As we will see, the VC-dimension does not merely correlate with learnability: it \emph{characterizes} it completely.
+The motivation behind this definition connects directly to what we have established so far.
+The No-Free-Lunch theorem showed that the class $\mathcal{F}$ of all binary functions, since it  it can shatter \emph{any} finite set of points,
+  is not
+learnable precisely. In other words, since the hypothesis class is
+so expressive that every possible labeling of every finite sample is realized by some hypothesis
+in the class, then observing any finite training set provides no information that
+could help us distinguish the true target function from the many other hypotheses fitting the
+data equally well---the data, no matter how large, is fully consistent with every conceivable
+labeling rule.
+
+The VC-dimension is designed to capture exactly this notion of \emph{how freely} a hypothesis
+class can label finite sets of points. Formally, the VC-dimension of $\mathcal{H}$, denoted
+$\mathrm{VCdim}(\mathcal{H})$, is the size of the largest set that $\mathcal{H}$ can shatter.
+If $\mathrm{VCdim}(\mathcal{H}) = d$, two things hold simultaneously:
+\begin{itemize}
+    \item \textbf{(Existence)} There exists a set $S$ of $d$ points such that, for every
+    labeling $y \colon S \to \{0,1\}$, some hypothesis $h \in \mathcal{H}$ agrees with $y$ on
+    all points of $S$. That is, $\mathcal{H}$ can produce all $2^d$ labelings of $S$.
+    \item \textbf{(Maximality)} No set of $d+1$ points can be shattered: for every set $S'$ of
+    $d+1$ points, there exists at least one labeling that no hypothesis in $\mathcal{H}$ can
+    reproduce on $S'$.
+\end{itemize}
+Taken together, these two conditions mean that $d$ is the \emph{largest scale} at which
+$\mathcal{H}$ can behave as if it imposed no structural constraint on the labeling of data.
+Beyond that scale, the class is no longer fully flexible: some labelings become unrealizable,
+and \emph{this limited expressiveness is precisely what makes learning possible}.
+
+It is important to note that shattering is an \emph{existential} condition, not a universal
+one. The definition does not require that every set of $d$ points be shatterable---only that
+\emph{some} such set exists. This makes VC-dimension an inherently \emph{worst-case} measure
+of capacity: it asks how expressive $\mathcal{H}$ can be, over the most favorable configuration
+of points. The choice of worst-case analysis is deliberate. Learning theory aims to provide
+guarantees that hold regardless of the data-generating distribution, so the relevant question
+is not how the class behaves on a typical sample, but how dangerous it can be in the most
+adversarial scenario.
+
+This worst-case character has a direct operational interpretation. If $\mathcal{H}$ shatters a
+set of size $d$, then on any sample of $d$ points drawn from that set, empirical risk
+minimization can achieve zero training error for \emph{every} labeling, including labelings
+that are pure noise with no relation to any meaningful pattern. In such a regime, minimizing
+training error provides no evidence of generalization: the learner cannot distinguish a
+hypothesis that has captured the true structure of the problem from one that has simply
+memorized the sample. Controlling the VC-dimension---and thereby limiting the scale at which
+this degeneracy can occur---is therefore a necessary condition for any guarantee that training
+performance implies test performance.
+
+From this perspective, the VC-dimension plays a role analogous to worst-case complexity in the
+analysis of algorithms: it measures the \emph{maximum} capability of a hypothesis class, rather
+than its average behavior on a particular dataset. A class with large VC-dimension can reproduce
+many different labelings of large point sets, making it difficult to confidently rule out
+incorrect hypotheses on the basis of a finite sample. A class with small VC-dimension, by
+contrast, is structurally constrained in the labelings it can produce. This constraint acts as
+an \emph{inductive bias}: by restricting the space of hypotheses consistent with the observed
+data, it ensures that a learner which fits the training set is, in a precise sense, forced to
+choose among a limited family of explanations---and it is exactly this restriction that makes
+generalization from finite samples possible.
+
+The significance of the VC-dimension, however, goes well beyond its role as a qualitative
+indicator of model complexity. As we will see, it provides a \emph{complete and exact}
+characterization of learnability in the PAC framework: a hypothesis class $\mathcal{H}$ is
+PAC-learnable if and only if $\mathrm{VCdim}(\mathcal{H})$ is finite. This is a remarkably
+sharp result. The VC-dimension does not merely \emph{correlate} with learnability, nor does it
+provide only a sufficient or only a necessary condition---it is both simultaneously. A class is
+learnable precisely when its VC-dimension is finite, and unlearnable precisely when it is
+infinite. In this sense, the VC-dimension is not just one measure of complexity among many; it
+is the \emph{fundamental combinatorial quantity} that determines whether learning from finite
+data is possible at all.
+
+%To better illustrate the concept of VC-Dimension, let us consider some more examples:
+%\begin{itemize}
+%	\item Let $\cH^{\text{thr}}$ be the class of threshold functions on $\Real$ (that is functions $h_{\theta}$ such that $h_{\theta}(x)=1$ if $x\geq\theta$ and $h_{\theta}(x)=0$ otherwise). It is easy to see that for an arbitrary set $C = {c_1}$ of size 1, $\cH_{\text{thr}}$ shatters $C$ (just set $\theta=c_1$ if $c_1$ has label 1 and $\theta=c_1+1$ if the label is 0); therefore, $\vcd{\cH^{\text{thr}}}\geq 1$. It is also possible to check that there exist sets $C =\{c_1, c_2\}$ of size 2 that $\cH$ does not shatter (consider the case $c_1>c_2$ with labeling $c_1=1, c_2=0$). Therefore, we conclude that $\vcd{\cH^{\text{thr}}} = 1$.
+%	\item Let $\cH^{\text{rect}}$ be the set of all axis-aligned rectangles in the Euclidean plane. If we want to prove that a certain number $d$ is indeed the VC-Dimension of a hypothesis class $\cH^{\text{rect}}$, we need to prove two things: $\vcd{\cH^{\text{rect}}}\geq d$ and $\vcd{\cH^{\text{rect}}}<d+1$.
+%
+%In this case, $\vcd{\cH^{\text{rect}}}=4$.
+%For the first inequality, we simply need to find a set of 4 points shattered by axis-aligned rectangles. Consider 4 equidistant points on a circle.
+%\begin{figure}[H]
+%\begin{center}
+%	\includegraphics[width=.4\textwidth, height=\textwidth]{figs/shattering1.pdf}
+%	\caption{The two possible cases of shattering a set of 4 elements using axis-aligned rectangles.}\label{fe2}
+%\end{center}
+%\end{figure}
+%
+%It is easy to see (Figure~\ref{fe2}) that any partition of the 4 points into positive (green) and negative (red) can be shattered by an axis-aligned rectangle.
+%
+%To prove that $\vcd{\cH^{\text{rect}}}<5$, we need to show that \emph{no} set of size 5 is shattered. To this end, consider an arbitrary set of 5 points (Figure~\ref{fe3}) and their bounding box (indicated by the dashed green rectangle). There must be at least one point inside the bounding box (or on one of its sides). Now, if we label the other 4 points as positive and the fifth as negative, any axis-aligned rectangle that contains all the positive points must also contain the negative point. Therefore, no set of size 5 is shattered by $\cH^{\text{rect}}$.
+%
+%\begin{figure}[H]
+%\begin{center}
+%	\includegraphics[width=.3\textwidth, height=\textwidth]{figs/shattering2.pdf}
+%	\caption{The impossibility of shattering a set of 5 elements using axis-aligned rectangles.}\label{fe3}
+%\end{center}
+%\end{figure}
+%
+%Let $\cH^{\text{int}}$ be the class of intervals on $\Real$, precisely $\cH^{\text{int}} = \{h_{a,b} : a,b \in \Real, a < b\}$, where $h_{a,b} : \Real \to \{0,1\}$ is a function such that $h_{a,b}(x) = \large\mathds{1}[a<x<b]$. Consider the set $C = \{1,2\}$. In this case, $\cH^{\text{int}}$ shatters $C$ (Fig.~\ref{fe4}), and therefore $\vcd{\cH^{\text{int}}} \geq 2$. Now, take an arbitrary set $C = \{c_1, c_2, c_3\}$ and assume without loss of generality that $c_1 \leq c_2 \leq c_3$. In this case, the labeling $(1,0,1)$ cannot be obtained from an interval, so $\cH^{\text{int}}$ does not shatter $C$. Therefore, we conclude that $\vcd{\cH^{\text{int}}} = 2$.
+%
+%\begin{figure}[H]
+%\begin{center}
+%	\includegraphics[width=.4\textwidth, height=\textwidth]{figs/shattering3.pdf}
+%	\caption{Shattering of a 2-element set using intervals.}\label{fe4}
+%\end{center}
+%\end{figure}
+%
+%
+%\item Let $\cH^{\text{fin}}$ be a finite class. As observed, in order to shatter a set $C$ we need $2^{\lvert C \rvert}$ predictors (since $2^{\lvert C \rvert}$ is the number of different labelings).  Also, observe that $\lvert \cH^{\text{fin}}_C \rvert \leq \lvert \cH^{\text{fin}} \rvert$. As a consequence, $C$ cannot be shattered  by $\cH^{\text{fin}}$ if $\lvert \cH^{\text{fin}} \rvert < 2^{\lvert C \rvert}$, since this implies $\lvert \cH^{\text{fin}}_C \rvert < 2^{\lvert C \rvert}$. This results into $\vcd{\cH^{\text{fin}}} \leq \log_2\lvert \cH \rvert$. The PAC learnability of finite classes then derives from the more general property PAC learnability of classes with finite VC-dimension. However, note that the VC-dimension of a finite class $\cH^{\text{fin}}$ can be significantly smaller than $\log_2(\lvert \cH^{\text{fin}} \rvert)$. For example, let $\cX = \{1,\dots,k\}$ for some integer $k$, and consider the class of threshold functions on $\cH$. Then, $\lvert \cH \rvert = k$ but $\text{VCdim}(\cH) = 1$. Since $k$ can be arbitrarily large, the difference between $\log_2(\lvert \cH \rvert)$ and $\text{VCdim}(\cH)$ can be arbitrarily large.
+%
+%\end{itemize}
+%To consolidate understanding of VC-dimension, it is instructive to work through several concrete examples. Each example illustrates a different aspect of the concept and demonstrates the two-step proof strategy that is always required: to establish that $\vcd{\cH} = d$, one must show both that some set of size $d$ is shattered (giving $\vcd{\cH} \geq d$) and that no set of size $d+1$ is shattered (giving $\vcd{\cH} < d+1$). The lower bound is typically easier -- it suffices to exhibit a single cleverly chosen set -- while the upper bound is harder, requiring an argument that works for \emph{every} possible set of the given size.
+%
+%\begin{itemize}
+%
+%\item Let $\cH^{\text{thr}}$ be the class of threshold functions on $\Real$, where $h_{\theta}(x)=1$ if $x\geq\theta$ and $h_{\theta}(x)=0$ otherwise. These are the simplest possible classifiers on the real line: each one divides $\Real$ into a negative half-line and a positive half-line, with the threshold $\theta$ controlling where the boundary lies.
+%
+%To compute $\vcd{\cH^{\text{thr}}}$, we first show it is at least 1 by exhibiting a shattered singleton. For any $C = \{c_1\}$, we can achieve the labeling $c_1 \mapsto 1$ by setting $\theta = c_1$ and the labeling $c_1 \mapsto 0$ by setting $\theta = c_1 + 1$. Both labelings are realizable, so $\cH^{\text{thr}}$ shatters $C$ and $\vcd{\cH^{\text{thr}}} \geq 1$.
+%
+%We now show that no set of size 2 can be shattered. Consider any $C = \{c_1, c_2\}$ with $c_1 < c_2$. There are four possible labelings, but the labeling $c_1 \mapsto 1, c_2 \mapsto 0$ is impossible: any threshold that assigns label 1 to $c_1$ (i.e., $\theta \leq c_1$) must also assign label 1 to $c_2$, since $c_2 > c_1 \geq \theta$. Since this argument applies to any two-point set, no set of size 2 is shattered. Therefore $\vcd{\cH^{\text{thr}}} = 1$.
+%
+%This result is intuitive: threshold functions partition the real line with a single boundary point, so their expressive power on any finite set is fundamentally limited by this one-dimensional, ordered structure.
+%
+%\item Let $\cH^{\text{rect}}$ be the class of all axis-aligned rectangles in the Euclidean plane, where each rectangle classifies a point as positive (label 1) if and only if the point falls inside the rectangle. This is a richer class than threshold functions, operating in two dimensions with four degrees of freedom (the four sides of the rectangle). We claim that $\vcd{\cH^{\text{rect}}} = 4$.
+%
+%To show $\vcd{\cH^{\text{rect}}} \geq 4$, we need to exhibit a set of 4 points that is shattered. Consider 4 points placed at the top, bottom, left, and right extremes of a circle -- one point in each cardinal direction. For any subset of these points labeled positive, we can construct a tight axis-aligned rectangle around exactly those points: since no point is in the interior of the convex hull of the others, shrinking the rectangle tightly around any subset of points will exclude the remaining ones.
+%
+%\begin{figure}[H]
+%\begin{center}
+%	\includegraphics[width=.4\textwidth, height=\textwidth]{figs/shattering1.pdf}
+%	\caption{The two possible cases of shattering a set of 4 elements using axis-aligned rectangles.}\label{fe2}
+%\end{center}
+%\end{figure}
+%
+%As illustrated in Figure~\ref{fe2}, every possible binary labeling of these 4 points can be realized by some axis-aligned rectangle, confirming that this set is shattered and $\vcd{\cH^{\text{rect}}} \geq 4$.
+%
+%To show $\vcd{\cH^{\text{rect}}} < 5$, we must prove that \emph{no} set of 5 points can be shattered. Consider an arbitrary configuration of 5 points and their axis-aligned bounding box -- the smallest axis-aligned rectangle containing all five points. Among the five points, at least one must be strictly interior to this bounding box, or equivalently, not among the four extreme points (leftmost, rightmost, topmost, bottommost). Now consider the labeling that assigns label 1 to the four extreme points and label 0 to the remaining interior point. Any axis-aligned rectangle that contains all four extreme points must contain the entire bounding box, and therefore must also contain the interior point. Hence this labeling cannot be realized, and no set of 5 points is shattered by $\cH^{\text{rect}}$.
+%
+%\begin{figure}[H]
+%\begin{center}
+%	\includegraphics[width=.3\textwidth, height=\textwidth]{figs/shattering2.pdf}
+%	\caption{The impossibility of shattering a set of 5 elements using axis-aligned rectangles.}\label{fe3}
+%\end{center}
+%\end{figure}
+%
+%We therefore conclude that $\vcd{\cH^{\text{rect}}} = 4$. It is worth noting how the geometry of rectangles directly determines this value: four degrees of freedom (the four sides) correspond, intuitively, to the ability to shatter four points but not five.
+%
+%\item Let $\cH^{\text{int}}$ be the class of interval classifiers on $\Real$, defined as $\cH^{\text{int}} = \{h_{a,b} : a,b \in \Real, a < b\}$, where $h_{a,b}(x) = \large\mathds{1}[a<x<b]$. Each classifier labels a point as positive if and only if it falls inside the interval $(a,b)$. This is a two-parameter family, and we claim $\vcd{\cH^{\text{int}}} = 2$.
+%
+%To show $\vcd{\cH^{\text{int}}} \geq 2$, consider $C = \{1, 2\}$. The labeling $(1,1)$ is achieved by the interval $(0, 3)$; $(1,0)$ by $(0, 1.5)$; $(0,1)$ by $(1.5, 3)$; and $(0,0)$ by any interval that excludes both points, such as $(3, 4)$. All four labelings are realizable, so $C$ is shattered (Figure~\ref{fe4}).
+%
+%\begin{figure}[H]
+%\begin{center}
+%	\includegraphics[width=.4\textwidth, height=\textwidth]{figs/shattering3.pdf}
+%	\caption{Shattering of a 2-element set using intervals.}\label{fe4}
+%\end{center}
+%\end{figure}
+%
+%To show $\vcd{\cH^{\text{int}}} < 3$, consider any three points $c_1 \leq c_2 \leq c_3$. The labeling $(1, 0, 1)$ -- assigning positive to the two outer points and negative to the middle one -- cannot be realized by any interval: any interval containing both $c_1$ and $c_3$ must contain all points between them, and in particular must contain $c_2$. Therefore no three-point set is shattered, and $\vcd{\cH^{\text{int}}} = 2$. The key structural limitation is again geometric: intervals are connected sets on the real line, so they cannot label a middle point negatively while labeling its neighbors positively.
+%
+%\item Finally, consider a finite hypothesis class $\cH^{\text{fin}}$. We can derive a general upper bound on its VC-dimension purely from its size. To shatter a set $C$, the restriction $\cH^{\text{fin}}_C$ must contain all $2^{|C|}$ possible labelings of $C$. But since $\cH^{\text{fin}}_C$ is obtained by applying the predictors of $\cH^{\text{fin}}$ to $C$, we have $|\cH^{\text{fin}}_C| \leq |\cH^{\text{fin}}|$. If $|\cH^{\text{fin}}| < 2^{|C|}$, then the restriction cannot possibly contain all $2^{|C|}$ labelings, so $C$ cannot be shattered. This gives the bound:
+%\begin{myequation}
+%\vcd{\cH^{\text{fin}}} \leq \log_2 |\cH^{\text{fin}}|.
+%\end{myequation}
+%This connects finite hypothesis classes back to the general theory: the PAC learnability of finite classes is a special case of the more general result that classes with finite VC-dimension are PAC learnable.
+%
+%However, this bound can be very loose. The VC-dimension captures the \emph{combinatorial} expressiveness of a class, which can be far smaller than what the raw count of hypotheses suggests. As a concrete illustration, let $\cX = \{1, \ldots, k\}$ for some integer $k$, and consider the class of threshold functions on $\cX$. This class has $|\cH| = k$ hypotheses, so the bound gives $\vcd{\cH} \leq \log_2 k$. But as we showed earlier, threshold functions can only shatter singletons, so $\vcd{\cH} = 1$ regardless of $k$. Since $k$ can be arbitrarily large, the gap between $\log_2 |\cH|$ and $\vcd{\cH}$ can be arbitrarily large. This illustrates that VC-dimension is a much more refined and informative measure of complexity than the size of the hypothesis class alone.
+%
+%\end{itemize}
+%
+%%The main reason for interest in studying the VC-dimension is the existence of the so-called \alert{Fundamental Theorem of Statistical Learning}, which provides a direct connection between the VC-dimension and the PAC learnability of a hypothesis class.
+%%
+%%\begin{theorem}[Fundamental Theorem of Statistical Learning]
+%%Let $\cH$ be a class of hypotheses $h:\cX\to \lbrace 0,1 \rbrace$ for binary classification, and let the $0-1$ loss be the considered cost function. Then, the following statements are equivalent:
+%%
+%%
+%%\begin{enumerate}
+%%	\item $\cH$ has a finite VC-dimension.
+%%	\item $\cH$ is agnostic PAC-learnable, and there exist constants $c_1 < c_2$ such that its sample complexity $m_\cH(\varepsilon, \delta)$ is upper and lower bounded as% also lies within the interval $I_1$.%\[\left[\frac{c_1}{\varepsilon^2}\left(d+\ln\frac{1}{\delta}\right), \frac{c_2}{\varepsilon^2}\left(d+\ln\frac{1}{\delta}\right)\right]\]	
+%%	\begin{myequation}
+%%	\frac{c_1}{\varepsilon^2}\left(d+\ln\frac{1}{\delta}\right)\leq m_\cH(\varepsilon, \delta)\leq\frac{c_2}{\varepsilon^2}\left(d+\ln\frac{1}{\delta}\right)
+%%	\end{myequation}Moreover, this property holds also when ERM is applied (that is, it is a successful agnostic PAC-learning algorithm for $\cH$).
+%%	%\item Any ERM rule is a successful agnostic PAC-learning algorithm for $\cH$.
+%%	\item $\cH$ is PAC-learnable, and its sample complexity $m_\cH(\varepsilon, \delta)$ is upper and lower bounded as 
+%%	\begin{myequation}
+%%	\frac{c_1}{\varepsilon}\left(d+\ln\frac{1}{\delta}\right)\leq m_\cH(\varepsilon, \delta)\leq\frac{c_2}{\varepsilon}\left(d+\ln\frac{1}{\delta}\right)
+%%	\end{myequation}Moreover, this property holds also when ERM is applied (that is, it is a successful PAC-learner for $\cH$).
+%%\end{enumerate}
+%%\end{theorem}
+%The main reason for interest in studying the VC-dimension is the existence of the so-called \alert{Fundamental Theorem of Statistical Learning}, which provides a complete and definitive answer to the question of when binary classification is learnable. Everything we have developed so far -- PAC learnability, agnostic PAC learnability, ERM, uniform convergence, and VC-dimension -- converges in this single result. It is not an overstatement to say that this theorem is the cornerstone of classical statistical learning theory.
+%
+%The theorem establishes that the VC-dimension is not merely a useful complexity measure, but the \emph{exact} combinatorial quantity that determines learnability. Specifically, it states that the three conditions of having finite VC-dimension, being agnostic PAC-learnable, and being PAC-learnable are all equivalent to one another. This is a remarkable fact: a purely combinatorial property of the hypothesis class -- how large a set it can shatter -- completely characterizes whether learning from finite data is possible, regardless of the distribution generating the data, and regardless of the specific learning algorithm used (as long as it is ERM).
+%
+%The equivalence has a profound conceptual meaning. It tells us that there is no clever algorithmic trick that can make an unlearnable class learnable, nor any distributional assumption that is needed beyond what the VC-dimension already encodes. The boundary between the learnable and the unlearnable is sharp, combinatorial, and determined entirely by the structure of $\cH$.
+%
+%\begin{theorem}[Fundamental Theorem of Statistical Learning]
+%Let $\cH$ be a class of hypotheses $h:\cX\to \lbrace 0,1 \rbrace$ for binary classification, and let the $0-1$ loss be the considered cost function. Then, the following statements are equivalent:
+%\begin{enumerate}
+%	\item $\cH$ has a finite VC-dimension.
+%	\item $\cH$ is agnostic PAC-learnable, and there exist constants $c_1 < c_2$ such that its sample complexity $m_\cH(\varepsilon, \delta)$ is upper and lower bounded as
+%	\begin{myequation}
+%	\frac{c_1}{\varepsilon^2}\left(d+\ln\frac{1}{\delta}\right)\leq m_\cH(\varepsilon, \delta)\leq\frac{c_2}{\varepsilon^2}\left(d+\ln\frac{1}{\delta}\right)
+%	\end{myequation}
+%	Moreover, this property holds also when ERM is applied (that is, it is a successful agnostic PAC-learning algorithm for $\cH$).
+%	\item $\cH$ is PAC-learnable, and its sample complexity $m_\cH(\varepsilon, \delta)$ is upper and lower bounded as 
+%	\begin{myequation}
+%	\frac{c_1}{\varepsilon}\left(d+\ln\frac{1}{\delta}\right)\leq m_\cH(\varepsilon, \delta)\leq\frac{c_2}{\varepsilon}\left(d+\ln\frac{1}{\delta}\right)
+%	\end{myequation}
+%	Moreover, this property holds also when ERM is applied (that is, it is a successful PAC-learner for $\cH$).
+%\end{enumerate}
+%\end{theorem}
+%
+%Several aspects of this theorem deserve careful attention.
+%
+%\paragraph{The role of $d$.} In both the realizable and agnostic settings, the sample complexity depends on the VC-dimension $d = \vcd{\cH}$ in the same structural way: it grows linearly in $d$ and logarithmically in $1/\delta$. A larger VC-dimension means the class is more expressive and requires more data to learn -- this is the formal manifestation of the bias-complexity tradeoff. Crucially, the dependence on $d$ is not exponential or combinatorial but linear, which means that even moderately complex hypothesis classes can be learned efficiently provided enough data is available.
+%
+%\paragraph{Upper and lower bounds.} The theorem does not merely give an upper bound on sample complexity -- it gives matching upper and lower bounds up to constant factors $c_1$ and $c_2$. This means the sample complexity is \emph{tight}: no learning algorithm can do significantly better than what the bounds prescribe, and ERM achieves the upper bound. The VC-dimension therefore determines sample complexity not just qualitatively but quantitatively, up to absolute constants.
+%
+%\paragraph{The $1/\varepsilon^2$ vs $1/\varepsilon$ gap.} A notable difference between the realizable and agnostic settings is the dependence on $\varepsilon$: sample complexity scales as $1/\varepsilon$ in the realizable case and as $1/\varepsilon^2$ in the agnostic case. This gap reflects a fundamental statistical difficulty: in the realizable setting, the correct hypothesis makes no errors, which provides a strong signal that can be exploited to identify it quickly. In the agnostic setting, every hypothesis makes some errors, and distinguishing the best hypothesis from near-competitors requires substantially more data. This quadratic-to-linear improvement under realizability is not an artifact of the proof technique but is tight in both cases.
+%
+%\paragraph{ERM as a universal learner.} Perhaps the most practically significant aspect of the theorem is that ERM is a successful learning algorithm whenever learning is possible at all. One does not need to design a specialized algorithm for each hypothesis class: the same principle of minimizing empirical risk works universally across all classes with finite VC-dimension. This gives ERM a canonical status in binary classification that goes far beyond its intuitive appeal.
+%
+%\paragraph{The No-Free-Lunch theorem revisited.} The theorem also provides a clean retrospective on the No-Free-Lunch theorem. The class $\mathcal{F}$ of all binary functions on an infinite domain has infinite VC-dimension -- it shatters every finite set by definition. The Fundamental Theorem then immediately implies that $\mathcal{F}$ is not PAC-learnable, recovering the NFL result as a special case. The VC-dimension framework thus subsumes and generalizes the earlier impossibility result within a unified theory of learnability.
+
+To consolidate understanding of VC-dimension, it is instructive to work through several
+concrete examples. Each example illustrates a different aspect of the concept and demonstrates
+the two-step proof strategy that is always required: to establish that $\vcd{\cH} = d$, one
+must show both that some set of size $d$ is shattered (giving $\vcd{\cH} \geq d$) and that no
+set of size $d+1$ is shattered (giving $\vcd{\cH} < d+1$). The lower bound is typically
+easier -- it suffices to exhibit a single cleverly chosen set -- while the upper bound is
+harder, requiring an argument that works for \emph{every} possible set of the given size.
+
+\begin{itemize}
+
+\item \textbf{Threshold functions on $\Real$.}
+Let $\cH^{\text{thr}}$ be the class of threshold functions on $\Real$, where
+$h_{\theta}(x)=1$ if $x\geq\theta$ and $h_{\theta}(x)=0$ otherwise. These are the simplest
+possible classifiers on the real line: each one divides $\Real$ into a negative half-line and
+a positive half-line, with the threshold $\theta$ controlling where the boundary lies.
+
+To compute $\vcd{\cH^{\text{thr}}}$, we first show it is at least 1 by exhibiting a shattered
+singleton. For any $C = \{c_1\}$, we can achieve the labeling $c_1 \mapsto 1$ by setting
+$\theta = c_1$ and the labeling $c_1 \mapsto 0$ by setting $\theta = c_1 + 1$. Both labelings
+are realizable, so $\cH^{\text{thr}}$ shatters $C$ and $\vcd{\cH^{\text{thr}}} \geq 1$.
+
+We now show that no set of size 2 can be shattered. Consider any $C = \{c_1, c_2\}$ with
+$c_1 < c_2$. There are four possible labelings, but the labeling $c_1 \mapsto 1, c_2 \mapsto
+0$ is impossible: any threshold that assigns label 1 to $c_1$ (i.e., $\theta \leq c_1$) must
+also assign label 1 to $c_2$, since $c_2 > c_1 \geq \theta$. Since this argument applies to
+any two-point set, no set of size 2 is shattered. Therefore $\vcd{\cH^{\text{thr}}} = 1$.
+
+This result is intuitive: threshold functions partition the real line with a single boundary
+point, so their expressive power on any finite set is fundamentally limited by this
+one-dimensional, ordered structure. Only one ``degree of freedom'' (the position of the
+threshold) is available, and it is enough to express all labelings of a single point but not
+of two or more.
+
+\item \textbf{Axis-aligned rectangles in $\Real^2$.}
+Let $\cH^{\text{rect}}$ be the class of all axis-aligned rectangles in the Euclidean plane,
+where each rectangle classifies a point as positive (label 1) if and only if the point falls
+inside the rectangle. This is a richer class than threshold functions, operating in two
+dimensions with four degrees of freedom (the four sides of the rectangle). We claim that
+$\vcd{\cH^{\text{rect}}} = 4$.
+
+To show $\vcd{\cH^{\text{rect}}} \geq 4$, we need to exhibit a set of 4 points that is
+shattered. Consider 4 points placed at the top, bottom, left, and right extremes of a circle
+-- one point in each cardinal direction. For any subset of these points labeled positive, we
+can construct a tight axis-aligned rectangle around exactly those points: since no point lies
+in the interior of the convex hull of the others, shrinking the rectangle tightly around any
+subset will exclude the remaining ones.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=.4\textwidth, height=\textwidth]{shattering1.pdf}
+    \caption{The two possible cases of shattering a set of 4 elements using axis-aligned
+    rectangles.}\label{fe2}
+\end{center}
+\end{figure}
+
+As illustrated in Figure~\ref{fe2}, every possible binary labeling of these 4 points can be
+realized by some axis-aligned rectangle, confirming that this set is shattered and
+$\vcd{\cH^{\text{rect}}} \geq 4$.
+
+To show $\vcd{\cH^{\text{rect}}} < 5$, we must prove that \emph{no} set of 5 points can be
+shattered. Consider an arbitrary configuration of 5 points and their axis-aligned bounding box
+-- the smallest axis-aligned rectangle containing all five points. Among the five points, at
+least one must fail to be an extreme point in one of the four axis-aligned directions (i.e.,
+it is not simultaneously the leftmost, rightmost, topmost, or bottommost point). Consider the
+labeling that assigns label 1 to the four extreme points and label 0 to the remaining interior
+point. Any axis-aligned rectangle that contains all four extreme points must contain the entire
+bounding box, and therefore must also contain the interior point. Hence this labeling cannot
+be realized, and no set of 5 points is shattered by $\cH^{\text{rect}}$.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=.3\textwidth, height=\textwidth]{shattering2.pdf}
+    \caption{The impossibility of shattering a set of 5 elements using axis-aligned
+    rectangles.}\label{fe3}
+\end{center}
+\end{figure}
+
+We therefore conclude that $\vcd{\cH^{\text{rect}}} = 4$. It is worth noting how the geometry
+of rectangles directly determines this value: four degrees of freedom (the four sides)
+correspond, intuitively, to the ability to shatter four points but not five. While this
+``degrees of freedom'' intuition does not always give the exact VC-dimension, it provides a
+useful heuristic for forming initial conjectures.
+
+\item \textbf{Interval classifiers on $\Real$.}
+Let $\cH^{\text{int}}$ be the class of interval classifiers on $\Real$, defined as
+$\cH^{\text{int}} = \{h_{a,b} : a,b \in \Real, a < b\}$, where $h_{a,b}(x) =
+\mathds{1}[a<x<b]$. Each classifier labels a point as positive if and only if it falls inside
+the interval $(a,b)$. This is a two-parameter family, and we claim $\vcd{\cH^{\text{int}}} =
+2$.
+
+To show $\vcd{\cH^{\text{int}}} \geq 2$, consider $C = \{1, 2\}$. The labeling $(1,1)$ is
+achieved by the interval $(0, 3)$; $(1,0)$ by $(0, 1.5)$; $(0,1)$ by $(1.5, 3)$; and $(0,0)$
+by any interval that excludes both points, such as $(3, 4)$. All four labelings are
+realizable, so $C$ is shattered (Figure~\ref{fe4}).
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=.4\textwidth, height=\textwidth]{shattering3.pdf}
+    \caption{Shattering of a 2-element set using intervals.}\label{fe4}
+\end{center}
+\end{figure}
+
+To show $\vcd{\cH^{\text{int}}} < 3$, consider any three points $c_1 \leq c_2 \leq c_3$.
+The labeling $(1, 0, 1)$ -- assigning positive to the two outer points and negative to the
+middle one -- cannot be realized by any interval: any interval containing both $c_1$ and $c_3$
+must contain all points between them, and in particular must contain $c_2$. Therefore no
+three-point set is shattered, and $\vcd{\cH^{\text{int}}} = 2$. The key structural limitation
+is again geometric: intervals are connected sets on the real line, so they cannot label a
+middle point negatively while labeling its neighbors positively.
+
+\item \textbf{Finite hypothesis classes.}
+Finally, consider a finite hypothesis class $\cH^{\text{fin}}$. We can derive a general upper
+bound on its VC-dimension purely from its cardinality. To shatter a set $C$, the restriction
+$\cH^{\text{fin}}_C$ must contain all $2^{|C|}$ possible labelings of $C$. But since
+$|\cH^{\text{fin}}_C| \leq |\cH^{\text{fin}}|$, we have: if $|\cH^{\text{fin}}| < 2^{|C|}$,
+then the restriction cannot possibly contain all $2^{|C|}$ labelings, so $C$ cannot be
+shattered. This yields the general bound
+\begin{myequation}
+\vcd{\cH^{\text{fin}}} \leq \log_2 |\cH^{\text{fin}}|.
+\end{myequation}
+This connects finite hypothesis classes back to the general theory: the PAC learnability of
+finite classes (which we established earlier via a direct uniform-convergence argument) is a
+special case of the more general result that classes with finite VC-dimension are PAC
+learnable.
+
+However, this bound can be very loose. The VC-dimension captures the \emph{combinatorial}
+expressiveness of a class, which can be far smaller than what the raw count of hypotheses
+suggests. As a concrete illustration, let $\cX = \{1, \ldots, k\}$ for some integer $k$, and
+consider the class of threshold functions on $\cX$. This class has $|\cH| = k$ hypotheses,
+so the size-based bound gives $\vcd{\cH} \leq \log_2 k$. But as we showed above, threshold
+functions can only shatter singletons, so $\vcd{\cH} = 1$ regardless of $k$. Since $k$ can
+be arbitrarily large, the gap between $\log_2 |\cH|$ and $\vcd{\cH}$ can be arbitrarily
+large. This illustrates that VC-dimension is a much more refined and informative measure of
+complexity than the size of the hypothesis class alone.
+
+\end{itemize}
+
+%The main reason for interest in studying the VC-dimension is the existence of the so-called \alert{Fundamental Theorem of Statistical Learning}, which provides a direct connection between the VC-dimension and the PAC learnability of a hypothesis class.
+
+\subsection*{The Fundamental Theorem of Statistical Learning}
+
+The main reason for interest in studying the VC-dimension is the existence of the so-called
+\alert{Fundamental Theorem of Statistical Learning}, which provides a complete and definitive
+answer to the question of when binary classification is learnable. Everything we have developed
+so far -- PAC learnability, agnostic PAC learnability, ERM, uniform convergence, and
+VC-dimension -- converges in this single result. It is not an overstatement to say that this
+theorem is the cornerstone of classical statistical learning theory.
+
+The theorem establishes that the VC-dimension is not merely a useful complexity measure, but
+the \emph{exact} combinatorial quantity that determines learnability. Specifically, it has a role in proving
+that the three conditions of having finite VC-dimension, being agnostic PAC-learnable, and
+being PAC-learnable are all equivalent to one another. 
+
+This is a remarkable fact: a purely combinatorial property of the hypothesis class --- how
+large a set it can shatter --- completely characterizes whether learning from finite data is
+possible. In the negative direction, if $\mathrm{VCdim}(\mathcal{H}) $ is not finite, then no
+algorithm whatsoever can PAC-learn $\mathcal{H}$: the impossibility is absolute and does not
+depend on the choice of learner. In the positive direction, if
+$\mathrm{VCdim}(\mathcal{H}) < \infty$, then learning is possible and ERM is sufficient to
+achieve it --- one does not need to engineer a bespoke algorithm for each hypothesis class.
+The boundary between the learnable and the unlearnable is therefore sharp, combinatorial, and
+determined entirely by the structure of $\mathcal{H}$, independently of the distribution
+generating the data.
+
+The equivalence has a profound conceptual meaning. It tells us that there is no clever
+algorithmic trick that can make an unlearnable class learnable, nor any distributional
+assumption that is needed beyond what the VC-dimension already encodes. 
+
+\begin{theorem}[Fundamental Theorem of Statistical Learning]
+\label{thm:ftsl}
+Let $\cH$ be a class of hypotheses $h:\cX\to \{0,1\}$ for binary classification, and let
+the $0$-$1$ loss be the cost function. Let $d = \vcd{\cH}$. Then the following statements
+are equivalent:
+\begin{enumerate}
+    \item $\cH$ has a finite VC-dimension: $d < \infty$.
+    \item $\cH$ is \textbf{agnostic PAC-learnable}, and there exist absolute constants
+    $c_1 < c_2$ such that its sample complexity $m_\cH(\varepsilon, \delta)$ satisfies
+    \begin{myequation}
+    \frac{c_1}{\varepsilon^2}\!\left(d+\ln\frac{1}{\delta}\right)
+    \;\leq\;
+    m_\cH(\varepsilon, \delta)
+    \;\leq\;
+    \frac{c_2}{\varepsilon^2}\!\left(d+\ln\frac{1}{\delta}\right).
+    \end{myequation}
+    Moreover, ERM is a successful agnostic PAC-learning algorithm for $\cH$.
+    \item $\cH$ is \textbf{PAC-learnable} (under the realizability assumption), and there
+    exist absolute constants $c_1 < c_2$ such that its sample complexity satisfies
+    \begin{myequation}
+    \frac{c_1}{\varepsilon}\!\left(d+\ln\frac{1}{\delta}\right)
+    \;\leq\;
+    m_\cH(\varepsilon, \delta)
+    \;\leq\;
+    \frac{c_2}{\varepsilon}\!\left(d+\ln\frac{1}{\delta}\right).
+    \end{myequation}
+    Moreover, ERM is a successful PAC-learning algorithm for $\cH$.
+\end{enumerate}
+\end{theorem}
+
+Several aspects of this theorem deserve careful attention.
+
+\paragraph{The role of $d$.}
+In both the realizable and agnostic settings, the sample complexity depends on the
+VC-dimension $d = \vcd{\cH}$ in the same structural way: it grows \emph{linearly} in $d$
+and logarithmically in $1/\delta$. A larger VC-dimension means the class is more expressive
+and requires more data to learn reliably -- this is the formal manifestation of the
+bias-complexity tradeoff. Crucially, the dependence on $d$ is not exponential or combinatorial
+but linear, which means that even moderately complex hypothesis classes can be learned
+efficiently from a manageable amount of data.
+
+\paragraph{Matching upper and lower bounds.}
+The theorem does not merely provide an upper bound on sample complexity -- it gives
+\emph{matching} upper and lower bounds differing only by absolute constants $c_1$ and $c_2$.
+This means the sample complexity is \emph{tight}: no learning algorithm can do significantly
+better than what the bounds prescribe, and ERM achieves the upper bound. The VC-dimension
+therefore determines sample complexity not just qualitatively but quantitatively, up to
+universal constants.
+
+\paragraph{The $1/\varepsilon^2$ vs.\ $1/\varepsilon$ gap.}
+A notable difference between the two settings is the dependence on $\varepsilon$: sample
+complexity scales as $1/\varepsilon$ in the realizable case and as $1/\varepsilon^2$ in the
+agnostic case -- a quadratic worsening. This is not an artifact of the proof technique but a
+fundamental statistical phenomenon. In the realizable setting, the correct hypothesis $h^*$
+makes zero errors on the distribution, providing a strong signal: as soon as empirical risk
+minimization identifies a hypothesis consistent with the training data, there are few remaining
+candidates. In the agnostic setting, every hypothesis makes some errors, and distinguishing
+the best hypothesis from one that is $\varepsilon$-worse requires estimating error rates to
+$O(\varepsilon)$ precision, which by standard concentration inequalities demands
+$O(1/\varepsilon^2)$ samples. Both bounds are tight.
+
+\paragraph{ERM as a universal learner.}
+Perhaps the most practically significant aspect of the theorem is that ERM is a successful
+learning algorithm whenever learning is possible at all. One does not need to design a
+specialized algorithm for each hypothesis class: the same principle of minimizing empirical
+risk works universally across all classes with finite VC-dimension. This gives ERM a canonical
+status in binary classification. It is important to note, however, that this universality is
+\emph{statistical}: the theorem says nothing about the computational cost of finding the
+empirical risk minimizer, which may be intractable for certain classes.
+
+\paragraph{The infinite VC dimension case.}
+The Fundamental Theorem itself does not prove the unlearnability direction --- that is
+established separately, by the \emph{No-Free-Lunch (NFL) theorem}.
+
+The argument goes as follows. If $\mathrm{VCdim}(\mathcal{H}) = \infty$, then for every $m$,
+there exists a set $C_m$ of $m$ points that $\mathcal{H}$ shatters. One can then construct,
+for any learning algorithm $\mathcal{A}$ and any sample size $n$, an adversarial distribution
+supported on a shatterable set of $2n$ points such that $\mathcal{A}$ is forced to err with
+constant probability. This is exactly the construction used in the proof of the NFL theorem:
+because $\mathcal{H}$ can realize all $2^{2n}$ labelings of those $2n$ points, the algorithm
+has no way to distinguish the true target from the many other hypotheses that agree with it on
+the training sample but disagree on half the remaining points. The argument applies to every
+$n$, so no finite sample is ever sufficient.
+
+The complete logical structure of the theory is therefore the following:
+\begin{itemize}
+    \item \textbf{NFL theorem} $\Rightarrow$ infinite VC dimension implies unlearnability:
+    for any algorithm and any sample size, an adversarial distribution can be constructed
+    that forces constant error.
+    \item \textbf{Fundamental Theorem} $\Rightarrow$ finite VC dimension implies learnability,
+    with matching upper and lower bounds on sample complexity, witnessed by ERM.
+\end{itemize}
+Together these two results yield the full equivalence between finite VC dimension and
+PAC learnability. The Fundamental Theorem is sometimes stated as a pure equivalence without
+making this separation explicit, which can obscure the fact that the two directions are proved
+by qualitatively different arguments.
+
+\subsection*{From the Fundamental Theorem to the VC Generalization Bound}
+
+The sample complexity formulas in the Fundamental Theorem are the consequences of a more
+explicit and quantitative statement, the \emph{VC generalization bound}, which is worth
+deriving in some detail. This bound makes precise how the VC-dimension controls the gap
+between a classifier's performance on training data and its true performance on unseen data.
+
+Let $\hat{L}(h)$ denote the empirical (training) error of $h \in \cH$ on a sample of $n$
+i.i.d.\ points, and let $L_{\mathcal{D}}(h)$ denote its expected error under the true data
+distribution $\mathcal{D}$. The classical result of Vapnik and Chervonenkis states that, with
+probability at least $1-\delta$ over the random draw of the training sample, \emph{every}
+$h \in \cH$ simultaneously satisfies
+\begin{equation}
+\label{eq:vcbound}
+L_{\mathcal{D}}(h) \;\le\; \hat{L}(h) \;+\;
+O\!\left(\sqrt{\frac{d\log(n/d) + \log(1/\delta)}{n}}\right).
+\end{equation}
+
+This bound has a clear and important structure:
+\[
+\underbrace{L_{\mathcal{D}}(h)}_{\text{generalization error}}
+\;\le\;
+\underbrace{\hat{L}(h)}_{\text{training error}}
+\;+\;
+\underbrace{\Phi(d,n,\delta)}_{\text{complexity term}}.
+\]
+The \emph{complexity term} $\Phi$ is the price paid for searching over the entire class $\cH$:
+it decreases as $O(1/\sqrt{n})$ with more data and grows with $d$, the expressive capacity
+of the class. Crucially, the bound holds \emph{uniformly} over all $h \in \cH$, not just for
+a fixed hypothesis chosen before seeing the data; this uniformity is precisely what makes it
+applicable to the output of ERM.
+
+%\paragraph{Derivation sketch.}
+%The proof of~\eqref{eq:vcbound} rests on two main ideas: a \emph{symmetrization} argument
+%that reduces the problem to a finite combinatorial one, and the \emph{Sauer--Shelah lemma}
+%that controls the relevant combinatorial quantity.
+%
+%\medskip
+%\noindent\textbf{Step 1: The challenge of uniform convergence.}
+%For a single, fixed hypothesis $h$, the empirical error $\hat{L}(h)$ concentrates around
+%$L_\mathcal{D}(h)$ by Hoeffding's inequality:
+%\[
+%\Pr\bigl[|L_\mathcal{D}(h) - \hat{L}(h)| > \varepsilon\bigr] \leq 2e^{-2n\varepsilon^2}.
+%\]
+%However, we need the bound to hold simultaneously for \emph{all} $h \in \cH$, which may be
+%an infinite class. A naive union bound over all of $\cH$ is not applicable when $|\cH| =
+%\infty$. The key insight is that, even if $\cH$ is infinite, it can only produce a
+%\emph{finite} number of distinct labelings on any particular finite sample -- and the
+%VC-dimension controls exactly how many.
+%
+%\medskip
+%\noindent\textbf{Step 2: Symmetrization.}
+%The standard approach is to introduce a \emph{ghost sample} $S'$ of $n$ i.i.d.\ points,
+%drawn independently from the same distribution $\mathcal{D}$ as the original training
+%sample $S$. A symmetrization argument shows that
+%\[
+%\Pr_S\!\left[\sup_{h \in \cH} \bigl(L_\mathcal{D}(h) - \hat{L}_S(h)\bigr) > \varepsilon\right]
+%\;\le\;
+%2\,\Pr_{S,S'}\!\left[\sup_{h \in \cH}
+%\bigl(\hat{L}_{S'}(h) - \hat{L}_S(h)\bigr) > \varepsilon/2\right].
+%\]
+%The right-hand side now involves only the behavior of $\cH$ on the combined finite set
+%$S \cup S'$ of $2n$ points. The problem of controlling an infinite class over an infinite
+%population has been reduced to controlling the behavior of $\cH$ on a finite set of points --
+%and this is where the combinatorics of shattering becomes decisive.
+%
+%\medskip
+%\noindent\textbf{Step 3: The growth function and the Sauer--Shelah lemma.}
+%Define the \emph{growth function} (or \emph{shattering number}) of $\cH$ as
+%\[
+%\Pi_\cH(m) \;=\; \max_{S \subset \cX,\, |S|=m}
+%\bigl|\{(h(x_1),\ldots,h(x_m)) : h \in \cH\}\bigr|.
+%\]
+%This is the maximum number of distinct labelings that $\cH$ can produce on any $m$-point
+%set -- precisely the size of the restriction $\cH_C$ in the worst case. A union-bound
+%argument over the (at most) $\Pi_\cH(2n)$ distinct labelings that $\cH$ produces on
+%$S \cup S'$ then gives
+%\[
+%\Pr_{S,S'}\!\left[\sup_{h \in \cH}
+%\bigl(\hat{L}_{S'}(h) - \hat{L}_S(h)\bigr) > \varepsilon/2\right]
+%\;\le\;
+%\Pi_\cH(2n) \cdot 2e^{-n\varepsilon^2/2}.
+%\]
+%We now need to bound $\Pi_\cH(2n)$. This is where the finiteness of the VC-dimension plays
+%its decisive role.
+%%
+%%\begin{lemma}[Sauer--Shelah]
+%%\label{lem:sauer}
+%%If $\vcd{\cH} = d$, then for all $m \geq 1$,
+%%\[
+%%\Pi_\cH(m) \;\le\; \sum_{i=0}^{d} \binom{m}{i} \;\le\; \left(\frac{em}{d}\right)^d.
+%%\]
+%%\end{lemma}
+%%
+%%The proof counts the number of distinct labelings consistent with the constraint that no
+%%$(d+1)$-point set is shattered: t
+%The Sauer--Shelah lemma shows that this count is at most the
+%number of subsets of the sample of size at most $d$, which is bounded by $\sum_{i=0}^d
+%\binom{m}{i}$. The key consequence is a transition from exponential to polynomial: whereas
+%an unconstrained class could in principle produce $2^m$ distinct labelings on $m$ points,
+%a class with finite VC-dimension $d$ can produce at most $O(m^d)$ distinct labelings. This
+%polynomial growth is the combinatorial foundation of the entire theory.
+%
+%\medskip
+%\noindent\textbf{Step 4: Combining the bounds.}
+%Substituting the Sauer--Shelah bound into the symmetrization inequality gives
+%\[
+%\Pr_S\!\left[\sup_{h \in \cH} \bigl(L_\mathcal{D}(h) - \hat{L}_S(h)\bigr) > \varepsilon\right]
+%\;\le\;
+%4\left(\frac{2en}{d}\right)^d e^{-n\varepsilon^2/8}.
+%\]
+%Setting this probability equal to $\delta$ and solving for $\varepsilon$ yields
+%\[
+%\varepsilon \;=\; O\!\left(\sqrt{\frac{d\log(n/d) + \log(1/\delta)}{n}}\right),
+%\]
+%which is precisely the bound~\eqref{eq:vcbound}. The term $d\log(n/d)$ arises directly from
+%taking the logarithm of the Sauer--Shelah bound: $\log\!\left(\frac{2en}{d}\right)^d =
+%d\log(2en/d) = O(d\log(n/d))$. It represents the additional ``search cost'' of finding the
+%right hypothesis among polynomially many effective candidates on the training sample. The term
+%$\log(1/\delta)$ comes from the standard tail bound and ensures the desired confidence.
+
+%The proof of~\eqref{eq:vcbound} rests on a elegant two-step argument that explains why
+%finiteness of the VC-dimension is sufficient to guarantee uniform convergence of empirical
+%to true risk over the entire class $\cH$.
+%
+%The first challenge is that, while concentrating the empirical error of a single fixed
+%hypothesis around its true error is straightforward via Hoeffding's inequality, we need the
+%bound to hold \emph{simultaneously} for all $h \in \cH$. When $\cH$ is infinite, a naive
+%union bound is not applicable. The key observation is that, even if $\cH$ is infinite as a
+%set of functions, it can only induce a \emph{finite} number of distinct labelings on any
+%given finite sample. A symmetrization argument makes this precise: by introducing an
+%independent ghost sample $S'$ of the same size, one reduces the problem of controlling the
+%gap between true and empirical risk over the entire population to the problem of controlling
+%the discrepancy between two empirical samples, which depends only on the behavior of $\cH$
+%on a finite set of $2n$ points.
+%
+%The second step is to count how many distinct behaviors $\cH$ can actually exhibit on those
+%$2n$ points. This is where the VC-dimension enters decisively, through the
+%\emph{Sauer--Shelah lemma}: if $\vcd{\cH} = d$, then the number of distinct labelings
+%$\cH$ can produce on any $m$ points is at most $O(m^d)$, a polynomial, rather than the
+%$2^m$ that would be possible without any constraint. A union bound over these polynomially
+%many effective hypotheses, combined with a standard tail inequality for each one, then yields
+%the final result. Setting the resulting probability bound equal to $\delta$ and solving for
+%the deviation $\varepsilon$ produces the bound
+%\[
+%\varepsilon \;=\; O\!\left(\sqrt{\frac{d\log(n/d) + \log(1/\delta)}{n}}\right),
+%\]
+%where the $d\log(n/d)$ term is precisely the logarithm of the Sauer--Shelah polynomial
+%bound, reflecting the search cost over the effective hypothesis space, and $\log(1/\delta)$
+%controls the confidence level.
+%
+%In essence, the entire argument reduces to a single insight: finite VC-dimension forces the
+%hypothesis class to be, in a combinatorial sense, \emph{effectively finite} on any finite
+%sample, and it is this effective finiteness that makes uniform convergence -- and therefore
+%generalization -- possible.
+
+%\paragraph{From the generalization bound to sample complexity.}
+
+%
+%\medskip
+%\noindent\textit{Agnostic case.} ERM returns $\hat{h} = \arg\min_{h \in \cH} \hat{L}(h)$. Let $h^* = \arg\min_{h \in \cH} L_\mathcal{D}(h)$ be the population minimizer. Applying~\eqref{eq:vcbound} to both $\hat{h}$ and $h^*$, and using the fact that $\hat{L}(\hat{h}) \leq \hat{L}(h^*)$ by definition of ERM, gives
+%\[
+%L_\mathcal{D}(\hat{h}) \;\le\; L_\mathcal{D}(h^*) \;+\;
+%O\!\left(\sqrt{\frac{d\log(n/d) + \log(1/\delta)}{n}}\right).
+%\]
+%Setting the right-hand side to be at most $L_\mathcal{D}(h^*) + \varepsilon$ and solving for
+%$n$ yields $n = O\!\left(\frac{d\log(1/\varepsilon) + \log(1/\delta)}{\varepsilon^2}\right)$,
+%which is proportional to the upper bound in statement (2) of Theorem~\ref{thm:ftsl} (after a
+%refined analysis replaces the $\log(1/\varepsilon)$ factor with an absolute constant).
+%
+%\medskip
+%\noindent\textit{Realizable case.} When the data is realizable, the true best hypothesis
+%$h^*$ satisfies $L_\mathcal{D}(h^*) = 0$, and ERM outputs a hypothesis $\hat{h}$ with
+%$\hat{L}(\hat{h}) = 0$ as well. The bound~\eqref{eq:vcbound} thus controls $L_\mathcal{D}(\hat{h})$
+%directly. More importantly, the realizable setting admits a tighter analysis via a one-sided
+%concentration argument: rather than bounding the two-sided deviation of all hypotheses, one
+%only needs to show that no hypothesis with large true error can be consistent with $n$ training
+%points. A union bound over the (at most) $\Pi_\cH(n) \leq (en/d)^d$ consistent hypotheses on
+%the sample, combined with the fact that a hypothesis with true error $\varepsilon$ will make
+%at least one error on a sample of size $n$ with probability at least $1-(1-\varepsilon)^n
+%\geq 1 - e^{-n\varepsilon}$, gives a sample complexity of
+%$n = O\!\left(\frac{d\log(1/\varepsilon) + \log(1/\delta)}{\varepsilon}\right)$. This recovers
+%the $1/\varepsilon$ rate in statement (3) of Theorem~\ref{thm:ftsl}: the improved dependence
+%on $\varepsilon$ arises because zero training error is a much stronger signal than merely
+%small training error, allowing learning with fewer samples.
+
+%\paragraph{Summary.}
+It is possible to show that the VC generalization bound is the quantitative engine behind the
+Fundamental Theorem, that is that the sample complexity formulas in Theorem~\ref{thm:ftsl} follow directly from~\eqref{eq:vcbound}.
+The finiteness of the VC-dimension $d$ implies that $\cH$ produces only polynomially many distinct labelings on any finite sample;
+this polynomial growth permits uniform convergence of empirical to true risk over all of
+$\cH$; and this uniform convergence is exactly what guarantees that ERM generalizes.
+Conversely, when $d = \infty$, the growth function may grow as $2^n$, uniform convergence
+fails, and no algorithm can learn reliably. The VC-dimension is therefore not merely a
+qualitative indicator of model complexity: it is the exact combinatorial threshold that
+separates learnability from unlearnability, and the bound~\eqref{eq:vcbound} makes this
+separation quantitative.
+
+%\clearpage
+%\pagestyle{empty}
+%\end{document}

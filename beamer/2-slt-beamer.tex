@@ -1,0 +1,1239 @@
+%!TEX program = xelatex
+%!TEX root = ../all_beamer.tex
+
+%% ============================================================
+%%  Foundations of Machine Learning
+%%  Chapter 2 – Some Notes on Statistical Learning Theory
+%%  Beamer Presentation
+%%  Giorgio Gambosi – University of Rome "Tor Vergata"
+%%  A.Y. 2025–2026
+%% ============================================================
+%\documentclass[aspectratio=169, 10pt]{beamer}
+%
+%% ---------- Theme & colours ----------
+%\usetheme{Madrid}
+%\usecolortheme{whale}
+%\setbeamertemplate{navigation symbols}{}
+%
+%\definecolor{MainBlue}{RGB}{31,56,100}
+%\definecolor{AccentBlue}{RGB}{70,130,180}
+%\definecolor{AlertRed}{RGB}{160,30,30}
+%\definecolor{ExGreen}{RGB}{30,120,60}
+%\definecolor{BlockBg}{RGB}{220,232,246}
+%\definecolor{torgray}{RGB}{220,225,235}
+%
+%\setbeamercolor{frametitle}{bg=MainBlue, fg=white}
+%\setbeamercolor{title}{bg=MainBlue, fg=white}
+%\setbeamercolor{block title}{bg=AccentBlue, fg=white}
+%\setbeamercolor{block body}{bg=BlockBg}
+%\setbeamercolor{block title alerted}{bg=AlertRed, fg=white}
+%\setbeamercolor{block body alerted}{bg=red!8}
+%\setbeamercolor{block title example}{bg=ExGreen, fg=white}
+%\setbeamercolor{block body example}{bg=green!7}
+%\setbeamercolor{structure}{fg=MainBlue}
+%
+%% ---------- Fonts ----------
+%\usefonttheme{professionalfonts}
+%\setbeamerfont{frametitle}{size=\normalsize,series=\bfseries}
+%\setbeamerfont{block title}{size=\small,series=\bfseries}
+
+
+
+% ---------- Title ----------
+\title[Introduction to Statistical Learning Theory]{Introduction to Statistical Learning Theory}
+%\subtitle{Course of Machine Learning}
+%\author{Giorgio Gambosi}
+%\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+%\date{A.Y. 2025–2026}
+
+%% ============================================================
+%\begin{document}
+%% ============================================================
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+% ============================================================
+\section{Introduction to SLT}
+% ============================================================
+
+% -------- 1 --------
+\begin{frame}{Introduction}{The fundamental question of SLT}
+  \begin{block}{What Statistical Learning Theory asks}
+    Given a hypothesis class $\calH$ and a training set of size $n$:
+    \begin{itemize}
+      \item What can we \textbf{guarantee} about the quality of the learned predictor?
+      \item Under what conditions is learning \textbf{actually possible}?
+    \end{itemize}
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item Not about specific algorithms or datasets.
+    \item About the \emph{general structure} of the learning problem.
+    \item Provides \textbf{precise mathematical answers} — universal principles.
+    \item Reveals \emph{whether} and \emph{how quickly} we can learn.
+  \end{itemize}
+\end{frame}
+
+% -------- 2 --------
+\begin{frame}{Introduction}{Learning algorithms and hypothesis classes}
+  \begin{itemize}
+    \item A learning algorithm $\calA$ takes training data and produces a predictor.
+    \item $\calA$ must operate within a structured framework: the
+          \textcolor{AccentBlue}{\textbf{hypothesis class}} $\calH$.
+    \item $\calH$ = set of candidate functions the algorithm is allowed to choose from.
+  \end{itemize}
+  \bigskip
+  \begin{block}{Inductive bias}
+    The hypothesis class embodies the algorithm's
+    \textcolor{AccentBlue}{\textbf{inductive bias}}: prior beliefs about what kind of
+    solution is likely to work.\\[4pt]
+    Every learning algorithm must encode this bias — explicitly or implicitly.
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item Notation: $h^\calA_\calT$ = predictor returned by $\calA$ on training set $\calT$.
+    \item The learned predictor depends on \emph{both} the algorithm and the training data.
+  \end{itemize}
+\end{frame}
+
+% -------- 3 --------
+\begin{frame}{Introduction}{Empirical Risk Minimisation (ERM)}
+  \begin{block}{ERM — the canonical learning algorithm}
+    Given $\calT$ and $\calH$, return the predictor with lowest training error:
+    \[
+      h_\calT = \argmin_{h \in \calH}\; \barR_\calT(h)
+    \]
+    where $\barR_\calT(h)$ is the empirical risk — average loss on the training set.
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item Intuition: choose the predictor that works best on available data.
+    \item Danger: the training data may be \emph{misleading}.
+    \item A predictor can fit perfectly yet generalise poorly (\textbf{overfitting}).
+  \end{itemize}
+  \bigskip
+  \begin{alertblock}{Central question of SLT}
+    When does minimising training error lead to low \textbf{true} error?\\
+    The answer depends critically on the hypothesis class.
+  \end{alertblock}
+\end{frame}
+
+% -------- 4 --------
+\begin{frame}{Introduction}{Three determinants of learnability}
+  \begin{block}{What determines whether learning is possible?}
+    \begin{enumerate}
+      \item The \textbf{size} of the hypothesis class (how many functions it contains).
+      \item The \textbf{amount} of training data available.
+      \item The required \textbf{accuracy and confidence} (our tolerance for error).
+    \end{enumerate}
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item Some classes are \emph{learnable}: with enough data we find good predictors.
+    \item Some classes are \emph{too complex}: we always find functions fitting training
+          data while failing on new data.
+    \item Understanding these relationships is the \textbf{essence of SLT}.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Finite Hypothesis Classes under Realizability}
+% ============================================================
+
+% -------- 5 --------
+\begin{frame}{Finite Classes under Realizability}{Setup}
+  \begin{itemize}
+    \item We consider \textbf{binary classification} with 0-1 loss throughout this section.
+    \item We assume the hypothesis class $\calH$ is \textbf{finite}: $|\calH| < \infty$.
+    \item Simplest guarantee: if $|\calH|$ is bounded and $n$ is large enough, ERM does not
+          overfit.
+  \end{itemize}
+  \bigskip
+  \begin{block}{Realizability assumption}
+    There exists $h^* \in \calH$ such that:
+    \[
+      \calR_{\pM, f}(h^*) =
+      \mathbb{E}_{\pM,f}\!\left[|{\x \in \calX : h^*(\x) \neq f(\x)}|\right] = 0
+    \]
+    $h^*$ makes \textbf{no errors} on the entire population $\calX$.
+  \end{block}
+  \begin{itemize}
+    \item Strong assumption — idealised setting.
+    \item Isolates the challenge of learning from \emph{finite samples}.
+  \end{itemize}
+\end{frame}
+
+% -------- 6 --------
+\begin{frame}{Finite Classes under Realizability}{ERM under realizability}
+  \begin{itemize}
+    \item Under realizability, $h^*$ correctly classifies \emph{every} element of $\calX$.
+    \item In particular, for any training set $\calT = (\mathbf{X}, \mathbf{t})$ with
+          $t_i = f(\x_i)$:
+    \[
+      \barR_\calT(h^*) = \frac{|\{(\x,t)\in\calT : h^*(\x) \neq t\}|}{|\calT|} = 0
+    \]
+  \end{itemize}
+  \bigskip
+  \begin{block}{ERM result under realizability}
+    Since $h^*$ has zero training error, ERM will return \emph{some} predictor
+    $h_\calT$ also with zero training error:
+    \[
+      \barR_\calT(h_\calT) = 0
+    \]
+  \end{block}
+  \begin{itemize}
+    \item \textbf{Caution}: $h_\calT$ may differ from $h^*$.
+    \item Zero training error \emph{does not} guarantee zero true error.
+    \item Other functions in $\calH$ may also achieve zero training error — some may be bad.
+  \end{itemize}
+\end{frame}
+
+% -------- 7 --------
+\begin{frame}{Finite Classes under Realizability}{The learning scenario (figure)}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85,
+    region/.style={draw, rounded corners=8pt, thick},
+    arr/.style={-Stealth, thick, AccentBlue}
+  ]
+    % outer F
+    \node[region, minimum width=8cm, minimum height=4.2cm,
+          fill=AccentBlue!8, label={[font=\small]above:$\mathcal{F}$ (all predictors)}]
+      (F) at (0,0) {};
+    % H inside F
+    \node[region, minimum width=4.5cm, minimum height=2.4cm,
+          fill=AccentBlue!20,
+          label={[font=\small, AccentBlue]below:$\mathcal{H}$}]
+      (H) at (-0.8, 0) {};
+    % h*
+    \node[circle, fill=ExGreen, inner sep=2pt, label={[font=\small]right:$h^*$}]
+      (hstar) at (-1.5, 0.4) {};
+    % hT
+    \node[circle, fill=AlertRed!80, inner sep=2pt,
+          label={[font=\small]right:$h_\calT$ (ERM)}]
+      (hT) at (-0.2, -0.5) {};
+    % population & training set sketch
+    \node[font=\footnotesize, text=gray] at (2.5, 1.3)
+      {population $\calX$, dist.\ $\pM$};
+    \node[font=\footnotesize, text=gray] at (2.5, 0.5)
+      {$\xrightarrow{\text{sample}}$ training set $\calT$};
+    \node[font=\footnotesize, text=gray] at (2.5, -0.3)
+      {labels: $t_i = f(\x_i)$};
+    % arrows
+    \draw[arr] (2.2, -0.1) to[bend right=20] (hT);
+  \end{tikzpicture}
+  \end{center}
+  \vspace{-2pt}
+  {\footnotesize\textit{ERM selects $h_\calT \in \calH$ minimising empirical risk.
+  Under realizability $\barR_\calT(h_\calT)=0$, but true risk
+  $\calR_{\pM,f}(h_\calT)$ may be positive if $h_\calT \neq h^*$.}}
+\end{frame}
+
+% -------- 8 --------
+\begin{frame}{Finite Classes under Realizability}{Bad predictors and bad datasets}
+  \begin{block}{Bad predictor}
+    A predictor $h \in \calH$ is \textcolor{AlertRed}{\textbf{bad}} if its true risk
+    exceeds the tolerance $\varepsilon > 0$:
+    \[
+      \calR_{\pM,f}(h) > \varepsilon
+    \]
+    Let $\calH_B$ denote the set of all bad predictors.
+  \end{block}
+  \bigskip
+  \begin{block}{Bad (misleading) training set}
+    A training set $\calT$ is \textcolor{AlertRed}{\textbf{bad}} if at least one bad
+    predictor achieves zero training error on it:
+    \[
+      \exists\, h \in \calH_B :\ \barR_\calT(h) = 0
+    \]
+    Bad training sets create the \emph{illusion} that a poor predictor is good.
+  \end{block}
+  \begin{itemize}
+    \item Goal: bound the probability of drawing a bad training set.
+  \end{itemize}
+\end{frame}
+
+% -------- 9 --------
+\begin{frame}{Finite Classes under Realizability}{Bounding the failure probability}
+  \textbf{Step 1 — single bad predictor.}
+  A bad $h$ misclassifies $\geq \varepsilon$ fraction of the population.
+  \[
+    \Pr[\text{$h$ gets one random point right}] \leq 1-\varepsilon
+  \]
+  For $n$ i.i.d.\ points:
+  \[
+    \Pr[\barR_\calT(h) = 0] \leq (1-\varepsilon)^n \leq e^{-\varepsilon n}
+  \]
+  using $1-x \leq e^{-x}$.
+
+  \medskip
+  \textbf{Step 2 — any bad predictor (union bound).}
+  \[
+    \Prob{\calT \sim p^n}{\exists\, h \in \calH_B :\ \barR_\calT(h) = 0}
+    \leq \sum_{h \in \calH_B} e^{-\varepsilon n}
+    \leq |\calH| \cdot e^{-\varepsilon n}
+  \]
+
+  \medskip
+  \textbf{Step 3 — set the bound $\leq \delta$.}\\
+  Require $|\calH| \cdot e^{-\varepsilon n} \leq \delta$, i.e.\ $e^{-\varepsilon n} \leq
+  \dfrac{\delta}{|\calH|}$.
+\end{frame}
+
+% -------- 10 --------
+\begin{frame}{Finite Classes under Realizability}{Sample complexity}
+  Taking logarithms of $e^{-\varepsilon n} \leq \dfrac{\delta}{|\calH|}$:
+  \[
+    -\varepsilon n \leq \ln\frac{\delta}{|\calH|}
+    \quad\Longrightarrow\quad
+    n \geq \frac{1}{\varepsilon}\!\left(\ln|\calH| - \ln\delta\right)
+    = \frac{1}{\varepsilon}\ln\frac{|\calH|}{\delta}
+  \]
+  \begin{block}{Sample complexity — finite class, realizability}
+    \[
+      n \geq \left\lceil \frac{1}{\varepsilon}\ln\frac{|\calH|}{\delta} \right\rceil
+    \]
+    With this many examples, with probability $\geq 1-\delta$, ERM returns a predictor
+    with true risk $\leq \varepsilon$.
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item \textbf{Accuracy} $\varepsilon$: inverse linear — halving $\varepsilon$ doubles $n$.
+    \item \textbf{Confidence} $\delta$: logarithmic — high confidence is cheap.
+    \item \textbf{Class size} $|\calH|$: logarithmic — even huge finite classes are
+          learnable.
+  \end{itemize}
+\end{frame}
+
+% -------- 11 --------
+\begin{frame}{Finite Classes under Realizability}{Interpreting the components}
+  \begin{columns}[T]
+    \column{0.32\textwidth}
+    \begin{block}{Accuracy $\varepsilon$}
+      Denominator $\Rightarrow$ inverse relation.\\[4pt]
+      $\varepsilon/2$ needs $2\times$ data.\\[4pt]
+      \textbf{Linear cost} for accuracy.
+    \end{block}
+    \column{0.32\textwidth}
+    \begin{block}{Confidence $\delta$}
+      Inside a log $\Rightarrow$ logarithmic.\\[4pt]
+      $10\times$ higher confidence: add $\frac{\ln 10}{\varepsilon}$ examples.\\[4pt]
+      \textbf{Cheap} to increase confidence.
+    \end{block}
+    \column{0.32\textwidth}
+    \begin{block}{Class size $|\calH|$}
+      $\ln|\calH|$ $\Rightarrow$ logarithmic.\\[4pt]
+      $|\calH|$ from $100$ to $10^6$: add $\frac{\ln10^4}{\varepsilon}$ examples.\\[4pt]
+      \textbf{Huge} classes still learnable.
+    \end{block}
+  \end{columns}
+  \bigskip
+  \begin{exampleblock}{Numerical example}
+    $|\calH|=10{,}000$,\; $\varepsilon=0.1$,\; $\delta=0.05$:
+    $\quad n \geq \tfrac{1}{0.1}\ln\!\tfrac{10000}{0.05} \approx 122$ examples.\\
+    Improve to $\varepsilon=0.02$:
+    $\quad n \approx 610$ — five times more data for five times better accuracy.
+  \end{exampleblock}
+\end{frame}
+
+% -------- 12 --------
+\begin{frame}{Finite Classes under Realizability}{Bad vs.\ very bad datasets}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{alertblock}{Bad dataset}
+      At least one bad predictor $h \in \calH_B$ achieves $\barR_\calT(h) = 0$.\\[4pt]
+      ERM \emph{might still} return a good predictor if another zero-error predictor is
+      also present and chosen.
+    \end{alertblock}
+    \column{0.48\textwidth}
+    \begin{alertblock}{Very bad dataset}
+      ERM \emph{specifically} returns a bad predictor.\\[4pt]
+      Worst case for the analysis — the union bound is deliberately pessimistic to cover
+      this scenario.
+    \end{alertblock}
+  \end{columns}
+  \bigskip
+  \begin{itemize}
+    \item The bound controls probability of bad datasets.
+    \item In practice, ERM often picks a good predictor among zero-error ones.
+    \item The union bound guarantees correctness in the \textbf{worst case}.
+  \end{itemize}
+\end{frame}
+
+% -------- 13 --------
+\begin{frame}{Finite Classes under Realizability}{The finiteness assumption}
+  \begin{alertblock}{Why finiteness is crucial}
+    The union bound sums probabilities over $|\calH|$ predictors.\\
+    For \textbf{infinite} $\calH$: the bound becomes $\infty$ — useless.
+  \end{alertblock}
+  \bigskip
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{block}{Finite $\calH$}
+      \textbf{Always learnable.}\\[4pt]
+      Sample complexity grows only as $\ln|\calH|$.\\[4pt]
+      Even classes with trillions of functions are learnable.
+    \end{block}
+    \column{0.48\textwidth}
+    \begin{block}{Infinite $\calH$}
+      \textbf{Requires different analysis.}\\[4pt]
+      Cannot count functions.\\[4pt]
+      Need complexity measures like \textbf{VC dimension} or Rademacher complexity.
+    \end{block}
+  \end{columns}
+  \bigskip
+  \begin{itemize}
+    \item This is why SLT focuses on \emph{characterising} hypothesis class complexity.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{PAC Learning}
+% ============================================================
+
+% -------- 14 --------
+\begin{frame}{PAC Learning}{Probably Approximately Correct}
+  \begin{block}{Motivation}
+    \textcolor{AccentBlue}{\textbf{PAC learning}} formalises what it means for a learning
+    problem to be solvable. It answers: which hypothesis classes are learnable, and how
+    much data is needed?
+  \end{block}
+  \bigskip
+  The framework captures two sources of imperfection:
+  \begin{itemize}
+    \item \textbf{``Approximately''}: we don't demand perfect performance — only error $\leq
+          \varepsilon$.
+    \item \textbf{``Probably''}: we don't need success for every training set — only with
+          probability $\geq 1 - \delta$.
+  \end{itemize}
+  \bigskip
+  \begin{itemize}
+    \item $\varepsilon \in (0,1)$: \textbf{accuracy} parameter.
+    \item $\delta \in (0,1)$: \textbf{confidence} parameter.
+    \item $m_\calH(\varepsilon,\delta)$: \textbf{sample complexity} — data required.
+  \end{itemize}
+\end{frame}
+
+% -------- 15 --------
+\begin{frame}{PAC Learning}{Definition}
+  \begin{mydefinition}[PAC Learnability]
+    A hypothesis class $\calH$ is \textcolor{AccentBlue}{\textbf{PAC learnable}} if there
+    exist a sample complexity function $m_\calH:(0,1)^2\to\mathbb{N}$ and a learning
+    algorithm $\calA$ such that:
+
+    For every $\varepsilon,\delta\in(0,1)$, every distribution $\pM$ over $\calX$, and
+    every labelling $f:\calX\to\{0,1\}$ satisfying the realizability assumption, if
+    $\calA$ is applied to $n \geq m_\calH(\varepsilon,\delta)$ i.i.d.\ examples, it
+    returns $h_\calT$ satisfying
+    \[
+      \calR_{\pM,f}(h_\calT) \leq \varepsilon
+    \]
+    with probability at least $1-\delta$ over the random training set.
+  \end{mydefinition}
+  \bigskip
+  \begin{itemize}
+    \item For finite classes, ERM is a PAC learner with complexity
+          $m_\calH(\varepsilon,\delta) \leq \left\lceil\frac{1}{\varepsilon}
+          \ln\frac{|\calH|}{\delta}\right\rceil$.
+  \end{itemize}
+\end{frame}
+
+% -------- 16 --------
+\begin{frame}{PAC Learning}{The Bayes predictor}
+  \begin{block}{Optimal predictor under stochastic labels}
+    When labels are generated by $\pC(t|\x)$, the optimal predictor is:
+    \[
+      h^*(\x) = \argmin_{y \in \{0,1\}} \mathbb{E}_{t\sim\pC(\cdot|\x)}[L(y,t)]
+    \]
+    For binary classification with 0-1 loss, this simplifies to:
+    \[
+      h_{\text{Bayes}}(\x) =
+      \begin{cases}
+        1 & \text{if } \pC(t=1|\x) \geq 0.5 \\
+        0 & \text{otherwise}
+      \end{cases}
+    \]
+  \end{block}
+  \begin{itemize}
+    \item $h_{\text{Bayes}}$ is the \textcolor{AccentBlue}{\textbf{Bayes predictor}}
+          — best possible classifier.
+    \item Its risk $\calR^* = \calR_p(h_{\text{Bayes}})$ is the \textbf{irreducible error}
+          — no algorithm can do better.
+    \item \textbf{Unattainable} in practice: requires knowing $\pC(t|\x)$.
+  \end{itemize}
+\end{frame}
+
+% -------- 17 --------
+\begin{frame}{PAC Learning}{Agnostic PAC learning}
+  \begin{block}{Motivation}
+    Realizability rarely holds. We need a framework that does \emph{not} assume our class
+    contains a perfect predictor.
+  \end{block}
+  \bigskip
+  \begin{mydefinition}[Agnostic PAC Learnability]
+    $\calH$ is \textcolor{AccentBlue}{\textbf{agnostic PAC learnable}} if there exist
+    $m_\calH$ and $\calA$ such that for every $\varepsilon,\delta\in(0,1)$ and every
+    distribution $p$ over $\calX\times\calY$, applying $\calA$ to
+    $n\geq m_\calH(\varepsilon,\delta)$ i.i.d.\ examples returns $h_\calT$ satisfying
+    \[
+      \calR_p(h_\calT) \leq \min_{h\in\calH} \calR_p(h) + \varepsilon
+    \]
+    with probability at least $1-\delta$.
+  \end{mydefinition}
+  \begin{itemize}
+    \item We compare to the \textbf{best achievable in $\calH$}, not to zero error.
+    \item Generalises PAC: if realizability holds, the definition reduces to ordinary PAC.
+  \end{itemize}
+\end{frame}
+
+% -------- 18 --------
+\begin{frame}{PAC Learning}{Error decomposition}
+  \begin{block}{Two sources of error}
+    \[
+      \calR_p(h_\calT) - \calR^*
+      =
+      \underbrace{\bigl(\calR_p(h_\calT) - \calR_p(h^*)\bigr)}_{\text{estimation error}\ \varepsilon_V}
+      +
+      \underbrace{\bigl(\calR_p(h^*) - \calR^*\bigr)}_{\text{approximation error}\ \varepsilon_B}
+    \]
+    where $h^* = \argmin_{h\in\calH}\calR_p(h)$ and $\calR^* = \calR_p(h_{\text{Bayes}})$.
+  \end{block}
+  \bigskip
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{block}{Approximation error $\varepsilon_B$ (Bias)}
+      How well the \emph{best} in $\calH$ approximates the Bayes predictor.\\[4pt]
+      Determined by the \textbf{expressive power} of $\calH$.\\[4pt]
+      Independent of the training set.
+    \end{block}
+    \column{0.48\textwidth}
+    \begin{block}{Estimation error $\varepsilon_V$ (Variance)}
+      Gap between ERM output and the best in $\calH$.\\[4pt]
+      Due to \textbf{finite sample}: ERM is only an estimate.\\[4pt]
+      Decreases as $n$ grows.
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% -------- 19 --------
+\begin{frame}{PAC Learning}{Agnostic PAC — general loss}
+  \begin{mydefinition}[Agnostic PAC with General Loss]
+    $\calH$ is agnostic PAC learnable w.r.t.\ $L:\calY\times\calY\to[0,M]$ if there
+    exist $m_\calH$ and $\calA$ such that for every $\varepsilon,\delta\in(0,1)$ and $p$,
+    applying $\calA$ to $n\geq m_\calH(\varepsilon,\delta)$ examples returns $h_\calT$:
+    \[
+      \calR_p(h_\calT) = \mathbb{E}_{(\x,t)\sim p}[L(h_\calT(\x),t)]
+      \leq \min_{h\in\calH} \mathbb{E}_{(\x,t)\sim p}[L(h(\x),t)] + \varepsilon
+    \]
+    with probability $\geq 1-\delta$.
+  \end{mydefinition}
+  \bigskip
+  \begin{itemize}
+    \item Extends the framework to \textbf{regression}, cost-sensitive classification, etc.
+    \item Same principles apply — only the loss function changes.
+    \item Bounded loss ($L \leq M$) ensures concentration inequalities hold.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Representative Samples and Uniform Convergence}
+% ============================================================
+
+% -------- 20 --------
+\begin{frame}{Representative Samples}{$\varepsilon$-representative training sets}
+  \begin{block}{Key condition for ERM success}
+    ERM works when empirical risk is a \textbf{good proxy} for true risk — i.e.\ when the
+    training set is \emph{representative}.
+  \end{block}
+  \bigskip
+  \begin{mydefinition}[$\varepsilon$-Representative Sample]
+    $\calT$ is $\varepsilon$-representative w.r.t.\ $\calH$, $L$, $p$ if for every
+    $h \in \calH$:
+    \[
+      \left|\barR_\calT(h) - \calR_p(h)\right| \leq \varepsilon
+    \]
+    Every predictor's training error differs from its true error by at most $\varepsilon$.
+  \end{mydefinition}
+  \bigskip
+  \begin{itemize}
+    \item Rankings are preserved: a better predictor on the population is also better on
+          training data (up to $\varepsilon$).
+    \item If $\calT$ is representative, ERM finds a near-optimal predictor.
+  \end{itemize}
+\end{frame}
+
+% -------- 21 --------
+\begin{frame}{Representative Samples}{Why representativeness guarantees PAC}
+  Suppose $\calT$ is $\frac{\varepsilon}{2}$-representative. Let
+  $h^* = \argmin_{h\in\calH}\calR_p(h)$.
+
+  \medskip
+  \textbf{Step 1}: representativeness applied to $h^*$:
+  \[
+    \barR_\calT(h^*) \leq \calR_p(h^*) + \tfrac{\varepsilon}{2}
+  \]
+
+  \textbf{Step 2}: ERM minimises empirical risk:
+  \[
+    \barR_\calT(h_\calT) \leq \barR_\calT(h^*) \leq \calR_p(h^*) + \tfrac{\varepsilon}{2}
+  \]
+
+  \textbf{Step 3}: representativeness applied to $h_\calT$:
+  \[
+    \calR_p(h_\calT) \leq \barR_\calT(h_\calT) + \tfrac{\varepsilon}{2}
+    \leq \calR_p(h^*) + \varepsilon
+  \]
+
+  \begin{block}{Conclusion}
+    Representativeness \textbf{directly implies} the agnostic PAC property.
+  \end{block}
+\end{frame}
+
+% -------- 22 --------
+\begin{frame}{Uniform Convergence}{Definition}
+  \begin{mydefinition}[Uniform Convergence]
+    $\calH$ has the \textcolor{AccentBlue}{\textbf{uniform convergence}} property w.r.t.\
+    $L$ if there exists $m_\calH^{\text{UC}}:(0,1)^2\to\mathbb{N}$ such that:
+
+    For every $\varepsilon,\delta\in(0,1)$ and $p$, if
+    $n \geq m_\calH^{\text{UC}}(\varepsilon,\delta)$ pairs are drawn i.i.d.\ from $p$,
+    then with probability $\geq 1-\delta$ the sample is $\varepsilon$-representative.
+  \end{mydefinition}
+  \bigskip
+  \begin{itemize}
+    \item Not just one predictor converges — \textbf{all} predictors in $\calH$ must
+          converge simultaneously.
+    \item Harder than standard statistical convergence.
+    \item For \textbf{finite classes}: union bound gives uniform convergence with:
+      \[
+        m_\calH^{\text{UC}}(\varepsilon,\delta)
+          \leq \left\lceil\frac{1}{\varepsilon^2}\ln\frac{2|\calH|}{\delta}\right\rceil
+      \]
+    \item Uses \textbf{Hoeffding / Chernoff} concentration inequalities.
+  \end{itemize}
+\end{frame}
+
+% -------- 23 --------
+\begin{frame}{Uniform Convergence}{The implication chain}
+  \begin{center}
+  \begin{tikzpicture}[
+    box/.style={draw, rounded corners, fill=AccentBlue!15,
+                minimum width=3.8cm, minimum height=1.0cm,
+                font=\small, align=center},
+    arr/.style={-Stealth, thick, AccentBlue, line width=1.5pt}
+  ]
+    \node[box] (A) at (0,0)    {Uniform\\Convergence};
+    \node[box] (B) at (4.5,0)  {$\varepsilon$-Representative\\Sample};
+    \node[box] (C) at (9,0)    {Agnostic PAC\\Learnability};
+    \draw[arr] (A) -- (B);
+    \draw[arr] (B) -- (C);
+    \node[font=\footnotesize, above=4pt of A] {with $m_\calH^{\text{UC}}$};
+    \node[font=\footnotesize, above=4pt of C] {ERM succeeds};
+  \end{tikzpicture}
+  \end{center}
+  \bigskip
+  \begin{block}{Formal connection}
+    If $\calH$ has UC with $m_\calH^{\text{UC}}$, then $\calH$ is agnostic PAC learnable
+    with ERM and sample complexity:
+    \[
+      m_\calH(\varepsilon,\delta)
+        \leq m_\calH^{\text{UC}}\!\left(\tfrac{\varepsilon}{2},\,\delta\right)
+    \]
+  \end{block}
+\end{frame}
+
+% ============================================================
+\section{PAC Learnability of Finite Classes}
+% ============================================================
+
+% -------- 24 --------
+\begin{frame}{PAC Learnability of Finite Classes}{Main result}
+  \begin{mytheorem}
+    Let $\calH$ be a finite hypothesis class, $\calX\times\calY$ a domain, and
+    $L:\calX\times\calY\to[0,1]$ a bounded loss. Then $\calH$ has the uniform convergence
+    property with:
+    \[
+      m_\calH^{\text{UC}}(\varepsilon,\delta)
+        \leq \left\lceil\frac{1}{2\varepsilon^2}\ln\frac{2|\calH|}{\delta}\right\rceil
+    \]
+    Consequently, $\calH$ is agnostically PAC learnable via ERM with:
+    \[
+      m_\calH(\varepsilon,\delta)
+        \leq m_\calH^{\text{UC}}\!\left(\tfrac{\varepsilon}{2},\delta\right)
+        \leq \left\lceil\frac{1}{\varepsilon^2}\ln\frac{2|\calH|}{\delta}\right\rceil
+    \]
+  \end{mytheorem}
+  \begin{itemize}
+    \item $1/\varepsilon^2$ (agnostic) vs.\ $1/\varepsilon$ (realizable): agnostic learning
+          needs \textbf{more data}.
+    \item Still logarithmic in $|\calH|$ — finite classes remain tractable.
+  \end{itemize}
+\end{frame}
+
+% -------- 25 --------
+\begin{frame}{PAC Learnability of Finite Classes}{Discretisation trick for infinite classes}
+  \begin{block}{Practical approach for infinite parameterised classes}
+    Suppose $\calH$ is parameterised by $d$ real numbers. In a computer, each parameter
+    uses 64-bit floats: at most $2^{64}$ values per parameter.\\[4pt]
+    Effective size: $|\calH_{\text{eff}}| \leq 2^{64d}$.
+  \end{block}
+  \bigskip
+  Applying the finite-class bound:
+  \[
+    m_\calH(\varepsilon,\delta)
+    \leq \frac{1}{\varepsilon^2}\ln\frac{2\cdot 2^{64d}}{\delta}
+    = \frac{128d + 2\ln(2/\delta)}{\varepsilon^2}
+  \]
+  \begin{itemize}
+    \item Sample complexity grows \textbf{linearly} in the number of parameters $d$.
+    \item Rough but practical estimate for many real-world models.
+    \item \textbf{Limitation}: depends on machine representation of reals.
+    \item The rigorous treatment uses \textbf{VC dimension} (see later).
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{The No-Free-Lunch Theorem}
+% ============================================================
+
+% -------- 26 --------
+\begin{frame}{Relevance of Inductive Bias}{Does a universal learner exist?}
+  \begin{block}{The question}
+    Can there exist a \textbf{universal learner} $\calA^*$ that finds a low-risk predictor
+    for \emph{any} distribution $p$, without any prior assumption?
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item Any algorithm implicitly uses prior knowledge by choosing $\calH$.
+    \item No inductive bias $\Rightarrow \calH = \calF$ = all possible functions.
+    \item The question: is $\calF$ PAC learnable?
+  \end{itemize}
+  \bigskip
+  \begin{alertblock}{The answer: No}
+    The \textcolor{AlertRed}{\textbf{No-Free-Lunch (NFL) Theorem}} shows that for binary
+    classification, no single learning algorithm can succeed on every possible task.
+  \end{alertblock}
+\end{frame}
+
+% -------- 27 --------
+\begin{frame}{The No-Free-Lunch Theorem}{Formal statement}
+  \begin{mytheorem}[No-Free-Lunch]
+    Let $\calX$ be a domain, and let $\calA$ be \emph{any} learning algorithm for binary
+    classification with 0-1 loss. For any sample size $n < |\calX|/2$, there exists a
+    distribution $\mathcal{D}$ over $\calX\times\{0,1\}$ such that:
+    \begin{enumerate}
+      \item \textbf{Realizability}: there exists $h^*:\calX\to\{0,1\}$ with
+            $\calR_\mathcal{D}(h^*)=0$.
+      \item \textbf{High error with high probability}: when $\calA$ is trained on
+            $S\sim\mathcal{D}^n$,
+        \[
+          \Prob{S\sim\mathcal{D}^n}{\calR_\mathcal{D}(h_S) \geq \tfrac{1}{8}} \geq \tfrac{1}{7}.
+        \]
+    \end{enumerate}
+  \end{mytheorem}
+  \bigskip
+  \begin{itemize}
+    \item For \emph{every} learner $\calA$, one can construct an \textbf{adversarial}
+          distribution that makes $\calA$ fail.
+    \item Even though the task is realizable, error $\geq 1/8$ with probability $\geq 1/7$.
+    \item Constants $1/8$ and $1/7$ are not sharp but the message is qualitative.
+  \end{itemize}
+\end{frame}
+
+% -------- 28 --------
+\begin{frame}{The No-Free-Lunch Theorem}{Implication: all functions not PAC learnable}
+  \begin{mytheorem}
+    Let $\calX$ be an infinite set, and let $\calF = \{f:\calX\to\{0,1\}\}$ be all binary
+    classifiers. Then $\calF$ is \textbf{not} PAC learnable.
+  \end{mytheorem}
+  \begin{block}{Proof sketch}
+    Assume $\calF$ is PAC learnable with algorithm $\calA_\calF$ and complexity
+    $m_\calF(\varepsilon,\delta)$. Choose $\varepsilon=\frac{1}{16}$,
+    $\delta=\frac{1}{8}$, $n=m_\calF(\varepsilon,\delta)$.\\[4pt]
+    Since $\calX$ is infinite, $n < |\calX|/2$. The NFL theorem gives a distribution
+    $\mathcal{D}$ with:
+    \begin{itemize}
+      \item A perfect $h^*$ (realizability).
+      \item $\Pr[\calR_\mathcal{D}(\calA_\calF(S)) \geq \frac{1}{8}] \geq \frac{1}{7}
+            > \delta$.
+    \end{itemize}
+    Contradiction with the PAC guarantee ($\varepsilon=\frac{1}{16}<\frac{1}{8}$). $\square$
+  \end{block}
+\end{frame}
+
+% -------- 29 --------
+\begin{frame}{The No-Free-Lunch Theorem}{Consequences for learning}
+  \begin{alertblock}{Key conclusion}
+    Without any inductive bias (using all possible functions), learning is
+    \textbf{impossible}. Inductive bias is a \textbf{fundamental necessity}, not a
+    convenience.
+  \end{alertblock}
+  \bigskip
+  \begin{itemize}
+    \item Choosing $\calH \subsetneq \calF$ restricts candidates — avoiding unfavourable
+          distributions.
+    \item But it may \textbf{exclude the true predictor}: approximation error may be
+          positive.
+    \item This dilemma is the \textcolor{AccentBlue}{\textbf{Bias–Complexity Tradeoff}}.
+  \end{itemize}
+  \bigskip
+  \begin{block}{Practical implication}
+    Prior knowledge about the task is not optional.\\
+    Successful learning requires a \textbf{carefully chosen} $\calH$ that balances
+    expressiveness and generalisability.
+  \end{block}
+\end{frame}
+
+% ============================================================
+\section{Bias--Complexity Tradeoff}
+% ============================================================
+
+% -------- 30 --------
+\begin{frame}{Bias–Complexity Tradeoff}{Risk decomposition revisited}
+  \begin{block}{Excess risk decomposition}
+    \[
+      \calR_p(h_\calT) - \calR_p(h_{\text{Bayes}})
+      =
+      \underbrace{\calR_p(h_\calT) - \calR_p(h^*)}_{\varepsilon_V\ (\text{variance})}
+      +
+      \underbrace{\calR_p(h^*) - \calR_p(h_{\text{Bayes}})}_{\varepsilon_B\ (\text{bias})}
+    \]
+  \end{block}
+  \bigskip
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{block}{Bias $\varepsilon_B$ (approximation error)}
+      \begin{itemize}
+        \item Minimum risk in $\calH$ vs.\ Bayes risk.
+        \item Depends on \textbf{expressive power} of $\calH$.
+        \item Independent of the training set.
+        \item Decreases as $\calH$ grows.
+      \end{itemize}
+    \end{block}
+    \column{0.48\textwidth}
+    \begin{block}{Variance $\varepsilon_V$ (estimation error)}
+      \begin{itemize}
+        \item ERM output vs.\ best in $\calH$.
+        \item Due to \textbf{finite sample}.
+        \item Decreases as $n$ grows.
+        \item Increases as $\calH$ grows.
+      \end{itemize}
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% -------- 31 --------
+\begin{frame}{Bias–Complexity Tradeoff}{Effects of model complexity}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{alertblock}{High Bias, Low Variance (Underfitting)}
+      $\calH$ too simple (e.g.\ linear for nonlinear data).\\[4pt]
+      \textbf{Large} approximation error: best in $\calH$ is far from the truth.\\[4pt]
+      \textbf{Small} estimation error: similar predictors across training sets.\\[4pt]
+      Both training and test errors are high.
+    \end{alertblock}
+    \column{0.48\textwidth}
+    \begin{alertblock}{Low Bias, High Variance (Overfitting)}
+      $\calH$ too complex (e.g.\ deep nets).\\[4pt]
+      \textbf{Small} approximation error: $\calH$ may contain the Bayes predictor.\\[4pt]
+      \textbf{Large} estimation error: different datasets yield wildly different predictors.\\[4pt]
+      Low training error, high test error.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% -------- 32 --------
+\begin{frame}{Bias–Complexity Tradeoff}{The U-shaped risk curve}
+  \begin{center}
+  \begin{tikzpicture}[scale=1.0]
+    \begin{scope}
+      % axes
+      \draw[-Stealth, thick] (-0.2,0) -- (6.5,0) node[right]{\small complexity of $\calH$};
+      \draw[-Stealth, thick] (0,-0.2) -- (0,3.8) node[above]{\small risk};
+      % bias curve (decreasing)
+      \draw[thick, AccentBlue, domain=0.3:6.2, samples=80]
+        plot (\x, {2.6*exp(-0.55*\x)+0.15}) node[right]{\small bias $\varepsilon_B$};
+      % variance curve (increasing)
+      \draw[thick, AlertRed, domain=0.3:6.2, samples=80]
+        plot (\x, {0.08*\x*\x+0.05}) node[right]{\small variance $\varepsilon_V$};
+      % total risk (U-shaped)
+      \draw[thick, ExGreen, line width=1.5pt, domain=0.3:6.0, samples=100]
+        plot (\x, {2.6*exp(-0.55*\x)+0.08*\x*\x+0.20})
+        node[right]{\small \textbf{total risk}};
+      % minimum marker
+      \draw[dashed, gray] (2.55, 0) -- (2.55, 1.55);
+      \node[below, font=\footnotesize] at (2.55,0) {optimal};
+    \end{scope}
+  \end{tikzpicture}
+  \end{center}
+  {\footnotesize\textit{As model complexity increases, bias decreases but variance increases.
+  The total risk has a minimum at the optimal complexity.}}
+\end{frame}
+
+% -------- 33 --------
+\begin{frame}{Bias–Complexity Tradeoff}{Nested hypothesis classes}
+  In practice, consider a \textbf{nested family}:
+  \[
+    \calH_1 \subset \calH_2 \subset \cdots \subset \calH_k
+  \]
+  Examples:
+  \begin{itemize}
+    \item Polynomial regression with increasing degree.
+    \item Decision trees with increasing depth.
+    \item Neural networks with increasing width / depth.
+  \end{itemize}
+  \bigskip
+  As $k$ increases:
+  \begin{itemize}
+    \item Approximation error (bias) \textbf{decreases} monotonically.
+    \item Estimation error (variance) \textbf{increases}.
+    \item Total risk typically follows a \textbf{U-shaped curve}.
+    \item The optimal $k$ must be chosen via \textbf{model selection}.
+  \end{itemize}
+\end{frame}
+
+% -------- 34 --------
+\begin{frame}{Bias–Complexity Tradeoff}{Model selection}
+  \begin{block}{Definition}
+    \textcolor{AccentBlue}{\textbf{Model selection}} is the process of identifying the
+    hypothesis class (type of predictor + hyperparameter values) that best balances
+    approximation and estimation error for the given task.
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item In practice: a set of predictors parameterised by \textbf{hyperparameters}.
+    \item A type of predictor + hyperparameter values $\Rightarrow$ a class of
+          \emph{parametric predictors}.
+    \item ERM (or another algorithm) selects the best predictor \emph{within} the class.
+    \item Model selection evaluates and selects the \emph{class itself}.
+  \end{itemize}
+  \bigskip
+  \begin{itemize}
+    \item Good design requires classes where \emph{both} bias and variance are not
+          excessively high.
+    \item Domain expertise guides the design of good hypothesis classes.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{VC Dimension}
+% ============================================================
+
+% -------- 35 --------
+\begin{frame}{VC Dimension}{Why we need a new complexity measure}
+  \begin{itemize}
+    \item Finite classes: learnability characterised by $|\calH|$ — straightforward.
+    \item Infinite classes: $|\calH| = \infty$ — the counting argument breaks down.
+  \end{itemize}
+  \bigskip
+  \begin{exampleblock}{Example: threshold functions}
+    $\calH_\theta = \{\indicator{x < \theta} : \theta \in \Real\}$ — infinite class.\\[4pt]
+    Yet it is PAC learnable with complexity
+    $m_\calH(\varepsilon,\delta) \leq \lceil\frac{1}{\varepsilon}\log\frac{2}{\delta}\rceil$.
+  \end{exampleblock}
+  \bigskip
+  \begin{itemize}
+    \item Finiteness is \textbf{sufficient} but \textbf{not necessary} for learnability.
+    \item We need a measure of complexity that captures the \emph{effective} size.
+    \item The answer: \textcolor{AccentBlue}{\textbf{Vapnik–Chervonenkis (VC) Dimension}}.
+  \end{itemize}
+\end{frame}
+
+% -------- 36 --------
+\begin{frame}{VC Dimension}{Restriction and shattering}
+  \begin{block}{Restriction of $\calH$ to a set $C$}
+    Given $C = \{c_1,\ldots,c_m\} \subset \calX$, the \textbf{restriction} is:
+    \[
+      \calH_C = \{(h(c_1),\ldots,h(c_m)) : h \in \calH\}
+        \;\subseteq\; \{0,1\}^{|C|}
+    \]
+    The set of all labellings of $C$ achievable by predictors in $\calH$.
+  \end{block}
+  \bigskip
+  \begin{block}{Shattering}
+    $\calH$ \textcolor{AccentBlue}{\textbf{shatters}} $C$ if $\calH_C$ contains
+    \textbf{all} $2^{|C|}$ binary labellings of $C$.\\[4pt]
+    For every possible way to split $C$ into two classes, some $h\in\calH$ achieves that
+    split exactly.
+  \end{block}
+\end{frame}
+
+% -------- 37 --------
+\begin{frame}{VC Dimension}{Definition}
+  \begin{mydefinition}[VC Dimension]
+    The \textcolor{AccentBlue}{\textbf{VC-dimension}} $\vcd{\calH}$ is the size of the
+    \textbf{largest} subset $C\subset\calX$ that is shattered by $\calH$.\\[4pt]
+    If $\calH$ shatters arbitrarily large sets: $\vcd{\calH} = \infty$.
+  \end{mydefinition}
+  \bigskip
+  \begin{block}{To prove $\vcd{\calH} = d$ we need two things:}
+    \begin{enumerate}
+      \item Show $\vcd{\calH} \geq d$: exhibit a set of $d$ points shattered by $\calH$.
+      \item Show $\vcd{\calH} < d+1$: prove \textbf{no} set of $d+1$ points is shattered.
+    \end{enumerate}
+  \end{block}
+\end{frame}
+
+% -------- 38 --------
+\begin{frame}{VC Dimension}{Example: threshold functions on $\Real$}
+  \textbf{Class}: $\calH^{\text{thr}} = \{h_\theta : h_\theta(x)=1 \text{ iff } x\geq\theta,\;
+  \theta\in\Real\}$
+
+  \medskip
+  \textbf{Shattering $C=\{c_1\}$ (size 1):}
+  \begin{itemize}
+    \item Label $1$: set $\theta=c_1$ $\Rightarrow$ $h_\theta(c_1)=1$. \checkmark
+    \item Label $0$: set $\theta=c_1+1$ $\Rightarrow$ $h_\theta(c_1)=0$. \checkmark
+    \item $\Rightarrow$ $\vcd{\calH^{\text{thr}}} \geq 1$.
+  \end{itemize}
+
+  \medskip
+  \textbf{No shattering of $C=\{c_1,c_2\}$ (size 2), $c_1 \leq c_2$:}
+  \begin{itemize}
+    \item The labelling $(c_1=0, c_2=1)$ requires: threshold classifies $c_2$ as $1$ but
+          $c_1$ as $0$.
+    \item Any $\theta$ classifying $c_2=1$ (i.e.\ $\theta\leq c_2$) also classifies
+          $c_1=1$. Contradiction.
+    \item $\Rightarrow$ $\vcd{\calH^{\text{thr}}} < 2$.
+  \end{itemize}
+
+  \bigskip
+  \begin{block}{Result}
+    $\vcd{\calH^{\text{thr}}} = 1$.
+  \end{block}
+\end{frame}
+
+% -------- 39 --------
+\begin{frame}{VC Dimension}{Example: axis-aligned rectangles in $\Real^2$}
+  \textbf{Class}: $\calH^{\text{rect}}$ = all axis-aligned rectangles; label $1$ if inside.
+
+  \medskip
+  \textbf{Lower bound} ($\vcd{\calH^{\text{rect}}} \geq 4$):\\
+  Take 4 points at compass positions on a circle.
+  \begin{itemize}
+    \item Any subset labelled $1$: enclose only those points with a tight rectangle.
+    \item All $2^4=16$ labellings achievable. $\checkmark$
+  \end{itemize}
+
+  \medskip
+  \textbf{Upper bound} ($\vcd{\calH^{\text{rect}}} < 5$):\\
+  Any 5 points: consider their \textbf{bounding box}.
+  \begin{itemize}
+    \item At least one point lies inside the bounding box (or on a side).
+    \item Label the other 4 positive and that one negative.
+    \item Any rectangle containing all 4 positives must also contain the negative. $\times$
+  \end{itemize}
+
+  \begin{block}{Result}
+    $\vcd{\calH^{\text{rect}}} = 4$.
+  \end{block}
+\end{frame}
+
+% -------- 40 --------
+\begin{frame}{VC Dimension}{Example: intervals on $\Real$}
+  \textbf{Class}: $\calH^{\text{int}} = \{h_{a,b}(x) = \indicator{a<x<b} : a<b\in\Real\}$
+
+  \medskip
+  \textbf{Shattering $C=\{1,2\}$ (size 2):}
+  \begin{itemize}
+    \item Label $(1,0)$: interval $(0.5, 1.5)$. \checkmark
+    \item Label $(0,1)$: interval $(1.5, 2.5)$. \checkmark
+    \item Label $(1,1)$: interval $(0.5, 2.5)$. \checkmark
+    \item Label $(0,0)$: interval $(3, 4)$ (outside both). \checkmark
+    \item $\Rightarrow$ $\vcd{\calH^{\text{int}}} \geq 2$.
+  \end{itemize}
+
+  \medskip
+  \textbf{No shattering of $C=\{c_1,c_2,c_3\}$, $c_1\leq c_2\leq c_3$:}
+  \begin{itemize}
+    \item Labelling $(1,0,1)$ impossible: any interval including $c_1$ and $c_3$ must
+          include $c_2$.
+    \item $\Rightarrow$ $\vcd{\calH^{\text{int}}} < 3$.
+  \end{itemize}
+
+  \begin{block}{Result}
+    $\vcd{\calH^{\text{int}}} = 2$.
+  \end{block}
+\end{frame}
+
+% -------- 41 --------
+\begin{frame}{VC Dimension}{Finite classes and VC dimension}
+  \begin{block}{Upper bound on VC dimension of finite classes}
+    To shatter a set $C$ we need all $2^{|C|}$ labellings.\\
+    Since $|\calH_C| \leq |\calH|$, shattering requires $|\calH| \geq 2^{|C|}$, i.e.:
+    \[
+      \vcd{\calH^{\text{fin}}} \leq \log_2|\calH|
+    \]
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item The VC dimension of a finite class can be \textbf{much smaller} than
+          $\log_2|\calH|$.
+    \item Example: $\calX=\{1,\ldots,k\}$, threshold class.
+          $|\calH|=k$ but $\vcd{\calH}=1$ — the gap can be arbitrarily large.
+    \item VC dimension is a \textbf{tighter} complexity measure than class size.
+  \end{itemize}
+\end{frame}
+
+% -------- 42 --------
+\begin{frame}{VC Dimension}{The Fundamental Theorem of Statistical Learning}
+  \begin{mytheorem}[Fundamental Theorem of Statistical Learning]
+    Let $\calH$ be a binary classification class with 0-1 loss. The following are
+    equivalent:
+    \begin{enumerate}
+      \item $\calH$ has \textbf{finite VC dimension} $d$.
+      \item $\calH$ is \textbf{agnostic PAC learnable}, with constants $c_1<c_2$:
+        \[
+          \frac{c_1}{\varepsilon^2}\!\left(d+\ln\frac{1}{\delta}\right)
+          \leq m_\calH(\varepsilon,\delta)
+          \leq \frac{c_2}{\varepsilon^2}\!\left(d+\ln\frac{1}{\delta}\right)
+        \]
+        Moreover, ERM is a successful agnostic PAC learner for $\calH$.
+      \item $\calH$ is \textbf{PAC learnable} (under realizability), with:
+        \[
+          \frac{c_1}{\varepsilon}\!\left(d+\ln\frac{1}{\delta}\right)
+          \leq m_\calH(\varepsilon,\delta)
+          \leq \frac{c_2}{\varepsilon}\!\left(d+\ln\frac{1}{\delta}\right)
+        \]
+        Moreover, ERM is a successful PAC learner for $\calH$.
+    \end{enumerate}
+  \end{mytheorem}
+\end{frame}
+
+% -------- 43 --------
+\begin{frame}{VC Dimension}{Interpreting the Fundamental Theorem}
+  \begin{block}{Central message}
+    For binary classification with 0-1 loss:\\[4pt]
+    \textbf{Finite VC dimension $\Leftrightarrow$ Learnability}
+  \end{block}
+  \bigskip
+  \begin{itemize}
+    \item VC dimension $d$ is the \emph{right} measure of complexity for infinite classes.
+    \item Sample complexity scales as $\frac{d}{\varepsilon^2}$ (agnostic) or
+          $\frac{d}{\varepsilon}$ (realizable).
+    \item ERM is optimal (up to constants) whenever learning is possible.
+    \item $d=\infty$ $\Rightarrow$ not PAC learnable (consistent with NFL theorem).
+  \end{itemize}
+  \bigskip
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{block}{Agnostic case}
+      $m_\calH = \Theta\!\left(\dfrac{d+\ln(1/\delta)}{\varepsilon^2}\right)$
+    \end{block}
+    \column{0.48\textwidth}
+    \begin{block}{Realizable case}
+      $m_\calH = \Theta\!\left(\dfrac{d+\ln(1/\delta)}{\varepsilon}\right)$
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% ============================================================
+\section{Summary}
+% ============================================================
+
+% -------- 44 --------
+\begin{frame}{Summary}{Key results}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{block}{Finite classes}
+      \begin{itemize}
+        \item Always PAC/agnostic PAC learnable.
+        \item Sample complexity: $\Theta\!\left(\tfrac{\ln|\calH|}{\varepsilon^{(1\text{ or }2)}}\right)$.
+        \item ERM is optimal.
+        \item Union bound + concentration inequalities.
+      \end{itemize}
+    \end{block}
+    \bigskip
+    \begin{block}{NFL Theorem}
+      \begin{itemize}
+        \item No universal learner exists.
+        \item All functions not PAC learnable.
+        \item Inductive bias is \textbf{necessary}.
+      \end{itemize}
+    \end{block}
+    \column{0.48\textwidth}
+    \begin{block}{Infinite classes}
+      \begin{itemize}
+        \item VC dimension $d$ characterises learnability.
+        \item $d < \infty \Leftrightarrow$ PAC learnable.
+        \item Complexity: $\Theta\!\left(\tfrac{d}{\varepsilon^{(1\text{ or }2)}}\right)$.
+        \item ERM remains optimal.
+      \end{itemize}
+    \end{block}
+    \bigskip
+    \begin{block}{Bias–Complexity}
+      \begin{itemize}
+        \item Excess risk = bias + variance.
+        \item Optimal $\calH$ balances both.
+        \item Model selection identifies $\calH$.
+      \end{itemize}
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% -------- 45 --------
+\begin{frame}{Summary}{The big picture}
+  \begin{center}
+  \begin{tikzpicture}[
+    box/.style={draw, rounded corners, fill=AccentBlue!15,
+                minimum width=3.0cm, minimum height=0.9cm,
+                font=\small\bfseries, align=center},
+    sbox/.style={draw, rounded corners, fill=ExGreen!15,
+                 minimum width=3.0cm, minimum height=0.8cm,
+                 font=\small, align=center},
+    arr/.style={-Stealth, thick, AccentBlue}
+  ]
+    \node[box] (H)  at (0,4)   {Choose $\calH$\\(inductive bias)};
+    \node[box] (ERM) at (0,2.5) {Apply ERM\\on $\calT$};
+    \node[sbox] (fin) at (-3,1) {$|\calH|<\infty$:\\log complexity};
+    \node[sbox] (vc)  at (3,1)  {$\vcd{\calH}=d<\infty$:\\poly complexity};
+    \node[box] (pac) at (0,-0.2) {PAC / Agnostic PAC\\Learnability};
+    \node[box] (gen) at (0,-1.5) {Good generalisation\\with enough data};
+    \draw[arr](H)--(ERM);
+    \draw[arr](ERM)--(fin);
+    \draw[arr](ERM)--(vc);
+    \draw[arr](fin)--(pac);
+    \draw[arr](vc)--(pac);
+    \draw[arr](pac)--(gen);
+    \node[font=\footnotesize, AlertRed, right=0.1cm of H]
+      {NFL: $\calH=\calF$ fails};
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% -------- 46 --------
+\begin{frame}{Summary}{Key formulas at a glance}
+  \begin{table}
+    \centering
+    \renewcommand{\arraystretch}{1.55}
+    \begin{tabular}{ll}
+      \toprule
+      \textbf{Result} & \textbf{Formula / Statement}\\
+      \midrule
+      Sample complexity (finite, realizable)
+        & $n \geq \left\lceil\frac{1}{\varepsilon}\ln\frac{|\calH|}{\delta}\right\rceil$\\[2pt]
+      UC sample complexity (finite)
+        & $m_\calH^{\text{UC}} \leq \left\lceil\frac{1}{2\varepsilon^2}\ln\frac{2|\calH|}{\delta}\right\rceil$\\[2pt]
+      Agnostic PAC (finite)
+        & $m_\calH \leq \left\lceil\frac{1}{\varepsilon^2}\ln\frac{2|\calH|}{\delta}\right\rceil$\\[2pt]
+      Discretisation (d params)
+        & $m_\calH \leq \frac{128d + 2\ln(2/\delta)}{\varepsilon^2}$\\[2pt]
+      NFL theorem
+        & $\calF=\{f:\calX\to\{0,1\}\}$ not PAC learnable\\[2pt]
+      Risk decomposition
+        & $\calR(h_\calT)-\calR^* = \varepsilon_V + \varepsilon_B$\\[2pt]
+      Fundamental Theorem (agnostic)
+        & $m_\calH = \Theta\!\left(\frac{d+\ln(1/\delta)}{\varepsilon^2}\right)$\\[2pt]
+      Fundamental Theorem (realizable)
+        & $m_\calH = \Theta\!\left(\frac{d+\ln(1/\delta)}{\varepsilon}\right)$\\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+%\end{document}

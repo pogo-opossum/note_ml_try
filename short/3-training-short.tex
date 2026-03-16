@@ -1,0 +1,693 @@
+%!TEX program = xelatex
+%!TEX root = ../all_short.tex
+
+\chapter{Loss functions \& training: A Summary}
+
+\section*{Loss function}
+
+\begin{itemize}
+    \item The loss function $\mathcal{L}:\mathcal{Y}\times\mathcal{Y}\mapsto\Real$ quantifies the \alert{cost} of predicting $y$ instead of the true target $t$.
+    \item For an input $\x$ with true output $t$, the prediction quality is measured by:
+    \begin{myequation}
+    \mathcal{R}(\x, t)=L(h(\x), t)
+    \end{myequation}
+    \item The \alert{empirical risk} aggregates loss over the training set:
+    \begin{myequation}
+    \mathcal{\overline R}_{\mathcal{T}}(h)=\frac{1}{|\mathcal{T}|}\sum_{(x,t)\in\mathcal{T}}L(h(x),t)
+    \end{myequation}
+    \item During training, we work with parametric functions $h=h_{\theta}$, where $\Vtheta = (\theta_0, \theta_1, \ldots, \theta_d)$.
+    \item Training minimizes the overall loss:
+    \begin{myequation}
+    \mathcal{L}(\Vtheta;\mathcal{T})=\sum_{i=1}^nL_i(\Vtheta)
+    \end{myequation}
+    where $L_i=L(\Vtheta; \x_i,t_i)$ for each data point.
+\end{itemize}
+
+\subsection*{Loss function minimization approaches}
+
+\subsubsection*{Global Minimum}
+\begin{itemize}
+    \item A \alert{global minimum} is a point where the loss is lower than at any other point in parameter space.
+    \item At any minimum, the gradient must be zero:
+    \begin{myequation}
+    \nabla\mathcal{L}(\Vtheta;\mathcal{T})=\Zero
+    \end{myequation}
+    \item The gradient $\nabla f$ is the vector of partial derivatives:
+    \begin{myequation}
+    \nabla f=\vcol{\frac{\partial f}{\partial x_1}}{\frac{\partial f}{\partial x_m}}
+    \end{myequation}
+    \item Setting gradient to zero means solving:
+    \begin{myequation}
+    \frac{\partial}{\partial\theta_i}\mathcal{L}(\Vtheta;\mathcal{T})=0\hspace{.5cm}\forall i
+    \end{myequation}
+    \item \textbf{Challenges:}
+    \begin{itemize}
+        \item System has multiple solutions (minima, maxima, saddle points).
+        \item Analytical solutions often impossible for complex models.
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Gradient descent}
+
+\begin{itemize}
+    \item Iterative numerical method to find a local minimum.
+    \item \textbf{Principle:} Move in the direction opposite to the gradient (steepest descent).
+    \item Start from initial parameters $\Vtheta^{(0)}$ with initial error $\mathcal{\overline R}_{\mathcal{T}}(\Vtheta^{(0)})$.
+    \item \textbf{Update rule:}
+    \begin{myequation}
+    \theta_j^{(i)} := \theta_j^{(i-1)} - \eta \frac{\partial}{\partial \theta_j }\mathcal{\overline R}_{\mathcal{T}}(\Vtheta)\Big|_{\Vtheta^{(i-1)}} =
+    \theta_j^{(i-1)} - \frac{\eta}{|\mathcal{T}|}\sum_{(\x, t)\in\mathcal{T}} \frac{\partial}{\partial \theta_j} L(h_{\Vtheta}(\x), t)\Big|_{\Vtheta^{(i-1)}},
+    \end{myequation}
+    \item In matrix form:
+    \begin{myequation}
+    \Vtheta^{(i)} := \Vtheta^{(i-1)} - \eta \;\nabla\mathcal{\overline R}_{\mathcal{T}}(\Vtheta)\Big|_{\Vtheta^{(i-1)}} = 
+    \Vtheta^{(i-1)} - \frac{\eta}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}} \nabla L(h_{\Vtheta}(\x), t)\Big|_{\Vtheta^{(i-1)}}.
+    \end{myequation}
+    \item $\eta$ is the \alert{learning rate} controlling step size.
+    \item \textbf{Key challenges:}
+    \begin{itemize}
+        \item Local minima vs global minimum.
+        \item Saddle points.
+        \item Convergence speed.
+        \item Learning rate selection.
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Convexity}
+
+\begin{itemize}
+    \item A set $S\subset\Real^d$ is \alert{convex} if for any $\x_1,\x_2\in S$ and $\lambda\in (0,1)$:
+    \begin{myequation}
+    \lambda\x_1+(1-\lambda)\x_2\in S
+    \end{myequation}
+    \item A function $f(\x)$ is \alert{convex} if for all $\x_1,\x_2$ and $\lambda\in (0,1)$:
+    \begin{myequation}
+    f(\lambda\x_1+(1-\lambda)\x_2)\leq \lambda f(\x_1)+(1-\lambda) f(\x_2)
+    \end{myequation}
+    \item \alert{Strict convexity} requires strict inequality for $\x_1\neq\x_2$.
+    \item \textbf{Key property:} For convex functions, any local minimum is also a global minimum.
+    \item For strictly convex functions, there is exactly one local minimum (the global minimum).
+    \item Properties:
+    \begin{enumerate}
+        \item Sum of (strictly) convex functions is (strictly) convex.
+        \item Product of (strictly) convex function and positive constant is (strictly) convex.
+    \end{enumerate}
+    \item \textbf{Implications for empirical risk:}
+    \begin{itemize}
+        \item If each $L(\Vtheta; \x,t)$ is convex, empirical risk is convex.
+        \item Any local minimum of empirical risk is global.
+        \item If strictly convex, unique minimum exists.
+    \end{itemize}
+\end{itemize}
+
+\section*{Some common loss functions}
+
+\subsection*{Loss functions for regression}
+
+\subsubsection*{Quadratic loss}
+\begin{itemize}
+    \item Definition: $L(y,t)=(y-t)^2$
+    \item Empirical risk: $\mathcal{\overline R}_{\mathcal{T}}(h)=\frac{1}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}}(h(\x)-t)^2$ (Mean Squared Error)
+    \item For linear regression: $h(\x)=\w^T\x+b$, loss becomes:
+    \begin{myequation}
+    \mathcal{L}(\w,b;\mathcal{T})=\sum_{(\x,t)\in\mathcal{T}}(\w^T\x+b-t)^2
+    \end{myequation}
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Strictly convex $\Rightarrow$ unique global minimum.
+        \item Gradient is linear, making optimization tractable:
+        \begin{myalign}
+        \frac{\partial}{\partial w_i}\mathcal{L}(\w,b;\mathcal{T})=\sum_{(\x,t)\in\mathcal{T}}(\w^T\x+b-t)x_i\\
+        \frac{\partial}{\partial b}\mathcal{L}(\w,b;\mathcal{T})=\sum_{(\x,t)\in\mathcal{T}}(\w^T\x+b-t)
+        \end{myalign}
+        \item Closed-form solution exists (normal equations).
+        \item \textbf{Drawback:} Not robust to outliers (errors squared $\Rightarrow$ large errors dominate).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Absolute loss}
+\begin{itemize}
+    \item Definition: $L(y,t)=|y-t|$ (L1 loss, Mean Absolute Error)
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Penalizes errors linearly, more robust to outliers.
+        \item Convex but not strictly convex (flat gradient regions).
+        \item Gradient is piecewise constant ($-1$ when $y < t$, $+1$ when $y > t$).
+        \item Gradient undefined at $y=t$ (requires subgradients).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Huber loss}
+\begin{itemize}
+    \item Definition (with parameter $\delta$):
+    \begin{myequation}
+    L(t,y)=
+    \begin{cases}
+    \frac{1}{2}(t-y)^2 & |t-y|\leq\delta \\
+    \delta(|t-y|-\frac{\delta}{2}) & |t-y|>\delta
+    \end{cases}
+    \end{myequation}
+    \item Combines quadratic behavior near zero (smooth gradients) with linear growth for large errors (robustness to outliers).
+    \item $\delta$ controls transition point.
+\end{itemize}
+
+\subsection*{Loss functions for classification}
+
+\subsubsection*{Classification approaches}
+\begin{itemize}
+    \item Two approaches:
+    \begin{itemize}
+        \item \textbf{Direct class prediction:} Output class label directly.
+        \item \textbf{Probabilistic prediction:} Output probability distribution over classes.
+    \end{itemize}
+    \item Focus on binary classification with $t \in \{-1, +1\}$, prediction $y = h(\x)$ (confidence score, sign determines class).
+\end{itemize}
+
+\subsubsection*{0/1 loss}
+\begin{itemize}
+    \item Definition:
+    \begin{myequation}
+    L(t,y)=
+    \begin{cases}
+    1 &\text{sgn}(y)\not= t \\
+    0 &\text{sgn}(y)= t
+    \end{cases}
+    \end{myequation}
+    \item Compact form: $L(t,y) = {\large\mathds{1}}[t y< 0]$
+    \item \textbf{Problems:}
+    \begin{itemize}
+        \item Non-convex.
+        \item Non-smooth (discontinuous at $ty=0$).
+        \item Zero gradients almost everywhere $\Rightarrow$ no gradient information.
+        \item Minimization is NP-hard.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Convex surrogate loss functions}
+\begin{itemize}
+    \item Surrogate loss substitutes for 0/1 loss during optimization.
+    \item Required properties:
+    \begin{itemize}
+        \item \textbf{Upper bound property:} $L_{\text{surrogate}}(t,y) \geq {\large\mathds{1}}[ty < 0]$
+        \item \textbf{Convexity:} Guarantees global minima.
+        \item \textbf{Smoothness:} Enables gradient-based optimization.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Perceptron loss}
+\begin{itemize}
+    \item Definition: $L(t,y)=\max{}(0, -ty)$
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Zero for correctly classified elements ($ty > 0$).
+        \item For misclassified elements ($ty < 0$), loss $= -ty = |ty|$ (penalizes confident wrong predictions more).
+        \item Continuous everywhere.
+        \item Gradient continuous almost everywhere (except $ty=0$).
+        \item Convex (not strictly convex).
+        \item \textbf{Not} a strict surrogate (doesn't always upper bound 0/1 loss).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Hinge loss}
+\begin{itemize}
+    \item Definition: $L(t,y)=\max(0, 1-ty)$
+    \item \textbf{Key differences from perceptron loss:}
+    \begin{itemize}
+        \item Loss zero only when $ty \geq 1$ (requires confident correct predictions).
+        \item For $0 < ty < 1$, loss $= 1-ty > 0$ (penalizes correct but weak predictions).
+        \item For misclassified examples ($ty < 0$), loss $= 1-ty$ (grows linearly).
+    \end{itemize}
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Continuous everywhere.
+        \item Gradient continuous almost everywhere (except $ty=1$).
+        \item Convex (not strictly convex due to flat region $ty > 1$).
+        \item Proper surrogate loss (upper bounds 0/1 loss).
+        \item Used in Support Vector Machines (encourages margin maximization).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Subgradients}
+\begin{itemize}
+    \item Handle non-differentiability at singular points.
+    \item A subgradient $\overline{\nabla}f|_x$ satisfies:
+    \begin{myequation}
+    f(x')\geq f(x)+\overline{\nabla}f|_x \cdot (x'-x) \quad \text{for all } x'
+    \end{myequation}
+    \item At non-differentiable points, multiple subgradients exist.
+    \item For hinge loss at $ty=1$, valid subgradients are any slope in $[-t, 0]$ (when $t=1$) or $[0, -t]$ (when $t=-1$).
+    \item Common choice: $\frac{\partial L_H}{\partial y}=0$ at $ty=1$, giving:
+    \begin{myequation}
+    \overline{\nabla}_y L_H=\begin{cases}
+    -t\hspace{1cm}& ty<1\\
+    0\hspace{1cm}&ty\geq 1
+    \end{cases}
+    \end{myequation}
+\end{itemize}
+
+\subsubsection*{Square loss in classification}
+\begin{itemize}
+    \item Definition: $L(t,y)=(1-ty)^2$
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Continuous and infinitely differentiable.
+        \item Gradient continuous everywhere.
+        \item Convex.
+        \item \textbf{Drawbacks:}
+        \begin{itemize}
+            \item Not a surrogate loss (doesn't upper bound 0/1 loss everywhere).
+            \item Extreme errors heavily penalized (quadratic).
+            \item Symmetric penalization: even confident correct predictions ($ty \gg 1$) are penalized.
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Log loss (cross entropy)}
+\begin{itemize}
+    \item Definition: $L(t,y)=\frac{1}{\log 2}\log (1+e^{-ty})$ (normalization factor sometimes omitted)
+    \item Smoothed version of hinge loss.
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Continuous and infinitely differentiable everywhere.
+        \item Gradient continuous at all points.
+        \item Strictly convex $\Rightarrow$ unique global minimum.
+        \item Proper surrogate loss (upper bounds 0/1 loss).
+        \item As $ty \to -\infty$, loss grows linearly.
+        \item As $ty \to +\infty$, loss approaches zero asymptotically.
+    \end{itemize}
+    \item Central to logistic regression and probabilistic classification.
+\end{itemize}
+
+\subsubsection*{Connection to information theory}
+\begin{itemize}
+    \item \textbf{Cross entropy:} $\entr{}{p,q} = -\ev{x\sim p}{\log q(x)}$
+    \item \textbf{KL divergence:} $\dkl{p}{q} = \entr{}{p,q} - \entr{}{p}$ (non-negative, zero iff $p=q$)
+    \item \textbf{Entropy:} $\entr{}{p} = -\ev{x\sim p}{\log p(x)}$ (minimum average bits needed)
+    \item For binary classification with true labels $t \in \{0,1\}$ and predicted probabilities $y(\x) \in [0,1]$:
+    \begin{myequation}
+    \text{CE}(\mathcal{T})=-\frac{1}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}}\Big(t\log y(\x)+(1-t)\log (1-y(\x))\Big)
+    \end{myequation}
+    \item For logistic regression ($y(\x)=\sigma(\w^T\x+b)=\frac{1}{1+e^{-(\w^T\x+b)}}$) and using $t\in\{-1,+1\}$:
+    \begin{myequation}
+    \text{CE}(\mathcal{T})=\frac{1}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}}\log (1+e^{-t(\w^T\x+b)})
+    \end{myequation}
+    \item This matches log loss empirical risk (up to constant $\log 2$):
+    \begin{myequation}
+    \mathcal{\overline R}_{\mathcal{T}}(h)=\frac{1}{|\mathcal{T}|\log 2}\sum_{(\x,t)\in\mathcal{T}}\log (1+e^{-t(\w^T\x+b)})
+    \end{myequation}
+\end{itemize}
+
+\subsubsection*{Exponential loss}
+\begin{itemize}
+    \item Definition: $L(t,y)=e^{-ty}$
+    \item Used in boosting algorithms (AdaBoost).
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Continuous and infinitely differentiable.
+        \item Gradient continuous everywhere.
+        \item Strictly convex.
+        \item Proper surrogate loss.
+        \item Penalizes errors more aggressively than log loss (exponential growth).
+        \item Very sensitive to outliers.
+    \end{itemize}
+\end{itemize}
+
+\section*{Computing $h^*$}
+
+\begin{itemize}
+    \item Minimization of empirical risk over parameterized hypothesis class ($\theta\in\Theta=\Real^d$) is an unconstrained optimization problem.
+    \item Necessary condition for optimality: stationary point where gradient vanishes:
+    \begin{myequation}
+    \frac{\partial}{\partial \theta_i}\mathcal{\overline R}_{\mathcal{T}}(h_\theta)=0
+    \end{myequation}
+    or in vector form:
+    \begin{myequation}
+    \nabla\mathcal{\overline R}_{\mathcal{T}}(h_\theta)=\Zero
+    \end{myequation}
+    \item Analytical solution generally difficult or infeasible $\Rightarrow$ numerical optimization techniques.
+\end{itemize}
+
+\subsection*{Gradient descent}
+
+\begin{itemize}
+    \item Minimize differentiable function $J(\theta)$ by iteratively moving opposite to gradient.
+    \item \textbf{Update rule:}
+    \begin{myalign}
+    \theta^{(k+1)}&\color{evidmath}=\theta^{(k)}-\eta\,\nabla J\rvert_{\theta^{(k)}}
+    \end{myalign}
+    \item Component-wise:
+    \begin{myequation}\color{evidmath}
+    \theta_j^{(k+1)}=\theta_j^{(k)}-\eta\frac{\partial J(\theta)}{\partial \theta_j}\bigg\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item Four-step formulation:
+    \begin{myalign}
+    g_{j,k} &= \frac{\partial J(\theta)}{\partial \theta_j}\Big\rvert_{\theta^{(k)}}\\
+    \eta_{j,k} &= \eta\\
+    \Delta_{j,k} &= - \eta_{j,k}\, g_{j,k}\\
+    \theta_j^{(k+1)} &= \theta_j^{(k)} + \Delta_{j,k}
+    \end{myalign}
+    \item Learning rate $\eta$ controls step size; critical for convergence speed and stability.
+\end{itemize}
+
+\subsubsection*{Batch gradient descent}
+\begin{itemize}
+    \item Objective: empirical risk over entire training set:
+    \begin{myequation}
+    J(\theta)= \mathcal{\overline R}_{\mathcal{T}}(h_\theta) = \frac{1}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}} L(h_\theta(\x),t)
+    \end{myequation}
+    \item Gradient:
+    \begin{myequation}\color{evidmath}
+    g_{j,k} = \frac{1}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}}\frac{\partial L(h_\theta(\x),t)}{\partial \theta_j} \Big\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item Update:
+    \begin{myequation}\color{evidmath}
+    \theta^{(k+1)}_j=\theta^{(k)}_j-\frac{\eta}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}}\frac{\partial L(h_\theta(\x),t)}{\partial \theta_j} \Big\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item \textbf{Example (linear regression):}
+    \begin{myalign}
+    \theta_j^{(k+1)}&=\theta_j^{(k)}-\frac{\eta}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}}\left(\sum_{s=1}^d\theta_s^{(k)}x_s+\theta_0^{(k)}-t\right)x_j \quad j=1,\ldots,d\\
+    \theta_0^{(k+1)}&=\theta_0^{(k)}-\frac{\eta}{|\mathcal{T}|}\sum_{(\x,t)\in\mathcal{T}}\left(\sum_{s=1}^d\theta_s^{(k)}x_s+\theta_0^{(k)}-t\right)
+    \end{myalign}
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Smooth, stable decrease of empirical risk.
+        \item Computationally expensive for large datasets.
+        \item Guaranteed convergence to global minimum if convex, local minimum if non-convex.
+    \end{itemize}
+    \item Pseudocode:
+    \begin{lstlisting}[language=python]
+for i in range(nb_epochs):
+  params_grad = evaluate_gradient(loss_function, data, params)
+  params = params - learning_rate * params_grad
+    \end{lstlisting}
+\end{itemize}
+
+\subsubsection*{Stochastic gradient descent (SGD)}
+\begin{itemize}
+    \item Update using a single training example at a time:
+    \begin{myequation}
+    J(\theta)= L(h_\theta(\x),t)
+    \end{myequation}
+    \item Gradient:
+    \begin{myequation}\color{evidmath}
+    g_{j,k} = \frac{\partial L(h_\theta(\x),t)}{\partial \theta_j} \Big\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item Update:
+    \begin{myequation}\color{evidmath}
+    \theta_j^{(k+1)} = \theta_j^{(k)}-\eta\frac{\partial}{\partial \theta_j}L(h_\theta(\x),t)\bigg\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Much faster updates, supports online learning.
+        \item High variance in updates (noisy trajectory).
+        \item Stochasticity can help escape shallow local minima or saddle points.
+        \item With decreasing learning rate, converges almost surely to local minimum.
+    \end{itemize}
+    \item Pseudocode:
+    \begin{lstlisting}[language=python]
+for i in range(nb_epochs):
+  np.random.shuffle(data)
+  for example in data:
+    params_grad = evaluate_gradient(loss_function, example, params)
+    params = params - learning_rate * params_grad
+    \end{lstlisting}
+    \item \textbf{Linear regression example:}
+    \begin{myalign}
+    \theta_j^{(k+1)}&=\theta_j^{(k)}-\eta\left(\sum_{s=1}^d\theta_s^{(k)}x_{s}+\theta_0^{(k)}-t\right)x_{j}\\
+    \theta_0^{(k+1)}&=\theta_0^{(k)}-\eta\left(\sum_{s=1}^d\theta_s^{(k)}x_{s}+\theta_0^{(k)}-t\right)
+    \end{myalign}
+\end{itemize}
+
+\subsubsection*{Mini-batch gradient descent}
+\begin{itemize}
+    \item Intermediate between batch and SGD: use mini-batch $B$ of size $m$.
+    \item Objective over mini-batch:
+    \begin{myequation}
+    J(\theta)= \frac{1}{m}\sum_{(\x,t)\in B} L(h_\theta(\x),t)
+    \end{myequation}
+    \item Gradient:
+    \begin{myequation}\color{evidmath}
+    g_{j,k} = \frac{1}{m}\sum_{(\x,t)\in B}\frac{\partial L(h_\theta(\x),t)}{\partial \theta_j} \Big\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item Update:
+    \begin{myequation}\color{evidmath}
+    \theta^{(k+1)}_j=\theta^{(k)}_j-\frac{\eta}{m}\sum_{(\x,t)\in B}\frac{\partial L(h_\theta(\x),t)}{\partial \theta_j}\LARGE\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Limits computational cost per update.
+        \item Reduces variance compared to SGD, more stable convergence.
+        \item Computation can be parallelized on GPUs.
+        \item Mini-batch size $m$ is a hyperparameter (typical values 32-256).
+        \item Standard choice for training neural networks.
+    \end{itemize}
+    \item Pseudocode:
+    \begin{lstlisting}[language=python]
+for i in range(nb_epochs):
+  np.random.shuffle(data)
+  for batch in get_batches(data, batch_size=m):
+    params_grad = evaluate_gradient(loss_function, batch, params)
+    params = params - learning_rate * params_grad
+    \end{lstlisting}
+    \item \textbf{Linear regression example:}
+    \begin{myalign}
+    \theta_j^{(k+1)}&=\theta_j^{(k)}-\frac{\eta}{m}\sum_{(\x,t)\in B}\left(\sum_{s=1}^d\theta_s^{(k)}x_s+\theta_0^{(k)}-t\right)x_j\\
+    \theta_0^{(k+1)}&=\theta_0^{(k)}-\frac{\eta}{m}\sum_{(\x,t)\in B}\left(\sum_{s=1}^d\theta_s^{(k)}x_s+\theta_0^{(k)}-t\right)
+    \end{myalign}
+\end{itemize}
+
+\subsubsection*{Open issues}
+\begin{itemize}
+    \item Learning rate selection: too small $\Rightarrow$ slow convergence; too large $\Rightarrow$ instability/divergence.
+    \item Learning rate schedules help but require predefined hyperparameters.
+    \item Single global learning rate applied to all parameters may be suboptimal.
+    \item Non-convex problems have many local minima and saddle points; saddle points surrounded by flat regions cause slow progress.
+\end{itemize}
+
+\subsubsection*{Momentum gradient descent}
+\begin{itemize}
+    \item Physical analogy: parameter vector $\theta$ as position of a body of unit mass.
+    \item Force: $F(\theta)=-\eta\,\nabla J(\theta)$ (negative gradient as acceleration).
+    \item Update governed by velocity, not directly by acceleration:
+    \begin{myalign}
+    \theta_j^{(k+1)}&=\theta_j^{(k)}+v_j^{(k+1)}\\
+    v_j^{(k+1)}&=v_j^{(k)}-\eta_{j,k}\, g_{j,k}
+    \end{myalign}
+    \item With $v_j^{(0)}=0$ and constant learning rate:
+    \begin{myequation}
+    \theta_j^{(k+1)}=\theta_j^{(0)}-\eta\sum_{r=0}^kg_{j,r}
+    \end{myequation}
+    \item Practical version with dampening (friction) parameter $\gamma\in[0,1)$:
+    \begin{myalign}
+    v_j^{(k+1)}&=\gamma v_j^{(k)}-\eta g_{j,k}\\
+    \theta_j^{(k+1)}&=\theta_j^{(k)}+v_j^{(k+1)}=\theta_j^{(0)}-\eta\sum_{r=1}^k\gamma^{k-r} g_{j,r}
+    \end{myalign}
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Uses weighted sum of past gradients.
+        \item Velocity increases along directions with consistent gradients.
+        \item Oscillations dampened along directions with rapidly changing gradients.
+        \item Reduces fluctuations, enables faster and more stable convergence.
+    \end{itemize}
+    \item \textbf{Linear regression example (mini-batch):}
+    \begin{myalign}
+    v_j^{(k+1)}&=\gamma v_j^{(k)}-\eta\sum_{(\x,t)\in B}\left(\sum_{s=1}^d \theta_j^{(k)}x_s+\theta_0^{(k)}-t\right)x_j\\
+    v_0^{(k+1)}&=\gamma v_0^{(k)}-\eta\sum_{(\x,t)\in B}\left(\sum_{s=1}^d \theta_j^{(k)}x_s+\theta_0^{(k)}-t\right)\\
+    \theta_j^{(k+1)}&=\theta_j^{(k)}+v_j^{(k+1)}
+    \end{myalign}
+\end{itemize}
+
+\subsubsection*{Nesterov accelerated gradient descent (NAG)}
+\begin{itemize}
+    \item Uses look-ahead estimate $\tilde{\theta}^{(k+1)}\defeq\theta^{(k)}+\gamma v^{(k)}$ before computing gradient.
+    \item Update equations:
+    \begin{myalign}
+    \tilde{\theta}_j^{(k+1)}&=\theta_j^{(k)}+\gamma v_j^{(k)}\\
+    v_j^{(k+1)}&=\gamma v_j^{(k)} -\eta g_{j,k+1}\\
+    \theta_j^{(k+1)}&=\tilde\theta_j^{(k)}+v_j^{(k+1)}
+    \end{myalign}
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Gradient evaluated at approximated future position.
+        \item Anticipates changes in velocity, correcting trajectory earlier.
+        \item More responsive and often faster convergence than standard momentum.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Dynamically updating the learning rate}
+\begin{itemize}
+    \item Fixed learning rate often suboptimal: larger steps early, smaller steps near optimum.
+    \item \textbf{Learning rate schedules:}
+    \begin{itemize}
+        \item Step decay: reduce by factor $c$ every $K$ steps.
+        \item Exponential decay: $\eta^{(k)} = \eta^{(0)} e^{-\alpha k}$.
+        \item $1/t$ decay: $\eta^{(k)} = \frac{\eta^{(0)}}{1 + \alpha k}$.
+    \end{itemize}
+    \item Limitations: hyperparameters problem-dependent; same rate applied to all parameters.
+    \item Adaptive methods assign parameter-specific learning rates based on gradient history.
+\end{itemize}
+
+\subsubsection*{Adagrad}
+\begin{itemize}
+    \item Parameter-specific learning rates that adapt to historical gradient magnitudes.
+    \item For parameter $\theta_j$ at step $k$:
+    \begin{myalign}
+    g_{j,k} &= \frac{\partial J(\theta)}{\partial \theta_j}\Big\rvert_{\theta^{(k)}}\\
+    G_{j,k} &= G_{j,k-1} + g_{j,k}^2 = \sum_{i=0}^{k} g_{j,i}^2\\
+    \eta_{j,k} &= \frac{\eta}{\sqrt{G_{j,k} + \varepsilon}}\\
+    \Delta_{j,k} &= - \eta_{j,k}g_{j,k}\\
+    \theta_j^{(k+1)} &= \theta_j^{(k)} + \Delta_{j,k}
+    \end{myalign}
+    \item $\varepsilon$ small constant for numerical stability.
+    \item \textbf{Properties:}
+    \begin{itemize}
+        \item Larger updates for rarely updated parameters; smaller updates for frequently updated ones.
+        \item Well-suited for sparse data or heterogeneous features.
+        \item Learning rate decays monotonically $\Rightarrow$ eventually becomes too small, halting learning.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{RMSprop}
+\begin{itemize}
+    \item Addresses Adagrad's monotonic decay by using exponentially decaying average of squared gradients.
+    \item Decaying cumulative gradient:
+    \begin{myalign}
+    \tilde G_{j,k} &= \gamma \tilde G_{j,k-1} + (1 - \gamma) g_{j,k}^2 = (1 - \gamma) \sum_{i=0}^{k} \gamma^{k-i} g_{j,i}^2
+    \end{myalign}
+    \item Learning rate:
+    \begin{myequation}
+    \eta_{j,k} = \frac{\eta}{\sqrt{\tilde G_{j,k} + \varepsilon}}
+    \end{myequation}
+    \item Update:
+    \begin{myalign}
+    g_{j,k} &= \frac{\partial J(\theta)}{\partial \theta_j}\Big\rvert_{\theta^{(k)}}\\
+    \tilde G_{j,k} &= \gamma \tilde G_{j,k-1} + (1 - \gamma) g_{j,k}^2\\
+    \eta_{j,k} &= \frac{\eta}{\sqrt{\tilde G_{j,k} + \varepsilon}}\\
+    \Delta_{j,k} &= - \eta_{j,k} g_{j,k}\\
+    \theta_j^{(k+1)} &= \theta_j^{(k)} + \Delta_{j,k}
+    \end{myalign}
+    \item $\gamma$ controls decay rate (typically $\gamma \simeq 0.9$).
+    \item \textbf{Properties:} Learning rate adapts mainly to recent gradient magnitudes; allows continued learning.
+\end{itemize}
+
+\subsubsection*{Adadelta}
+\begin{itemize}
+    \item Eliminates need for global learning rate $\eta$.
+    \item Uses decaying average of past squared updates:
+    \begin{myalign}
+    \overline G_{j,k} &= \gamma \overline G_{j,k-1} + (1 - \gamma) \Delta_{j,k}^2 = (1 - \gamma) \sum_{i=0}^{k} \gamma^{k-i} \Delta_{j,i}^2
+    \end{myalign}
+    \item Update rule:
+    \begin{myalign}
+    g_{j,k} &= \frac{\partial J(\theta)}{\partial \theta_j}\Big\rvert_{\theta^{(k)}}\\
+    \tilde G_{j,k} &= \gamma \tilde G_{j,k-1} + (1 - \gamma) g_{j,k}^2\\
+    \eta_{j,k} &= - \frac{\sqrt{\overline G_{j,k-1} + \varepsilon}}{\sqrt{\tilde G_{j,k} + \varepsilon}}\\
+    \Delta_{j,k} &= - \eta_{j,k} g_{j,k}\\
+    \overline G_{j,k} &= \gamma \overline G_{j,k-1} + (1 - \gamma) \Delta_{j,k}^2\\
+    \theta_j^{(k+1)} &= \theta_j^{(k)} + \Delta_{j,k}
+    \end{myalign}
+    \item $\gamma \simeq 0.95$, $\varepsilon \simeq 10^{-8}$.
+    \item Ensures units of update $\Delta_{j,k}$ consistent with those of parameter $\theta_j$.
+\end{itemize}
+
+\subsubsection*{Adam (Adaptive Moment Estimation)}
+\begin{itemize}
+    \item Combines RMSprop with momentum (exponentially decaying sum of gradients).
+    \item Momentum term:
+    \begin{myequation}
+    \tilde H_{j,k} = \beta \tilde H_{j,k-1} + (1 - \beta) g_{j,k} = (1-\beta)\sum_{i=0}^k\beta^{k-i}g_{j,i}
+    \end{myequation}
+    \item Bias correction (compensates for initialization at zero):
+    \begin{myalign}
+    \hat{G}_{j,k} &= \frac{\tilde G_{j,k}}{1 - \gamma^k}\\
+    \hat{H}_{j,k} &= \frac{\tilde H_{j,k}}{1 - \beta^k}
+    \end{myalign}
+    \item Complete update:
+    \begin{myalign}
+    g_{j,k} &= \frac{\partial J(\theta)}{\partial \theta_j}\Big\rvert_{\theta^{(k)}}\\
+    \tilde G_{j,k} &= \gamma \tilde G_{j,k-1} + (1 - \gamma) g_{j,k}^2\\
+    \tilde H_{j,k} &= \beta \tilde H_{j,k-1} + (1 - \beta) g_{j,k}\\
+    \hat{G}_{j,k} &= \frac{\tilde G_{j,k}}{1 - \gamma^k}\\
+    \hat{H}_{j,k} &= \frac{\tilde H_{j,k}}{1 - \beta^k}\\
+    \eta_{j,k} &= \frac{\eta}{\sqrt{\hat G_{j,k} + \varepsilon}}\\
+    \Delta_{j,k} &= - \eta_{j,k} \hat H_{j,k}\\
+    \theta_j^{(k+1)} &= \theta_j^{(k)} + \Delta_{j,k}
+    \end{myalign}
+    \item Default values: $\eta \simeq 0.001$, $\gamma \simeq 0.9$, $\beta \simeq 0.999$, $\varepsilon \simeq 10^{-8}$.
+    \item Widely used due to robustness and good empirical performance.
+\end{itemize}
+
+\subsection*{Reassuming table}
+\begin{center}
+\setlength{\tabcolsep}{20pt}
+\begin{tabular}{l|cc}
+  Method & $G^{(k)}$ & $\eta^{(k)}$ \\\hline
+  GD & $g^{(k)}$ & $\eta$ \\
+  Adagrad & $g^{(k)}$ & $\displaystyle\frac{\eta}{RSS(g^2)}$ \\
+  RMSprop & $g^{(k)}$ & $\displaystyle\frac{\eta}{RDSS(g^2,\gamma)}$ \\
+  Adadelta & $g^{(k)}$ & $\displaystyle\frac{RDSS(\Delta^2,\gamma)}{RDSS(g^2,\gamma)}$ \\
+  Adam & $RDSS(g,\beta)$ & $\displaystyle \frac{\eta}{RDSS(g^2,\gamma)}$ 
+\end{tabular}
+\end{center}
+
+\begin{myalign}
+\Delta^{(k)} &= -\eta^{(k)}G^{(k)}\\
+\theta_{k+1} &= \theta^{(k)}+\Delta^{(k)}
+\end{myalign}
+where:
+\begin{myalign}
+RSS(f)&=\sqrt{f^{(0)}+f^{(1)}+\cdots+f^{(k-1)}+f^{(k)}+\varepsilon}\\
+RDSS(f,\gamma)&=\sqrt{(1-\gamma)(\gamma^kf^{(0)}+\gamma^{k-1}f^{(1)}+\cdots+\gamma f^{(k-1)}+f^{(k)})+\varepsilon}
+\end{myalign}
+
+\section*{Second-Order Methods}
+
+\begin{itemize}
+    \item Seek points where $\nabla J(\theta) = 0$ using Newton-Raphson method on gradient.
+    \item One-dimensional Newton:
+    \begin{myequation}
+    \theta_j^{(k+1)} = \theta_j^{(k)} - \frac{J'(\theta)}{J''(\theta)}\Big\rvert_{\theta^{(k)}}
+    \end{myequation}
+    \item Multi-dimensional Newton:
+    \begin{myequation}
+    \theta^{(k+1)} = \theta^{(k)} - \left( H(J)^{-1} \nabla J \right)\Big\rvert_{\theta^{(k)}}
+    \end{myequation}
+    where $H(J)_{ij} = \frac{\partial^2 J}{\partial \theta_i \partial \theta_j}$ is the \alert{Hessian matrix}.
+    \item \textbf{Geometric interpretation:}
+    \begin{itemize}
+        \item Gradient Descent: approximates $J(\theta)$ with tangent plane, moves in steepest descent direction.
+        \item Newton's method: approximates $J(\theta)$ with quadratic surface, moves to its minimum.
+    \end{itemize}
+    \item With damping factor $\eta<1$:
+    \begin{myalign}
+    \Delta^{(k)} &= - \left( H(J)^{-1} \nabla J \right)\bigg\rvert_{\theta^{(k)}} \\
+    \theta^{(k+1)} &= \theta^{(k)} + \eta \Delta^{(k)}
+    \end{myalign}
+    \item \textbf{Computational drawbacks:}
+    \begin{itemize}
+        \item Memory: storing Hessian requires $O(n^2)$ space (prohibitive for high dimensions).
+        \item Computation: inverting Hessian or solving $H \Delta = -\nabla J$ scales as $O(n^3)$.
+    \end{itemize}
+    \item \textbf{Quasi-Newton methods} (BFGS, L-BFGS) approximate inverse Hessian using gradient information.
+    \begin{itemize}
+        \item BFGS: $O(n^2)$ computation, $O(n^2)$ memory.
+        \item L-BFGS: $O(mn)$ computation, $O(mn)$ memory with $m \ll n$ (linear complexity).
+        \item Achieve superlinear convergence without explicit second derivatives.
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Optimization in deep learning}
+
+\subsubsection*{Why first-order methods dominate}
+\begin{itemize}
+    \item \textbf{Scale:} Modern neural networks have billions of parameters; Hessian would have $n^2$ entries (impossible to store or invert).
+    \item \textbf{Memory efficiency:} Adam maintains only two decaying sums per parameter ($O(n)$ memory).
+    \item \textbf{Noise robustness:} Deep learning uses mini-batches; second-order methods are sensitive to noise in gradient estimates. Adam's decaying sums act as low-pass filters, smoothing noisy gradients.
+    \item \textbf{Saddle points:} In high-dimensional spaces, saddle points are more common than local minima.
+    \begin{itemize}
+        \item Newton's method targets zero-gradient points, can be attracted to saddle points.
+        \item Gradient descent naturally moves away from saddle points by following downward slopes.
+        \item Decomposing Hessian into eigenvectors $q_i$ and eigenvalues $\lambda_i$, Newton update in direction $i$ is $\Delta \theta_i = -\frac{1}{\lambda_i} g_i$.
+        \item With negative curvature ($\lambda_i < 0$), Newton moves \textit{with} the gradient, climbing toward the saddle point.
+    \end{itemize}
+\end{itemize}

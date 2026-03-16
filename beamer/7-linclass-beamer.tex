@@ -1,0 +1,962 @@
+%!TEX program = xelatex
+%!TEX root = ../all_beamer.tex
+
+
+%% Linear Classification – Beamer Presentation
+%% Based on notes by Giorgio Gambosi, University of Rome "Tor Vergata"
+%% Style modelled on ml-nonparam-regr-beamer.pdf
+
+%\documentclass[aspectratio=169]{beamer}
+
+%\input{header-beamer.tex}
+%
+%%% ── Packages ────────────────────────────────────────────────────────────────
+%\usepackage{amsmath,amssymb,bm}
+%\usepackage{booktabs}
+%\usepackage{graphicx}
+%\usepackage{xcolor}
+
+%% ── Theme & Colours ─────────────────────────────────────────────────────────
+%\usetheme{default}
+%\usecolortheme{default}
+
+%\definecolor{darknavy}{RGB}{30,50,80}
+%\definecolor{midnavy}{RGB}{55,85,130}
+%\definecolor{accent}{RGB}{220,80,60}
+%\definecolor{blockbg}{RGB}{210,220,235}
+%\definecolor{alertbg}{RGB}{200,70,60}
+%
+%\setbeamercolor{frametitle}{bg=darknavy,fg=white}
+%\setbeamercolor{framesubtitle}{fg=white}
+%\setbeamercolor{title}{fg=white}
+%\setbeamercolor{author}{fg=white}
+%\setbeamercolor{institute}{fg=white}
+%\setbeamercolor{date}{fg=white}
+%\setbeamercolor{structure}{fg=darknavy}
+%\setbeamercolor{normal text}{fg=black}
+%
+%\setbeamercolor{block title}{bg=midnavy,fg=white}
+%\setbeamercolor{block body}{bg=blockbg,fg=black}
+%\setbeamercolor{alertblock title}{bg=alertbg,fg=white}
+%\setbeamercolor{alertblock body}{bg=blockbg!60,fg=black}
+%
+%\setbeamercolor{footline}{bg=darknavy,fg=white}
+%\setbeamercolor{section in head/foot}{fg=white,bg=darknavy}
+%
+%%% Title page background
+%\setbeamercolor{background canvas}{bg=white}
+
+%% ── Frametitle formatting ───────────────────────────────────────────────────
+%\setbeamertemplate{frametitle}{%
+%  \vspace{0pt}%
+%  \begin{beamercolorbox}[wd=\paperwidth,ht=1.8em,dp=0.6em,leftskip=0.5em]{frametitle}%
+%    \usebeamerfont{frametitle}\insertframetitle%
+%    \ifx\insertframesubtitle\empty\else%
+%      \\[0.1em]{\small\color{white!80!darknavy}\insertframesubtitle}%
+%    \fi%
+%  \end{beamercolorbox}%
+%}
+%
+%%% ── Footline ────────────────────────────────────────────────────────────────
+%\setbeamertemplate{footline}{%
+%  \begin{beamercolorbox}[wd=\paperwidth,ht=1.4em,dp=0.4em]{footline}%
+%    \hspace{0.5em}\usebeamerfont{footline}\insertshorttitle%
+%    \hfill%
+%    \insertshortauthor\ (\insertshortinstitute)%
+%    \hfill%
+%    Linear Classification%
+%    \hfill%
+%    A.Y.~2025--2026%
+%    \hspace{0.3em}%
+%    \insertframenumber\,/\,\inserttotalframenumber%
+%    \hspace{0.5em}%
+%  \end{beamercolorbox}%
+%}
+%\setbeamertemplate{navigation symbols}{}
+%
+%%% ── Title page ──────────────────────────────────────────────────────────────
+%\setbeamertemplate{title page}{%
+%  \begin{beamercolorbox}[wd=\paperwidth,ht=\paperheight,center]{darknavy}%
+%    \color{white}%
+%    \vfill%
+%    {\LARGE\bfseries\inserttitle}\par\medskip%
+%    {\large\insertsubtitle}\par\bigskip%
+%    {\normalsize\insertauthor}\par\smallskip%
+%    {\small\insertinstitute}\par\smallskip%
+%    {\small\insertdate}%
+%    \vfill%
+%  \end{beamercolorbox}%
+%}
+
+%% ── Math shorthands ─────────────────────────────────────────────────────────
+
+%\newcommand{\W}{\mathbf{W}}
+%\renewcommand{\t}{\mathbf{t}}
+%\newcommand{\m}{\mathbf{m}}
+%\newcommand{\y}{\mathbf{y}}
+%\newcommand{\ox}{\bar{\mathbf{x}}}
+%\newcommand{\ow}{\bar{\mathbf{w}}}
+%\newcommand{\SW}{\mathbf{S}_W}
+%\newcommand{\SB}{\mathbf{S}_B}
+%\newcommand{\ST}{\mathbf{S}_T}
+%\newcommand{\Smat}{\mathbf{S}}
+%\newcommand{\GX}{G_{\mathbf{X}}}
+
+%% ── Metadata ────────────────────────────────────────────────────────────────
+\title[Linear Classification]{Linear Classification}
+
+
+%% ════════════════════════════════════════════════════════════════════════════
+%\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%% ── Outline ─────────────────────────────────────────────────────────────────
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Introduction to Classification}
+
+\begin{frame}{What Is Classification?}
+  \framesubtitle{From continuous to discrete outputs}
+  \begin{itemize}
+    \item \textbf{Regression}: predicts a continuous target variable.
+    \item \textbf{Classification}: predicts a \alert{discrete class label} $t \in \{C_1,\ldots,C_K\}$.
+    \item Classes are assumed to be \alert{disjoint}: each input belongs to exactly one class.
+    \item The input space is partitioned into \alert{decision regions}, one per class.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Linear Classification Models}
+  \begin{itemize}
+    \item Decision boundaries are \alert{linear functions} of $\x$.
+    \item In a $d$-dimensional feature space, boundaries are $(d-1)$-dimensional \alert{hyperplanes}.
+    \item Datasets separable by such boundaries are called \alert{linearly separable}.
+    \item Non-linear boundaries are possible through \alert{extensions} of linear models.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Encoding Class Labels}
+  \begin{itemize}
+    \item \textbf{Binary} ($K = 2$): single variable $t \in \{0, 1\}$.
+      \begin{itemize}
+        \item $t = 0 \Rightarrow C_0$; \quad $t = 1 \Rightarrow C_1$.
+      \end{itemize}
+    \item \textbf{Multiclass} ($K > 2$): \alert{1-of-$K$ coding}.
+      \begin{itemize}
+        \item $\t \in \{0,1\}^K$: all elements zero except the $j$-th, which is $1$, for class $C_j$.
+      \end{itemize}
+    \item Both representations are widely used in practice.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Three Approaches to Classification}
+  \begin{block}{1. Discriminant Function}
+    Find $f:\mathcal{X}\to\{1,\ldots,K\}$ directly mapping inputs to class labels.
+  \end{block}
+  \vspace{0.4em}
+  \begin{block}{2. Discriminative (Probabilistic)}
+    \textbf{Inference}: estimate posterior $p(C_j|\x)$ for each class.\\
+    \textbf{Decision}: assign to the class with the highest posterior.
+  \end{block}
+  \vspace{0.4em}
+  \begin{block}{3. Generative}
+    Model class-conditional distributions $p(\x|C_j)$ and priors $p(C_j)$.\\
+    Apply Bayes' theorem to obtain $p(C_j|\x)$.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Generalized Linear Models for Classification}
+  \begin{itemize}
+    \item Linear regression: $h(\x;\w,b) = \w^T\x + b$.
+    \item For classification, apply an \alert{activation function} $f$ with range $[0,1]$:
+    \[
+      h(\x;\w,b) = f(\w^T\x + b).
+    \]
+    \item Decision boundary: $h(\x) = c \Rightarrow \w^T\x + b = f^{-1}(c)$ \quad (a hyperplane).
+    \item $f^{-1}$ is called the \alert{link function}.
+    \item Approaches 1 and 2 are \alert{discriminative}; approach 3 is \alert{generative}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Hyperplane Geometry}
+
+\begin{frame}{The Separating Hyperplane}
+  \framesubtitle{Binary classification}
+  \begin{itemize}
+    \item The equation $\w^T\x + b = 0$ defines a hyperplane in $\Real^d$.
+    \item Partitions space into: the hyperplane itself + two half-spaces.
+    \item For any point $\x_0$ on the hyperplane: $b = -\w^T\x_0$, so
+    \[
+      \w^T(\x - \x_0) = 0.
+    \]
+    \item $\w$ is a \alert{normal vector} to the hyperplane.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Figure: Vector View of Hyperplane}
+  \begin{center}
+    \includegraphics[width=6cm]{figures/hyperplane.png}
+  \end{center}
+  \begin{center}
+    \small Vector view of the hyperplane equation.
+  \end{center}
+\end{frame}
+
+\begin{frame}{Signed Distance and Classification}
+  \begin{itemize}
+    \item $\w^T\x + b > 0$: point lies on the side toward which $\w$ points.
+    \item $\w^T\x + b < 0$: point lies on the opposite side.
+    \item Perpendicular distance from the origin to the hyperplane:
+    \[
+      \frac{|b|}{\|\w\|}.
+    \]
+    \item For binary labels $t \in \{-1,+1\}$: correct classification iff $t(\w^T\x + b) > 0$.
+    \item Magnitude $|\w^T\x + b|$ measures \alert{classification confidence}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Figure: Positive and Negative Half-Spaces}
+  \begin{center}
+    \includegraphics[width=7cm]{figures/hyperplane1.png}
+  \end{center}
+  \begin{center}
+    \small Positive and negative hyperspaces.
+  \end{center}
+\end{frame}
+
+\begin{frame}{Figure: Normalized Distances}
+  \begin{center}
+    \includegraphics[width=7cm]{figures/hyperplane2.png}
+  \end{center}
+  \begin{center}
+    \small Normalized distances from the hyperplane.
+  \end{center}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Multiclass Linear Discriminants}
+
+\begin{frame}{Extending to $K > 2$ Classes}
+  \begin{itemize}
+    \item A single hyperplane is not sufficient for $K > 2$ classes.
+    \item Need strategies to partition the feature space into $K$ decision regions.
+    \item Three main approaches:
+      \begin{enumerate}
+        \item One-versus-rest (OvR)
+        \item One-versus-one (OvO)
+        \item $K$-class discriminant (argmax)
+      \end{enumerate}
+    \item Trade-offs: complexity, unambiguous coverage, geometric coherence.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{One-Versus-Rest (OvR)}
+  \begin{itemize}
+    \item Train $K-1$ binary classifiers $f_1,\ldots,f_{K-1}$.
+    \item $f_i(\x) > 0 \Rightarrow \x \in C_i$; \quad otherwise $\x \notin C_i$.
+    \item If no $f_i$ is positive $\Rightarrow$ assign to $C_K$ by default.
+  \end{itemize}
+  \begin{alertblock}{Limitation}
+    Decision regions can \alert{overlap}: a point may satisfy $f_i(\x) > 0$ and $f_j(\x) > 0$
+    simultaneously, giving an \alert{ambiguous} classification.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Figure: One-Versus-Rest Ambiguity}
+  \begin{center}
+    \includegraphics[width=5cm]{figure/fig24.pdf}
+  \end{center}
+  \begin{center}
+    \small The one-versus-rest approach can lead to ambiguous regions.
+  \end{center}
+\end{frame}
+
+\begin{frame}{One-Versus-One (OvO)}
+  \begin{itemize}
+    \item Train $K(K-1)/2$ pairwise classifiers $f_{ij}$.
+    \item $f_{ij}(\x) > 0 \Rightarrow$ vote for $C_i$; \quad $f_{ij}(\x) < 0 \Rightarrow$ vote for $C_j$.
+    \item Assign to the class with the most votes:
+    \[
+      k = \arg\max_{m} \sum_{j \neq m} \text{sgn}(f_{mj}(\x)).
+    \]
+  \end{itemize}
+  \begin{alertblock}{Limitation}
+    Some regions may remain \alert{unassigned} due to ties.
+    Computational cost grows as $O(K^2)$.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Figure: One-Versus-One Unassigned Regions}
+  \begin{center}
+    \includegraphics[width=5cm]{figure/fig25.pdf}
+  \end{center}
+  \begin{center}
+    \small The one-versus-one approach using majority voting can leave regions unassigned.
+  \end{center}
+\end{frame}
+
+\begin{frame}{The $K$-Class Discriminant (Argmax)}
+  \begin{itemize}
+    \item Define $K$ linear scoring functions:
+    \[
+      y_i(\x) = \w_i^T\x + b_i, \quad i = 1,\ldots,K.
+    \]
+    \item Classify using a \alert{winner-take-all} rule:
+    \[
+      k = \arg\max_{j}\; y_j(\x).
+    \]
+    \item Every point receives exactly one label — \alert{no ambiguity or gaps}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Decision Boundaries of the Argmax Classifier}
+  \begin{itemize}
+    \item Boundary between $C_i$ and $C_j$: $y_i(\x) = y_j(\x)$, i.e.,
+    \[
+      (\w_i - \w_j)^T\x + (b_i - b_j) = 0.
+    \]
+    \item Each pairwise boundary is a $(d-1)$-dimensional \alert{hyperplane}.
+    \item The $K$ decision regions are \alert{convex} and \alert{connected}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Convexity of Decision Regions}
+  \begin{itemize}
+    \item Let $\x_A, \x_B \in \mathcal{R}_k$ (both in region of class $C_k$).
+    \item By linearity: for any $\hat{\x} = \lambda\x_A + (1-\lambda)\x_B$, $0 \le \lambda \le 1$:
+    \[
+      y_k(\hat{\x}) = \lambda y_k(\x_A) + (1-\lambda)y_k(\x_B)
+      > \lambda y_j(\x_A) + (1-\lambda)y_j(\x_B) = y_j(\hat{\x}).
+    \]
+    \item Therefore $\hat{\x} \in \mathcal{R}_k$: the region is \alert{convex}.
+    \item Small perturbations of a correctly classified point stay in the same region.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Figure: Convex Decision Regions}
+  \begin{center}
+    \includegraphics[width=5cm]{figs/Figure4-3.pdf}
+  \end{center}
+  \begin{center}
+    \small The decision regions formed by $K$ linear discriminant functions are convex and simply connected.
+  \end{center}
+\end{frame}
+
+\begin{frame}{Comparative Summary: Multiclass Strategies}
+  \begin{center}
+  \begin{tabular}{lccc}
+    \toprule
+    & \textbf{OvR} & \textbf{OvO} & \textbf{Argmax} \\
+    \midrule
+    \# classifiers & $K-1$ & $K(K-1)/2$ & $K$ \\
+    Unambiguous coverage & \alert{No} & \alert{No} & \textbf{Yes} \\
+    Convex regions & \alert{No} & \alert{No} & \textbf{Yes} \\
+    Complexity & Low & Quadratic & Linear \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Beyond Linearity: Quadratic Discriminants}
+  \begin{itemize}
+    \item Add pairwise feature interactions to the linear model:
+    \[
+      h(\x;\w,b) = b + \sum_{i=1}^{d} w_i x_i + \sum_{i=1}^{d}\sum_{j=1}^{i} w_{ij} x_i x_j.
+    \]
+    \item Introduces $\frac{d(d+1)}{2}$ additional parameters.
+    \item Allows \alert{curved decision boundaries} (ellipsoids, parabolas, etc.).
+    \item Equivalent to a linear classifier in an \alert{expanded feature space}.
+    \item Anticipates the idea of \alert{kernel methods}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Least Squares for Classification}
+
+\begin{frame}{Adapting Least Squares to Classification}
+  \begin{itemize}
+    \item Use the \alert{1-of-$K$} coding scheme for targets.
+    \item Derive $K$ discriminant functions $h_i(\x) = \w_i^T\x + b_i$ via least squares.
+    \item Classification rule:
+    \[
+      k = \arg\max_{i}\; h_i(\x).
+    \]
+    \item $h_i(\x)$ approximates $\mathbb{E}[z_i|\x] = P(C_i|\x)$ — the \alert{posterior probability}.
+    \item Caveat: predictions are not constrained to $[0,1]$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Matrix Formulation}
+  \begin{itemize}
+    \item Augmented representation: $\bar{\x} = (1, x_1,\ldots,x_d)^T$, $\bar{\mathbf{X}} \in \Real^{n \times (d+1)}$.
+    \item Weight matrix $\bar{\mathbf{W}} \in \Real^{(d+1)\times K}$ (columns = weight vectors per class).
+    \item Predictions for all training points:
+    \[
+      \bar{\mathbf{Y}} = \bar{\mathbf{W}}\bar{\mathbf{X}}^T \in \Real^{K \times n}.
+    \]
+    \item Residual matrix: $\mathbf{R} = \bar{\mathbf{W}}\bar{\mathbf{X}}^T - \mathbf{T}$.
+    \item Loss function:
+    \[
+      E(\bar{\mathbf{W}}) = \tfrac{1}{2}\,\mathrm{tr}\!\left(\mathbf{R}^T\mathbf{R}\right).
+    \]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Closed-Form Solution}
+  \begin{itemize}
+    \item Setting $\nabla_{\mathbf{W}} E(\bar{\mathbf{W}}) = \mathbf{0}$:
+    \[
+      \nabla_{\mathbf{W}} E(\bar{\mathbf{W}}) = \bar{\mathbf{X}}^T\bar{\mathbf{X}}\bar{\mathbf{W}} - \bar{\mathbf{X}}^T\mathbf{T} = \mathbf{0}.
+    \]
+    \item Optimal weight matrix:
+    \[
+      \bar{\mathbf{W}} = (\bar{\mathbf{X}}^T\bar{\mathbf{X}})^{-1}\bar{\mathbf{X}}^T\mathbf{T}.
+    \]
+    \item Resulting discriminant functions:
+    \[
+      \mathbf{h}(\x) = \bar{\mathbf{W}}^T\bar{\x} = \mathbf{T}^T\bar{\mathbf{X}}(\bar{\mathbf{X}}^T\bar{\mathbf{X}})^{-1}\bar{\x}.
+    \]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Limitations of Least Squares Classification}
+  \begin{itemize}
+    \item Predictions are \alert{not bounded} in $[0,1]$: not proper probabilities.
+    \item Sensitive to \alert{outliers} and imbalanced class distributions.
+    \item Minimizes squared error — not directly related to classification error.
+    \item Despite limitations, provides a useful \alert{closed-form baseline}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Fisher Linear Discriminant}
+
+\begin{frame}{Motivation: Linear Discriminant Analysis}
+  \begin{itemize}
+    \item LDA finds a \alert{linear projection} of the data that maximises class separation.
+    \item Key idea: transform the feature space so that classes become more separable.
+    \item Binary case: project $\x \in \Real^d$ onto a scalar $y = \w^T\x$.
+    \item Then classify using a threshold $\tilde{y}$ on the projected value.
+    \item Constraint: $\|\w\|_2 = 1$ (direction only matters, not scale).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Figure: Projection Direction Examples}
+  \begin{center}
+  \begin{tabular}{rcl}
+    \includegraphics[width=0.3\textwidth]{figures/fisher21.pdf}&
+    \hspace{2mm}&
+    \includegraphics[width=0.3\textwidth]{figures/fisher22.pdf}\\
+    \includegraphics[width=0.3\textwidth]{figures/fisher23.pdf}&
+    \hspace{2mm}&
+    \includegraphics[width=0.3\textwidth]{figures/fisher24.pdf}
+  \end{tabular}
+  \end{center}
+  \begin{center}
+    \small Different projection directions yield varying degrees of class separation.
+  \end{center}
+\end{frame}
+
+\begin{frame}{Initial Criterion: Maximise Mean Separation}
+  \begin{itemize}
+    \item Class means: $\mathbf{m}_i = \frac{1}{n_i}\sum_{\x \in C_i}\x$.
+    \item Projected means: $m_i = \w^T\mathbf{m}_i$.
+    \item Separation of projected means: $m_2 - m_1 = \w^T(\mathbf{m}_2 - \mathbf{m}_1)$.
+    \item Naive goal: $\max_{\w}\; \w^T(\mathbf{m}_2 - \mathbf{m}_1)$ subject to $\w^T\w = 1$.
+    \item Solution: $\w \propto \mathbf{m}_2 - \mathbf{m}_1$ (normalised difference of means).
+  \end{itemize}
+  \begin{alertblock}{Problem}
+    Maximising mean separation \alert{ignores within-class spread} — classes may still overlap.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Figure: Limitation of Mean Separation}
+  \begin{center}
+    \includegraphics[width=0.65\textwidth]{figures/fisher.pdf}
+  \end{center}
+  \begin{center}
+    \small High projected-mean separation but large within-class variance leads to overlap.
+  \end{center}
+\end{frame}
+
+\begin{frame}{The Fisher Criterion}
+  \begin{itemize}
+    \item \textbf{Within-class variance} (projected):
+    \[
+      s_i^2 = \sum_{\x \in C_i} (\w^T\x - m_i)^2.
+    \]
+    \item \textbf{Fisher criterion}: maximise separation relative to dispersion:
+    \[
+      J(\w) = \frac{(m_2 - m_1)^2}{s_1^2 + s_2^2}.
+    \]
+    \item Large numerator $\Rightarrow$ well-separated means.
+    \item Small denominator $\Rightarrow$ compact classes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Scatter Matrices}
+  \begin{itemize}
+    \item \textbf{Within-class covariance} for class $C_i$:
+    \[
+      \mathbf{S}_i = \sum_{\x \in C_i} (\x - \mathbf{m}_i)(\x - \mathbf{m}_i)^T.
+    \]
+    \item Projected within-class variance: $s_i^2 = \w^T\mathbf{S}_i\w$.
+    \item \textbf{Total within-class scatter}: $\mathbf{S}_W = \mathbf{S}_1 + \mathbf{S}_2$.
+    \item \textbf{Between-class scatter} (rank-1):
+    \[
+      \mathbf{S}_B = (\mathbf{m}_2 - \mathbf{m}_1)(\mathbf{m}_2 - \mathbf{m}_1)^T.
+    \]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Matrix Form of the Fisher Criterion}
+  \begin{itemize}
+    \item Squared mean separation: $(m_2 - m_1)^2 = \w^T\mathbf{S}_B\w$.
+    \item Fisher criterion in matrix form:
+    \[
+      J(\w) = \frac{\w^T\mathbf{S}_B\w}{\w^T\mathbf{S}_W\w}.
+    \]
+    \item This is a \alert{ratio of two quadratic forms}.
+    \item Numerator rewards alignment with the inter-class direction.
+    \item Denominator penalises directions of high within-class variability.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Optimal Projection Direction}
+  \begin{itemize}
+    \item Setting $\nabla_{\w} J(\w) = \mathbf{0}$ leads to the generalized eigenvalue problem:
+    \[
+      (\w^T\mathbf{S}_B\w)\,\mathbf{S}_W\w = (\w^T\mathbf{S}_W\w)\,\mathbf{S}_B\w.
+    \]
+    \item Noting scalar factors, the direction-only solution is:
+  \end{itemize}
+  \begin{block}{Fisher Solution}
+    \[
+      \hat{\w} = \mathbf{S}_W^{-1}(\mathbf{m}_2 - \mathbf{m}_1) = (\mathbf{S}_1 + \mathbf{S}_2)^{-1}(\mathbf{m}_2 - \mathbf{m}_1).
+    \]
+  \end{block}
+  \begin{itemize}
+    \item $\mathbf{S}_W^{-1}$ acts as a \alert{whitening transform}: down-weights high-variance directions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Determining the Optimal Threshold}
+  \begin{itemize}
+    \item After finding $\hat{\w}$, we need threshold $\tilde{y}$ for the 1-D decision.
+    \item Assume projected values follow Gaussians; estimate parameters by MLE:
+    \[
+      m_i = \frac{1}{n_i}\sum_{\x \in C_i}\w^T\x, \qquad
+      \sigma_i^2 = \frac{1}{n_i-1}\sum_{\x \in C_i}(\w^T\x - m_i)^2.
+    \]
+    \item Apply Bayes' theorem: $p(C_i|y) \propto n_i\,e^{-\frac{(y-m_i)^2}{2\sigma_i^2}}$.
+    \item Set $\tilde{y}$ where posterior probabilities are equal:
+    \[
+      \frac{p(C_2|y)}{p(C_1|y)} = \frac{n_2}{n_1}\frac{p(y|C_2)}{p(y|C_1)} = 1.
+    \]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Limitations of Binary LDA}
+  \begin{itemize}
+    \item Assumes \alert{equal covariance structure} for both classes (pooled $\mathbf{S}_W$).
+    \item Designed for \alert{binary classification} — extensions needed for $K > 2$.
+    \item If Gaussian assumption is violated, threshold selection may be suboptimal.
+    \item Despite limitations, Fisher LDA is a cornerstone of pattern recognition.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Multiclass LDA}
+
+\begin{frame}{Extending LDA to $K > 2$ Classes}
+  \begin{itemize}
+    \item For $K > 2$, project onto a $D'$-dimensional subspace ($D' \le K-1$):
+    \[
+      y_k = \w_k^T\x \quad (k = 1,\ldots,D'), \qquad \mathbf{y} = \mathbf{W}^T\x.
+    \]
+    \item Goal: choose $\mathbf{W}$ to \alert{maximise between-class} and \alert{minimise within-class} scatter.
+    \item Generalise scatter matrices from the binary case.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Within-Class Scatter Matrix ($K$ Classes)}
+  \begin{itemize}
+    \item Class mean: $\mathbf{m}_i = \frac{1}{n_i}\sum_{\x \in C_i}\x$.
+    \item Within-class scatter for $C_i$: $\mathbf{S}_i = \sum_{\x \in C_i}(\x-\mathbf{m}_i)(\x-\mathbf{m}_i)^T$.
+    \item Total within-class scatter:
+    \[
+      \mathbf{S}_W = \sum_{i=1}^{K}\mathbf{S}_i = \sum_{i=1}^{K}\sum_{\x \in C_i}(\x-\mathbf{m}_i)(\x-\mathbf{m}_i)^T.
+    \]
+    \item Captures the overall spread \alert{within} classes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Between-Class Scatter Matrix}
+  \begin{itemize}
+    \item Overall mean: $\mathbf{m} = \frac{1}{n}\sum_{i=1}^{K} n_i\mathbf{m}_i$.
+    \item Total scatter: $\mathbf{S}_T = \sum_{\x}(\x-\mathbf{m})(\x-\mathbf{m})^T$.
+    \item Key decomposition: $\mathbf{S}_T = \mathbf{S}_W + \mathbf{S}_B$, where
+    \[
+      \mathbf{S}_B = \sum_{i=1}^{K} n_i(\mathbf{m}_i - \mathbf{m})(\mathbf{m}_i - \mathbf{m})^T.
+    \]
+    \item $\mathbf{S}_B$ measures spread of class means around the \alert{global mean}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Scatter Matrices in the Projected Space}
+  \begin{itemize}
+    \item Projected within- and between-class scatter:
+    \[
+      \mathbf{s}_W = \mathbf{W}^T\mathbf{S}_W\mathbf{W}, \qquad
+      \mathbf{s}_B = \mathbf{W}^T\mathbf{S}_B\mathbf{W}.
+    \]
+    \item The projected scatter matrices are \alert{linear transformations} of the original ones.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Objective Functions for Multiclass LDA}
+  \begin{block}{Determinant Ratio Criterion}
+    \[
+      J_1(\mathbf{W}) = \frac{|\mathbf{s}_B|}{|\mathbf{s}_W|}
+      = |(\mathbf{W}^T\mathbf{S}_W\mathbf{W})^{-1}\mathbf{W}^T\mathbf{S}_B\mathbf{W}|.
+    \]
+    Maximises the volume ratio of between- to within-class scatter.
+  \end{block}
+  \vspace{0.5em}
+  \begin{block}{Trace Ratio Criterion}
+    \[
+      J_2(\mathbf{W}) = \mathrm{tr}(\mathbf{s}_W^{-1}\mathbf{s}_B)
+      = \mathrm{tr}\!\left\{(\mathbf{W}^T\mathbf{S}_W\mathbf{W})^{-1}\mathbf{W}^T\mathbf{S}_B\mathbf{W}\right\}.
+    \]
+    Maximises the sum of between/within eigenvalue ratios.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Generalized Eigenvalue Problem}
+  \begin{itemize}
+    \item Both criteria lead to:
+    \[
+      \mathbf{S}_B\w_i = \lambda_i\,\mathbf{S}_W\w_i, \quad i = 1,\ldots,D'.
+    \]
+    \item If $\mathbf{S}_W$ is invertible, equivalent to:
+    \[
+      (\mathbf{S}_W^{-1}\mathbf{S}_B)\w_i = \lambda_i\w_i.
+    \]
+    \item Optimal $\mathbf{W}^*$: eigenvectors corresponding to the $D'$ \alert{largest eigenvalues}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Dimensionality Reduction via Multiclass LDA}
+  \begin{itemize}
+    \item $\mathbf{S}_B$ has rank at most $K-1$ (at most $K-1$ independent class mean directions).
+    \item Maximum number of meaningful discriminant directions: \alert{$D' = K-1$}.
+    \item LDA reduces dimensionality from $D$ to \alert{at most $K-1$}.
+    \item This can be a dramatic reduction for high-dimensional data with few classes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Practical Implementation of Multiclass LDA}
+  \begin{enumerate}
+    \item Compute $\mathbf{S}_W$ and $\mathbf{S}_B$ from training data.
+    \item Solve the generalized eigenvalue problem $\mathbf{S}_B\w = \lambda\mathbf{S}_W\w$.
+    \item Sort eigenvalues in descending order; select top $K-1$ eigenvectors.
+    \item Form projection matrix $\mathbf{W}$ from selected eigenvectors.
+    \item Project all data: $\mathbf{y} = \mathbf{W}^T\x$.
+  \end{enumerate}
+  \medskip
+  \begin{itemize}
+    \item $\w_1$: direction of \alert{maximum class separation}.
+    \item $\w_2, \w_3,\ldots$: additional orthogonal separation directions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Figure: Multiclass LDA Visualisation}
+  \begin{center}
+    \includegraphics[width=0.55\linewidth]{figures/multiclass_lda_example.png}
+  \end{center}
+  \begin{center}
+    \small Separation of three classes in 2D via LDA.
+  \end{center}
+\end{frame}
+
+\begin{frame}{Limitations of Multiclass LDA}
+  \begin{itemize}
+    \item \textbf{Singularity}: if $n < D$, $\mathbf{S}_W$ is singular.
+      Remedies: regularization or PCA preprocessing.
+    \item \textbf{Gaussian assumption}: each class assumed Gaussian with \alert{equal covariance}.
+      Alternative: Quadratic Discriminant Analysis (QDA).
+    \item \textbf{Linearity}: only linear decision boundaries.
+      Alternative: Kernel LDA for nonlinear boundaries.
+    \item \textbf{Class imbalance}: $\mathbf{S}_B$ weights classes by size $n_i$; large classes dominate.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{The Perceptron}
+
+\begin{frame}{The Perceptron Model}
+  \begin{itemize}
+    \item Introduced in the 1960s; one of the first formal learning models.
+    \item A mathematical abstraction of a \alert{biological neuron}.
+    \item Binary classifier using a weighted sum followed by a hard threshold.
+    \item Can only classify \alert{linearly separable} data.
+  \end{itemize}
+  \begin{block}{Perceptron hypothesis}
+    \[
+      h(\x) = f(\w^T\x + b) = f(\bar{\w}^T\bar{\x}), \quad
+      f(a) = \begin{cases} -1 & a < 0 \\ 1 & a \ge 0 \end{cases}.
+    \]
+  \end{block}
+  \begin{itemize}
+    \item $h(\x) = 1 \Rightarrow C_1$; \quad $h(\x) = -1 \Rightarrow C_2$.
+    \item Target labels: $t_i \in \{-1, +1\}$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{The Perceptron Cost Function}
+  \begin{itemize}
+    \item Counting misclassifications $\Rightarrow$ piecewise constant: \alert{not differentiable}.
+    \item Instead, use a \alert{continuous piecewise-linear} cost.
+    \item Correct classification condition: $\bar{\w}^T\bar{\x}_i\, t_i > 0$ for all $i$.
+    \item Contribution of misclassified point $\x_i$: $-\bar{\w}^T\bar{\x}_i\, t_i > 0$.
+    \item \textbf{Perceptron criterion}:
+    \[
+      E_p(\bar{\w}) = -\sum_{\x_i \in \mathcal{M}} \bar{\w}^T\bar{\x}_i\, t_i,
+    \]
+    where $\mathcal{M}$ is the set of currently misclassified points.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Perceptron Learning Algorithm}
+  \begin{itemize}
+    \item Gradient of the cost:
+    \[
+      \nabla_{\bar{\w}} E_p(\bar{\w}) = -\sum_{\x_i \in \mathcal{M}} \bar{\x}_i\, t_i.
+    \]
+    \item \textbf{Batch update}:
+    \[
+      \bar{\w}^{(k+1)} = \bar{\w}^{(k)} + \eta \sum_{\x_i \in \mathcal{M}_k} \bar{\x}_i\, t_i.
+    \]
+    \item \textbf{Online (stochastic) update} — one misclassified point at a time:
+    \[
+      \bar{\w}^{(k+1)} = \bar{\w}^{(k)} + \eta\, \bar{\x}_i\, t_i, \quad \x_i \in \mathcal{M}_k.
+    \]
+    \item Learning rate $\eta > 0$ controls step size.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Figure: Perceptron Learning Iterations}
+  \begin{center}
+    \includegraphics[width=10cm]{figure/fig32.pdf}
+  \end{center}
+  \begin{center}
+    \small Perceptron learning iterations.
+  \end{center}
+\end{frame}
+
+\begin{frame}{Why Each Update Reduces the Local Error}
+  \begin{itemize}
+    \item After updating on misclassified $\x_i$:
+    \begin{align*}
+      -\bar{\x}_i^T\bar{\w}^{(k+1)}t_i
+      &= -\bar{\x}_i^T\bar{\w}^{(k)}t_i - \eta\|\bar{\x}_i\|^2 \\
+      &< -\bar{\x}_i^T\bar{\w}^{(k)}t_i.
+    \end{align*}
+    \item The cost contribution of $\x_i$ \alert{strictly decreases} after each update.
+    \item Caveat: other previously correct points may become misclassified.
+    \item However: if data are linearly separable, the algorithm \alert{converges in finite steps}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Perceptron Convergence Theorem}
+
+\begin{frame}{Setting Up the Convergence Proof}
+  \begin{itemize}
+    \item \textbf{Assumption}: training data are \alert{linearly separable}.
+    \item There exists $\bar{\w}^*$ (normalised: $\|\bar{\w}^*\| = 1$) such that:
+    \[
+      \bar{\w}^{*T}\bar{\x}_i\, t_i > 0 \quad \forall i.
+    \]
+    \item \textbf{Margin}: minimum signed distance from any training point to the boundary:
+    \[
+      \gamma = \min_i\; \bar{\w}^{*T}\bar{\x}_i\, t_i > 0.
+    \]
+    \item \textbf{Data radius}: maximum norm of any training example:
+    \[
+      R = \max_i\; \|\bar{\x}_i\|.
+    \]
+    \item Both $\gamma$ and $R$ capture the \alert{intrinsic geometry} of the problem.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Central Intuition}
+  \begin{itemize}
+    \item Track two quantities through the learning trajectory:
+      \begin{enumerate}
+        \item \textbf{Alignment}: $\bar{\w}^{(k)T}\bar{\w}^*$ — how close $\bar{\w}^{(k)}$ is to the optimal direction.
+        \item \textbf{Norm}: $\|\bar{\w}^{(k)}\|^2$ — how large the weight vector grows.
+      \end{enumerate}
+    \item Key insight:
+      \begin{itemize}
+        \item Alignment grows \alert{at least linearly} with the number of updates.
+        \item Norm grows \alert{at most as $\sqrt{k}$} (sublinearly).
+      \end{itemize}
+    \item This disparity \alert{forces convergence} in a finite number of steps.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Step 1: Growth of Alignment}
+  \begin{itemize}
+    \item On a misclassified step $k+1$: update $\bar{\w}^{(k+1)} = \bar{\w}^{(k)} + \eta\bar{\x}_{k+1}t_{k+1}$.
+    \item Inner product with $\bar{\w}^*$:
+    \[
+      \bar{\w}^{(k+1)T}\bar{\w}^* = \bar{\w}^{(k)T}\bar{\w}^* + \eta\,\bar{\x}_{k+1}^T\bar{\w}^*\,t_{k+1}.
+    \]
+    \item Since $\x_{k+1}$ is correctly classified by $\bar{\w}^*$: $\bar{\x}_{k+1}^T\bar{\w}^*\,t_{k+1} \ge \gamma$.
+    \item Therefore:
+    \[
+      \bar{\w}^{(k+1)T}\bar{\w}^* \ge \bar{\w}^{(k)T}\bar{\w}^* + \eta\gamma.
+    \]
+    \item Recursively, starting from $\bar{\w}^{(0)} = \mathbf{0}$:
+    \[
+      \bar{\w}^{(T)T}\bar{\w}^* \ge T\,\eta\,\gamma.
+    \]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Step 2: Controlled Growth of the Norm}
+  \begin{itemize}
+    \item Expanding the squared norm after update:
+    \[
+      \|\bar{\w}^{(k+1)}\|^2 = \|\bar{\w}^{(k)}\|^2 + 2\eta\,\bar{\w}^{(k)T}\bar{\x}_{k+1}t_{k+1} + \eta^2\|\bar{\x}_{k+1}\|^2.
+    \]
+    \item Since $\x_{k+1}$ is \alert{misclassified}: $\bar{\w}^{(k)T}\bar{\x}_{k+1}t_{k+1} < 0$.
+    \item Dropping the negative cross-term:
+    \[
+      \|\bar{\w}^{(k+1)}\|^2 \le \|\bar{\w}^{(k)}\|^2 + \eta^2\|\bar{\x}_{k+1}\|^2 \le \|\bar{\w}^{(k)}\|^2 + \eta^2 R^2.
+    \]
+    \item Accumulated over $k$ updates:
+    \[
+      \|\bar{\w}^{(k)}\|^2 \le k\,\eta^2 R^2 \quad \Rightarrow \quad \|\bar{\w}^{(k)}\| \le \sqrt{k}\,\eta R.
+    \]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Step 3: Combining the Bounds}
+  \begin{itemize}
+    \item Cauchy--Schwarz inequality:
+    \[
+      \bar{\w}^{(T)T}\bar{\w}^* \le \|\bar{\w}^{(T)}\|\,\|\bar{\w}^*\| = \|\bar{\w}^{(T)}\|.
+    \]
+    \item Combining with both bounds:
+    \[
+      T\,\eta\,\gamma \le \|\bar{\w}^{(T)}\| \le \sqrt{T}\,\eta R.
+    \]
+    \item Squaring: $T^2\eta^2\gamma^2 \le T\eta^2 R^2$.
+    \item Dividing by $T\eta^2$:
+  \end{itemize}
+  \begin{block}{Perceptron Convergence Bound}
+    \[
+      T \le \left(\frac{R}{\gamma}\right)^2.
+    \]
+    The number of updates is \alert{finite} and bounded by $(R/\gamma)^2$.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Interpretation of the Convergence Bound}
+  \begin{itemize}
+    \item $T \le (R/\gamma)^2$: convergence in at most $(R/\gamma)^2$ weight updates.
+    \item \textbf{Large margin $\gamma$} $\Rightarrow$ fast convergence (well-separated classes).
+    \item \textbf{Small margin $\gamma$} $\Rightarrow$ slower convergence (nearly touching classes).
+    \item The bound is \alert{independent} of:
+      \begin{itemize}
+        \item The dimensionality $d$ of the feature space.
+        \item The total number of training points $n$.
+      \end{itemize}
+    \item In practice, actual convergence is often \alert{much faster} than the worst case.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Limitations of the Perceptron}
+  \begin{itemize}
+    \item Convergence is guaranteed \alert{only} when the data are linearly separable.
+    \item If not separable: the algorithm may \alert{oscillate indefinitely}.
+    \item Does not provide probabilistic class estimates.
+    \item Does not maximise the margin (no notion of best hyperplane among valid ones).
+    \item Motivated the development of:
+      \begin{itemize}
+        \item \textbf{Support Vector Machines} — explicitly maximise margin.
+        \item \textbf{Multilayer Neural Networks} — learn nonlinear decision boundaries.
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Summary}
+
+\begin{frame}{Summary: Key Formulas}
+  \renewcommand{\arraystretch}{1.5}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Result} & \textbf{Formula} \\
+    \midrule
+    Hyperplane boundary & $\w^T\x + b = 0$ \\
+    Signed distance & $\frac{\w^T\x + b}{\|\w\|}$ \\
+    OvO voting & $k = \arg\max_m \sum_{j \neq m}\mathrm{sgn}(f_{mj}(\x))$ \\
+    Argmax classifier & $k = \arg\max_j y_j(\x)$ \\
+    Least squares solution & $\bar{\mathbf{W}} = (\bar{\mathbf{X}}^T\bar{\mathbf{X}})^{-1}\bar{\mathbf{X}}^T\mathbf{T}$ \\
+    Fisher solution & $\hat{\w} = \mathbf{S}_W^{-1}(\mathbf{m}_2 - \mathbf{m}_1)$ \\
+    Multiclass LDA & $\mathbf{S}_B\w_i = \lambda_i\mathbf{S}_W\w_i$ \\
+    Perceptron update & $\bar{\w}^{(k+1)} = \bar{\w}^{(k)} + \eta\bar{\x}_i t_i$ \\
+    Convergence bound & $T \le (R/\gamma)^2$ \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Summary: Methods at a Glance}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Multiclass Strategies}
+        \begin{itemize}
+          \item OvR: simple, $K-1$ classifiers, ambiguous regions.
+          \item OvO: pairwise, $O(K^2)$, unclassified regions.
+          \item Argmax: unified, convex regions, no ambiguity.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Least Squares}
+        \begin{itemize}
+          \item Adapt regression to classification.
+          \item Closed-form, interpretable as posterior estimate.
+          \item Not probability-bounded.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Fisher / LDA}
+        \begin{itemize}
+          \item Maximise $J(\w) = \frac{\w^T\mathbf{S}_B\w}{\w^T\mathbf{S}_W\w}$.
+          \item Binary: $\hat{\w} = \mathbf{S}_W^{-1}(\mathbf{m}_2-\mathbf{m}_1)$.
+          \item Multiclass: up to $K-1$ discriminant directions.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Perceptron}
+        \begin{itemize}
+          \item Online update on misclassified points.
+          \item Converges iff data are linearly separable.
+          \item Bound: $T \le (R/\gamma)^2$.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+%\end{document}

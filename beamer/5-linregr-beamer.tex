@@ -1,0 +1,1518 @@
+%!TEX program = xelatex
+%!TEX root = ../all_beamer.tex
+
+%\documentclass[10pt,aspectratio=169]{beamer}
+%
+%% ── Theme ────────────────────────────────────────────────────────────────────
+%\usetheme{Madrid}
+%\usecolortheme{default}
+%
+%% ── Custom Tor Vergata palette ───────────────────────────────────────────────
+%\definecolor{MainBlue}{HTML}{1F3C6E}
+%\definecolor{AccentBlue}{HTML}{0070C0}
+%\definecolor{torgray}{HTML}{E8EDF4}
+%\definecolor{AlertRed}{HTML}{C0392B}
+%\definecolor{ExGreen}{HTML}{1A7A4A}
+%\definecolor{warnOrange}{HTML}{D35400}
+%
+%\setbeamercolor{palette primary}{bg=MainBlue,fg=white}
+%\setbeamercolor{palette secondary}{bg=MainBlue!80,fg=white}
+%\setbeamercolor{palette tertiary}{bg=MainBlue!60,fg=white}
+%\setbeamercolor{palette quaternary}{bg=MainBlue,fg=white}
+%\setbeamercolor{structure}{fg=MainBlue}
+%\setbeamercolor{section in toc}{fg=MainBlue}
+%\setbeamercolor{block title}{bg=MainBlue,fg=white}
+%\setbeamercolor{block body}{bg=torgray}
+%\setbeamercolor{block title alerted}{bg=AlertRed,fg=white}
+%\setbeamercolor{block body alerted}{bg=AlertRed!10}
+%\setbeamercolor{block title example}{bg=ExGreen,fg=white}
+%\setbeamercolor{block body example}{bg=ExGreen!10}
+%\setbeamercolor{alerted text}{fg=AlertRed}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+%\usepackage{amsmath,amssymb,bm}
+%\usepackage{pgfplots}
+%\pgfplotsset{compat=1.18}
+%\usepackage{tikz}
+%\usetikzlibrary{arrows.meta,positioning,shapes,decorations.pathreplacing,calc,decorations.markings}
+%\usepgfplotslibrary{fillbetween}
+%\usepackage{booktabs}
+%\usepackage{multicol}
+%\usepackage{graphicx}
+%\usepackage{xcolor}
+%\usepackage{mathtools}
+%
+%% ── Math macros ──────────────────────────────────────────────────────────────
+%
+%
+%\newcommand{\ow}{\overline{\mathbf{w}}}
+%\newcommand{\ox}{\overline{\mathbf{x}}}
+%\newcommand{\oX}{\overline{\mathbf{X}}}
+%
+%\newcommand{\argmin}[1]{\underset{#1}{\operatorname{arg\,min}}}
+%\newcommand{\argmax}[1]{\underset{#1}{\operatorname{arg\,max}}}
+%\DeclareMathOperator{\Tr}{Tr}
+
+% ── Footline ─────────────────────────────────────────────────────────────────
+%\setbeamertemplate{footline}{%
+%  \leavevmode%
+%  \hbox{%
+%    \begin{beamercolorbox}[wd=.35\paperwidth,ht=2.25ex,dp=1ex,center]{palette primary}%
+%      \usebeamerfont{author in head/foot}G.~Gambosi
+%    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=.45\paperwidth,ht=2.25ex,dp=1ex,center]{palette secondary}%
+%      \usebeamerfont{title in head/foot}Linear Regression
+%    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=.20\paperwidth,ht=2.25ex,dp=1ex,center]{palette tertiary}%
+%      \usebeamerfont{date in head/foot}2025-2026 \quad \insertframenumber/\inserttotalframenumber
+%    \end{beamercolorbox}%
+%  }%
+%  \vskip0pt%
+%}
+%\setbeamertemplate{navigation symbols}{}
+%
+%% ── Item style ───────────────────────────────────────────────────────────────
+%\setbeamertemplate{itemize item}{\color{AccentBlue}\textbullet}
+%\setbeamertemplate{itemize subitem}{\color{AccentBlue}$\circ$}
+%\setbeamertemplate{enumerate item}{\color{MainBlue}\textbf{\insertenumlabel.}}
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  TITLE
+% ─────────────────────────────────────────────────────────────────────────────
+\title[Linear Regression]{Linear Regression}
+%\subtitle{Course of Machine Learning}
+%\author{Giorgio Gambosi}
+%\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+%\date{A.Y. 2025–2026}
+
+% ─────────────────────────────────────────────────────────────────────────────
+%\begin{document}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ── Table of Contents ─────────────────────────────────────────────────────────
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+% =============================================================================
+\section{Linear Models and Basis Functions}
+% =============================================================================
+
+\begin{frame}{The Linear Predictor}
+  \begin{block}{Definition}
+    A \alert{linear model} predicts output as a weighted sum of input features plus a bias.
+  \end{block}
+  \vspace{.3em}
+  For a $d$-dimensional input $\x = (x_1,\ldots,x_d)^T$:
+  \[
+    h(\x;\,w_1,\ldots,w_d,b) = w_1 x_1 + w_2 x_2 + \cdots + w_d x_d + b
+  \]
+  \begin{itemize}
+    \item $w_i$ — weight for feature $x_i$.
+    \item $b$ — \alert{bias}: shifts the decision surface from the origin.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Compact Vector Notation}
+  Writing $\w = (w_1,\ldots,w_d)^T \in \Real^d$:
+  \[
+    h(\x;\w,b) = \w^T\x + b =
+    \begin{pmatrix}w_1&w_2&\cdots&w_d\end{pmatrix}
+    \begin{pmatrix}x_1\\x_2\\\vdots\\x_d\end{pmatrix} + b
+  \]
+  \vspace{.3em}
+  \begin{alertblock}{Two senses of linearity}
+    \begin{itemize}
+      \item \textbf{Linearity in features} $\x$: hyperplane in input space.
+      \item \textbf{Linearity in parameters} $\w, b$: convex objective $\Rightarrow$ global optimum is easy to find.
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+% ── Subsection: Feature Engineering ──────────────────────────────────────────
+\subsection{Feature Engineering and Basis Functions}
+
+\begin{frame}{Basis Function Expansion}
+  \begin{block}{Idea}
+    Map $\x\in\Real^d$ into a higher-dimensional space $\Real^m$ using \alert{basis functions}
+    $\{\phi_1,\ldots,\phi_m\}$.
+  \end{block}
+  \[
+    \Vphi(\x) = (\phi_1(\x),\ldots,\phi_m(\x))^T
+  \]
+  The model becomes:
+  \[
+    h(\x;\w,b) = \sum_{j=1}^m w_j\,\phi_j(\x) + b
+  \]
+  \begin{exampleblock}{Key observation}
+    Basis functions \emph{do not} break linearity in parameters $\w$ —
+    we still perform a linear combination, but of transformed inputs.
+  \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Types of Basis Functions}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{block}{Polynomial (Global)}
+    $\phi_j(x) = x^j$\\[2pt]
+    {\small Affects prediction over the \emph{entire} input range.
+    Can be unstable near boundaries.}
+  \end{block}
+  \vspace{.4em}
+  \begin{block}{Gaussian (Local)}
+    $\phi_j(x)=\exp\!\left(-\dfrac{(x-\mu_j)^2}{2s^2}\right)$\\[2pt]
+    {\small Bell-shaped; significant only near centre $\mu_j$.}
+  \end{block}
+  \column{.50\textwidth}
+  \begin{block}{Sigmoid (Local)}
+    $\phi_j(x)=\sigma\!\left(\dfrac{x-\mu_j}{s}\right)=\dfrac{1}{1+e^{-(x-\mu_j)/s}}$\\[2pt]
+    {\small Step-like transition centred at $\mu_j$.}
+  \end{block}
+  \vspace{.4em}
+  \begin{block}{Hyperbolic Tangent (Local)}
+    $\phi_j(x)=\tanh(x) = 2\sigma(x)-1$\\[2pt]
+    {\small Maps to $[-1,1]$; common in neural networks.}
+  \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Basis Functions --- Illustration}
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{axis}[
+        width=.82\textwidth, height=5.2cm,
+        xlabel={$x$}, ylabel={$\phi(x)$},
+        xmin=-3, xmax=3, ymin=-0.1, ymax=1.15,
+        legend pos=north east,
+        legend style={font=\small},
+        grid=both, grid style={line width=.3pt,draw=gray!30},
+        thick
+      ]
+      % Gaussian mu=0
+      \addplot[MainBlue,domain=-3:3,samples=120]
+        {exp(-x^2/0.5)};
+      \addlegendentry{Gaussian $\mu{=}0$}
+      % Gaussian mu=1.5
+      \addplot[AccentBlue,domain=-3:3,samples=120,dashed]
+        {exp(-(x-1.5)^2/0.5)};
+      \addlegendentry{Gaussian $\mu{=}1.5$}
+      % Sigmoid
+      \addplot[AlertRed,domain=-3:3,samples=120]
+        {1/(1+exp(-3*x))};
+      \addlegendentry{Sigmoid $s{=}1/3$}
+      % tanh
+      \addplot[ExGreen,domain=-3:3,samples=120,densely dotted]
+        {0.5*(tanh(2*x)+1)};
+      \addlegendentry{tanh (shifted)}
+      \end{axis}
+    \end{tikzpicture}
+  \end{center}
+  \vspace{-.3em}
+  {\small Different basis functions provide different types of local vs.\ global structure.}
+\end{frame}
+
+% ── Subsection: Design Matrix ─────────────────────────────────────────────────
+\subsection{Design Matrix}
+
+\begin{frame}{From Data to Design Matrix}
+  \begin{columns}[T]
+  \column{.48\textwidth}
+  \begin{block}{Training data matrix $\X$}
+    \[
+      \X = \begin{pmatrix}
+        x_{11}&x_{12}&\cdots&x_{1d}\\
+        x_{21}&x_{22}&\cdots&x_{2d}\\
+        \vdots&\vdots&\ddots&\vdots\\
+        x_{n1}&x_{n2}&\cdots&x_{nd}
+      \end{pmatrix}
+    \]
+    $n$ observations, $d$ features.
+  \end{block}
+  \column{.48\textwidth}
+  \begin{block}{Design matrix $\VPhi$}
+    \[
+      \VPhi = \begin{pmatrix}
+        \phi_1(\x_1)&\cdots&\phi_m(\x_1)\\
+        \phi_1(\x_2)&\cdots&\phi_m(\x_2)\\
+        \vdots&\ddots&\vdots\\
+        \phi_1(\x_n)&\cdots&\phi_m(\x_n)
+      \end{pmatrix}
+    \]
+    Each row: transformed sample.\\
+    Each column: one basis function.
+  \end{block}
+  \end{columns}
+  \vspace{.4em}
+  \begin{itemize}
+    \item All derivations for $\X$ carry over identically to $\VPhi$.
+    \item Moving forward we write $(\X,\t)$ for clarity; $\VPhi$ is implied when using basis functions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Running Example: Sinusoidal Regression}
+  \begin{columns}[T]
+  \column{.52\textwidth}
+  \begin{exampleblock}{Setup}
+    \begin{itemize}
+      \item $n$ pairs $\{(x_i,t_i)\}$, $x\in[0,1]$.
+      \item True signal: $t = \sin(2\pi x)$.
+      \item Observations corrupted by Gaussian noise:
+      \[ t_i = \sin(2\pi x_i) + \varepsilon_i, \quad \varepsilon_i\sim\mathcal{N}(0,\sigma^2) \]
+    \end{itemize}
+  \end{exampleblock}
+  \column{.44\textwidth}
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{axis}[
+        width=\textwidth, height=4.5cm,
+        xlabel={$x$}, ylabel={$t$},
+        xmin=0,xmax=1,ymin=-1.6,ymax=1.6,
+        grid=both,grid style={line width=.2pt,draw=gray!25},
+        tick label style={font=\tiny},
+        label style={font=\small}
+      ]
+      % sine
+      \addplot[MainBlue,thick,domain=0:1,samples=150]{sin(deg(2*pi*x))};
+      % noisy points
+      \addplot[only marks,mark=*,mark size=1.5pt,AccentBlue]
+        coordinates{(0.06,0.30)(0.13,0.82)(0.20,1.05)(0.27,0.84)
+                    (0.34,0.40)(0.41,-0.20)(0.48,-0.82)(0.55,-1.10)
+                    (0.62,-0.88)(0.69,-0.41)(0.76,0.15)(0.83,0.72)
+                    (0.90,0.98)(0.97,0.55)};
+      \end{axis}
+    \end{tikzpicture}
+  \end{center}
+  \end{columns}
+  \vspace{.2em}
+  Goal: \alert{generalize} — predict $t$ for unseen $\tilde{x}$ using only the noisy training points.
+\end{frame}
+
+\begin{frame}{Polynomial Regression as a Linear Model}
+  \begin{block}{Polynomial hypothesis of degree $M$}
+    \[
+      h(x;\w,b) = \sum_{j=1}^M w_j\,x^j + b
+    \]
+    Basis functions: $\phi_j(x)=x^j$ — special case of the general framework.
+  \end{block}
+  \vspace{.3em}
+  \begin{itemize}
+    \item \textbf{Degree $M$ is the key model-selection hyperparameter.}
+    \item Too low $M$: \alert{underfitting} — too rigid, misses oscillations.
+    \item Too high $M$ (up to $M{+}1=n$): \alert{overfitting} — interpolates noise.
+  \end{itemize}
+\end{frame}
+
+% =============================================================================
+\section{Optimization: Analytical and Numerical}
+% =============================================================================
+
+\subsection{Closed-Form Solution (Normal Equations)}
+
+\begin{frame}{Quadratic Loss and Convexity}
+  \begin{block}{Empirical risk (sum of squared errors)}
+    \[
+      E(\ow) = \sum_{i=1}^n r_i(\ow)^2, \qquad r_i(\ow) = h(\x_i;\ow) - t_i
+    \]
+  \end{block}
+  \begin{itemize}
+    \item $E(\ow)$ is \textbf{convex}: sum of convex functions.
+    \item Convexity $\Rightarrow$ any local minimum is the \alert{global minimum}.
+    \item Derivative of $E$ is linear $\Rightarrow$ setting it to zero yields a \textbf{unique} solution.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Gradient and Normal Equations}
+  Partial derivatives of $E(\ow)$:
+  \[
+    \frac{\partial E}{\partial w_k} = 2\sum_{i=1}^n r_i(\ow)\,x_{ik}, \qquad
+    \frac{\partial E}{\partial b} = 2\sum_{i=1}^n r_i(\ow)
+  \]
+  Setting to zero $\Rightarrow$ linear system in matrix form: $\oX^T\oX\,\ow = \oX^T\t$\\[4pt]
+  \textbf{Augmented matrix} $\oX$ (bias column prepended):
+  \[
+    \oX = \begin{pmatrix}1&x_{11}&\cdots&x_{1d}\\\vdots&\vdots&\ddots&\vdots\\1&x_{n1}&\cdots&x_{nd}\end{pmatrix}
+  \]
+  \begin{alertblock}{Normal equations — closed-form solution}
+    \[
+      \ow^* = (\oX^T\oX)^{-1}\oX^T\t
+    \]
+    Valid when $\oX^T\oX$ is non-singular (features not perfectly collinear).
+  \end{alertblock}
+\end{frame}
+
+\subsection{Gradient Descent}
+
+\begin{frame}{Gradient Descent — Algorithm}
+  \begin{block}{When to use}
+    Closed-form inversion is $O(d^3)$: too costly for large $d$ or $n$.
+    Gradient descent iterates cheaply.
+  \end{block}
+  \vspace{.3em}
+  \begin{enumerate}
+    \item \textbf{Initialization:} choose $\ow^{(0)}$ (e.g.\ zero or random).
+    \item \textbf{Descent step:} move in direction of \alert{steepest descent}:
+    \[
+      \ow^{(s)} := \ow^{(s-1)} - \eta\,\nabla E(\ow)\Big|_{\ow^{(s-1)}}
+    \]
+    \item \textbf{Component-wise update:}
+    \[
+      w_k^{(s)} := w_k^{(s-1)} - 2\eta\sum_{i=1}^n r_i(\ow^{(s-1)})\,x_{ik}
+    \]
+  \end{enumerate}
+  \begin{itemize}
+    \item $\eta$ = \alert{learning rate} (step size).
+    \item Update proportional to residual $r_i$: large error $\Rightarrow$ large correction.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Matrix Form of the Update}
+  \begin{block}{Compact update rule}
+    \[
+      \ow^{(s)} := \ow^{(s-1)} - 2\eta\sum_{i=1}^n r_i(\ow^{(s-1)})\,\ox_i
+    \]
+    where $\ox_i$ is the $i$-th augmented row of $\oX$.
+  \end{block}
+  \vspace{.4em}
+  \begin{columns}[T]
+    \column{.48\textwidth}
+    \begin{alertblock}{$\eta$ too small}
+      Convergence is very slow; many iterations required.
+    \end{alertblock}
+    \column{.48\textwidth}
+    \begin{alertblock}{$\eta$ too large}
+      Overshoots the minimum; may diverge.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% =============================================================================
+\section{Model Selection and Overfitting}
+% =============================================================================
+
+\subsection{Polynomial Degree and Generalization}
+
+\begin{frame}{Overfitting vs.\ Underfitting}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{block}{The trade-off}
+    \begin{itemize}
+      \item As $M\uparrow$: training error $\downarrow$ monotonically.
+      \item Test error is \textbf{non-monotone}: decreases then rises.
+      \item The model eventually memorises \emph{noise}, not signal.
+    \end{itemize}
+  \end{block}
+  \column{.46\textwidth}
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{axis}[
+        width=\textwidth,height=4.4cm,
+        xlabel={Polynomial degree $M$},
+        ylabel={$E_{\mathrm{RMS}}$},
+        xmin=0,xmax=9,ymin=0,ymax=1,
+        xtick={0,1,2,3,4,5,6,7,8,9},
+        legend pos=north east,
+        legend style={font=\tiny},
+        grid=both,grid style={line width=.2pt,draw=gray!25},
+        thick
+      ]
+      \addplot[MainBlue,mark=square*,mark size=1.5pt]
+        coordinates{(0,.8)(1,.7)(2,.5)(3,.28)(4,.22)(5,.18)(6,.12)(7,.08)(8,.04)(9,.01)};
+      \addlegendentry{Train}
+      \addplot[AlertRed,mark=*,mark size=1.5pt]
+        coordinates{(0,.83)(1,.73)(2,.53)(3,.30)(4,.26)(5,.33)(6,.52)(7,.70)(8,.85)(9,.95)};
+      \addlegendentry{Test}
+      \end{axis}
+    \end{tikzpicture}
+  \end{center}
+  \end{columns}
+  \vspace{.2em}
+  \begin{itemize}
+    \item RMS error: $E_{\mathrm{RMS}}(\w^*,\mathcal{T}) = \sqrt{\frac{1}{|\mathcal{T}|}\sum_i(h(x_i;\w^*)-t_i)^2}$
+    \item Low test error = successful \alert{generalisation}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Polynomial Fits at Different Degrees}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      name=ax1, width=.4\textwidth, height=4cm,
+      title={$M=0$: Underfitting},
+      title style={font=\small},
+      xmin=0,xmax=1,ymin=-1.5,ymax=1.5,
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny},
+      xlabel style={font=\tiny}, ylabel style={font=\tiny}
+    ]
+    \addplot[MainBlue,thick,domain=0:1]{sin(deg(2*pi*x))};
+    \addplot[AlertRed,thick,domain=0:1]{0.05};
+    \addplot[only marks,mark=*,mark size=1.5pt,AccentBlue]
+      coordinates{(0.1,0.55)(0.2,1.0)(0.35,0.6)(0.5,-0.9)(0.65,-0.7)(0.8,0.55)(0.9,0.9)};
+    \end{axis}
+    \begin{axis}[
+      name=ax3, at={(ax1.east)}, xshift=1.2cm,
+      width=.4\textwidth, height=4cm,
+      title={$M=3$: Good fit},
+      title style={font=\small},
+      xmin=0,xmax=1,ymin=-1.5,ymax=1.5,
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny},
+      xlabel style={font=\tiny}, ylabel style={font=\tiny}
+    ]
+    \addplot[MainBlue,thick,domain=0:1]{sin(deg(2*pi*x))};
+    \addplot[AlertRed,thick,domain=0:1,samples=100]{sin(deg(2*pi*x))*0.92-0.05*x};
+    \addplot[only marks,mark=*,mark size=1.5pt,AccentBlue]
+      coordinates{(0.1,0.55)(0.2,1.0)(0.35,0.6)(0.5,-0.9)(0.65,-0.7)(0.8,0.55)(0.9,0.9)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \vspace{.1em}
+  \begin{itemize}
+    \item $M{=}0$: constant prediction (flat line) — very high bias.
+    \item $M{=}3$: captures sinusoidal trend well.
+    \item $M{=}9$ (with $n{=}10$ points): passes through every point — zero training error but poor test error.
+  \end{itemize}
+\end{frame}
+
+\subsection{Training Set Size}
+
+\begin{frame}{Effect of Training Set Size}
+  \begin{block}{Key observation}
+    For a fixed model complexity $M$, overfitting \emph{decreases} as $n$ increases.
+  \end{block}
+  \begin{columns}[T]
+  \column{.48\textwidth}
+  \begin{alertblock}{Small dataset}
+    \begin{itemize}
+      \item Few constraints on the polynomial.
+      \item High-degree curve wiggles freely.
+      \item \alert{High overfitting risk.}
+    \end{itemize}
+  \end{alertblock}
+  \column{.48\textwidth}
+  \begin{exampleblock}{Large dataset}
+    \begin{itemize}
+      \item Many constraints force smooth fit.
+      \item Harder to fit individual noise samples.
+      \item \alert{Reduced overfitting.}
+    \end{itemize}
+  \end{exampleblock}
+  \end{columns}
+  \vspace{.4em}
+  \begin{itemize}
+    \item Rule of thumb: \textbf{larger $n$ tolerates larger $M$}.
+    \item ``Big Data'' unlocks more complex models.
+    \item When more data is unavailable $\Rightarrow$ use \alert{regularisation}.
+  \end{itemize}
+\end{frame}
+
+% =============================================================================
+\section{Regularisation}
+% =============================================================================
+
+\subsection{Regularised Cost Function}
+
+\begin{frame}{Adding a Regularisation Term}
+  \begin{block}{Total cost function}
+    \[
+      E_{\mathrm{total}}(\ow) = E_D(\ow) + \lambda\,E_W(\ow)
+    \]
+  \end{block}
+  \begin{itemize}
+    \item $E_D(\ow)$ — \alert{data term} (empirical risk): measures fit to observations.
+    \item $E_W(\ow)$ — \alert{regularisation term}: penalises extreme parameter values.
+    \item $\lambda$ — \alert{regularisation coefficient}:
+      \begin{itemize}
+        \item Small $\lambda$: prioritise fit $\Rightarrow$ risk overfitting.
+        \item Large $\lambda$: prioritise smoothness $\Rightarrow$ risk underfitting.
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\subsection{Ridge Regression ($q=2$)}
+
+\begin{frame}{Ridge Regression (Tikhonov Regularisation)}
+  \begin{block}{Quadratic regularisation}
+    \[
+      E_W(\ow) = \frac{1}{2}\ow^T\ow = \frac{1}{2}\sum_{i=1}^m w_i^2 + \frac{b^2}{2}
+    \]
+  \end{block}
+  Full objective:
+  \[
+    E(\ow) = \frac{1}{2}\boldsymbol{r}(\ow)^T\boldsymbol{r}(\ow) + \frac{\lambda}{2}\ow^T\ow
+  \]
+  \begin{alertblock}{Regularised normal equations}
+    \[
+      \ow = \bigl(\lambda\I + \oX^T\oX\bigr)^{-1}\oX^T\t
+    \]
+    $\lambda\I$ strengthens the diagonal $\Rightarrow$ always well-conditioned.
+  \end{alertblock}
+  \begin{itemize}
+    \item Closed-form solution retained.
+    \item Shrinks all weights toward zero, but rarely to \emph{exactly} zero.
+  \end{itemize}
+\end{frame}
+
+\subsection{Lasso ($q=1$) and Sparse Models}
+
+\begin{frame}{Generalised Regularisation and Lasso}
+  General form with exponent $q$:
+  \[
+    E(\ow) = \frac{1}{2}\sum_i r_i(\ow)^2 + \frac{\lambda}{2}\sum_j |w_j|^q
+  \]
+  \begin{columns}[T]
+  \column{.48\textwidth}
+  \begin{block}{Ridge ($q=2$)}
+    \begin{itemize}
+      \item Constraint: $\sum w_j^2\leq\eta$ — \alert{hypersphere}.
+      \item Smooth boundary.
+      \item All weights shrink toward 0; none exactly 0.
+      \item Retains all features.
+    \end{itemize}
+  \end{block}
+  \column{.48\textwidth}
+  \begin{block}{Lasso ($q=1$)}
+    \begin{itemize}
+      \item Constraint: $\sum|w_j|\leq\eta$ — \alert{hyperdiamond}.
+      \item Sharp corners on axes.
+      \item Error contours hit corners $\Rightarrow$ weights set to \textbf{exactly 0}.
+      \item Built-in \alert{feature selection}.
+    \end{itemize}
+  \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Geometric Interpretation: Ridge vs.\ Lasso}
+  \begin{center}
+  \begin{tikzpicture}[scale=1.0]
+    % ---- Ridge circle (left) ----
+    \draw[MainBlue,thick,fill=torgray] (-3.2,0) circle(1.2);
+    \draw[AlertRed,thick] (-1.7,0.6) ellipse(0.9 and 0.5);
+    \draw[AlertRed,dashed] (-1.7,0.6) ellipse(1.6 and 0.9);
+    \draw[AlertRed,densely dotted] (-1.7,0.6) ellipse(2.4 and 1.35);
+    \draw[->,gray!60] (-5,0)--(-1.4,0) node[right,font=\tiny]{$w_1$};
+    \draw[->,gray!60] (-3.2,-1.6)--(-3.2,1.6) node[above,font=\tiny]{$w_2$};
+    \fill[AlertRed] (-2.36,0.87) circle(2.5pt);
+    \node[font=\scriptsize,right] at (-2.36,0.87) {$\ow^*$};
+    \node[font=\small,below] at (-3.2,-1.85) {Ridge ($q=2$)};
+    % ---- Lasso diamond (right) ----
+    \draw[MainBlue,thick,fill=torgray] (3.2,1.2)--(4.4,0)--(3.2,-1.2)--(2.0,0)--cycle;
+    \draw[AlertRed,thick] (4.7,0.6) ellipse(0.9 and 0.5);
+    \draw[AlertRed,dashed] (4.7,0.6) ellipse(1.6 and 0.9);
+    \draw[AlertRed,densely dotted] (4.7,0.6) ellipse(2.4 and 1.35);
+    \draw[->,gray!60] (1.4,0)--(5.0,0) node[right,font=\tiny]{$w_1$};
+    \draw[->,gray!60] (3.2,-1.6)--(3.2,1.6) node[above,font=\tiny]{$w_2$};
+    \fill[AlertRed] (4.4,0) circle(2.5pt);
+    \node[font=\scriptsize,above right] at (4.4,0) {$\ow^*$\;($w_2{=}0$)};
+    \node[font=\small,below] at (3.2,-1.85) {Lasso ($q=1$)};
+  \end{tikzpicture}
+  \end{center}
+  \vspace{-.3em}
+  {\small Lasso corners lie on axes $\Rightarrow$ error contours likely hit a corner $\Rightarrow$ sparse solution.}
+\end{frame}
+
+\begin{frame}{Effect of $\lambda$ on Model Fit}
+  \begin{columns}[T]
+  \column{.33\textwidth}
+  \begin{alertblock}{Small $\lambda$}
+    \begin{itemize}
+      \item Penalty negligible.
+      \item Low training error.
+      \item High test error (\alert{overfitting}).
+    \end{itemize}
+  \end{alertblock}
+  \column{.33\textwidth}
+  \begin{exampleblock}{Intermediate $\lambda$}
+    \begin{itemize}
+      \item Penalty balances fit.
+      \item Moderate training error.
+      \item \alert{Minimum test error.}
+    \end{itemize}
+  \end{exampleblock}
+  \column{.33\textwidth}
+  \begin{alertblock}{Large $\lambda$}
+    \begin{itemize}
+      \item Penalty dominates.
+      \item Weights heavily suppressed.
+      \item High train \& test error (\alert{underfitting}).
+    \end{itemize}
+  \end{alertblock}
+  \end{columns}
+  \vspace{.5em}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=.7\textwidth, height=3.8cm,
+      xlabel={$\ln\lambda$},
+      ylabel={$E_{\mathrm{RMS}}$},
+      xmin=-5,xmax=3, ymin=0, ymax=1,
+      legend pos=north west, legend style={font=\small},
+      grid=both,grid style={line width=.2pt,draw=gray!25},thick
+    ]
+    \addplot[MainBlue,mark=none,domain=-5:3,samples=80]
+      {0.05 + 0.01*exp(0.9*(x+2))};
+    \addlegendentry{Train}
+    \addplot[AlertRed,mark=none,domain=-5:3,samples=80]
+      {0.1 + 0.08*exp(-1.5*(x+1)) + 0.07*exp(0.8*(x+1))};
+    \addlegendentry{Test}
+    \end{axis}
+  \end{tikzpicture}\\
+  {\small Error on training (blue) and test (red) sets as a function of $\ln\lambda$.}
+  \end{center}
+\end{frame}
+
+% ── Bias-Variance ──────────────────────────────────────────────────────────────
+\subsection{Bias-Variance Trade-off}
+
+\begin{frame}{Bias-Variance Decomposition}
+  \begin{block}{Setup}
+    $L=100$ independent datasets; $n=25$ points each; $m=24$ Gaussian basis functions.
+    Three regularisation regimes:
+  \end{block}
+  \vspace{.3em}
+  \begin{columns}[T]
+  \column{.32\textwidth}
+  \begin{alertblock}{High $\lambda$ ($\ln\lambda=2.6$)}
+    \begin{itemize}
+      \item Models very similar.
+      \item \alert{Low variance.}
+      \item Average far from sine.
+      \item \alert{High bias.}
+    \end{itemize}
+  \end{alertblock}
+  \column{.32\textwidth}
+  \begin{exampleblock}{Medium $\lambda$ ($\ln\lambda=-0.31$)}
+    \begin{itemize}
+      \item Good balance.
+      \item Follows sinusoidal trend.
+      \item Average close to $\sin(2\pi x)$.
+    \end{itemize}
+  \end{exampleblock}
+  \column{.32\textwidth}
+  \begin{alertblock}{Low $\lambda$ ($\ln\lambda=-2.4$)}
+    \begin{itemize}
+      \item Models wildly different.
+      \item \alert{High variance.}
+      \item Average close to sine.
+      \item \alert{Low bias.}
+    \end{itemize}
+  \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Bias-Variance Trade-off — Graph}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth, height=5.5cm,
+      xlabel={$\ln\lambda$},
+      ylabel={Error},
+      xmin=-3,xmax=3,ymin=0,ymax=1.2,
+      legend pos=north east, legend style={font=\small},
+      grid=both,grid style={line width=.2pt,draw=gray!25},thick
+    ]
+    % Bias^2: increases with lambda
+    \addplot[MainBlue,domain=-3:3,samples=80]
+      {0.02 + 0.12*exp(0.7*(x+1))};
+    \addlegendentry{$(\text{Bias})^2$}
+    % Variance: decreases with lambda
+    \addplot[AlertRed,domain=-3:3,samples=80]
+      {0.6*exp(-0.8*(x+2))};
+    \addlegendentry{Variance}
+    % Total
+    \addplot[ExGreen,thick,domain=-3:3,samples=80]
+      {0.02+0.12*exp(0.7*(x+1)) + 0.6*exp(-0.8*(x+2))};
+    \addlegendentry{Total}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \column{.46\textwidth}
+  \begin{block}{Key insight}
+    \begin{itemize}
+      \item $\lambda\uparrow$: model simpler $\Rightarrow$ \alert{bias $\uparrow$, variance $\downarrow$}.
+      \item $\lambda\downarrow$: model complex $\Rightarrow$ \alert{bias $\downarrow$, variance $\uparrow$}.
+      \item Optimal $\lambda$: minimises \textbf{total} error $= (\text{bias})^2 + \text{variance}$.
+    \end{itemize}
+  \end{block}
+  \vspace{.3em}
+  {\small Overfitting = high variance. Underfitting = high bias.}
+  \end{columns}
+\end{frame}
+
+% =============================================================================
+\section{Probabilistic Model for Regression}
+% =============================================================================
+
+\subsection{Gaussian Noise Model}
+
+\begin{frame}{Probabilistic Framework}
+  \begin{block}{Motivation}
+    Move beyond point fitting; model \alert{uncertainty} in data via probability.
+  \end{block}
+  \vspace{.3em}
+  \textbf{Assumption:} target $t$ is Gaussian around hypothesis $h(\x;\ow)$:
+  \[
+    p(t|\x;\ow,\beta) = \mathcal{N}\bigl(t\mid h(\x;\ow),\,\beta^{-1}\bigr)
+  \]
+  \begin{itemize}
+    \item $h(\x;\ow)$ = \alert{mean}: our prediction.
+    \item $\beta = 1/\sigma^2$ = \alert{precision}: inverse noise variance.
+    \item High $\beta$ $\Rightarrow$ tight cluster around prediction.
+  \end{itemize}
+  \vspace{.3em}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=.7\textwidth, height=3.8cm,
+      xlabel={$x$}, ylabel={$t$},
+      xmin=0,xmax=1,ymin=-1.8,ymax=1.8,
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny},thick
+    ]
+    \addplot[MainBlue,domain=0:1,samples=100]{sin(deg(2*pi*x))};
+    \addplot[AccentBlue,name path=upA,domain=0:1,samples=100]{sin(deg(2*pi*x))+0.4};
+    \addplot[AccentBlue,name path=loA,domain=0:1,samples=100]{sin(deg(2*pi*x))-0.4};
+    \addplot[AccentBlue,fill opacity=0.15,draw=none] fill between[of=upA and loA];
+    \addplot[only marks,mark=*,mark size=1.5pt,AlertRed]
+      coordinates{(0.1,0.5)(0.2,1.1)(0.35,0.7)(0.5,-0.8)(0.65,-0.65)(0.8,0.5)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ── MLE ────────────────────────────────────────────────────────────────────────
+\subsection{Maximum Likelihood Estimation (MLE)}
+
+\begin{frame}{Likelihood Function}
+  i.i.d.\ observations $\Rightarrow$ likelihood is the product:
+  \[
+    L(\ow,\beta|\X,\t) = \prod_{i=1}^n \mathcal{N}\bigl(t_i\mid h(\x_i;\ow),\beta^{-1}\bigr)
+    = \prod_{i=1}^n \frac{\sqrt{\beta}}{\sqrt{2\pi}}\,e^{-\frac{\beta}{2}r_i(\ow)^2}
+  \]
+  \textbf{Log-likelihood} (turns product into sum):
+  \[
+    l(\ow,\beta) = -\frac{\beta}{2}\sum_{i=1}^n r_i(\ow)^2 + \frac{n}{2}\log\beta + \text{const}
+  \]
+\end{frame}
+
+\begin{frame}{MLE Estimates}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{block}{Optimal weights $\ow_{ML}$}
+    Maximising $l$ over $\ow$ $\equiv$ minimising $\sum r_i^2$.\\[4pt]
+    \alert{MLE = Least Squares} under Gaussian noise.\\
+    $\ow_{ML} = (\oX^T\oX)^{-1}\oX^T\t$
+  \end{block}
+  \column{.46\textwidth}
+  \begin{block}{Optimal precision $\beta_{ML}$}
+    Setting $\partial l/\partial\beta = 0$:
+    \[
+      \beta_{ML}^{-1} = \frac{1}{n}\sum_{i=1}^n r_i(\ow_{ML})^2
+    \]
+    Average squared residual.
+  \end{block}
+  \end{columns}
+  \vspace{.4em}
+  \begin{exampleblock}{Predictive distribution (MLE)}
+    For a new input $\x$:
+    \[
+      p(t|\x;\ow_{ML},\beta_{ML}) = \mathcal{N}\bigl(t\mid h(\x;\ow_{ML}),\,\beta_{ML}^{-1}\bigr)
+    \]
+  \end{exampleblock}
+\end{frame}
+
+% =============================================================================
+\section{Bayesian Linear Regression}
+% =============================================================================
+
+\subsection{Prior and Posterior}
+
+\begin{frame}{From Frequentist to Bayesian}
+  \begin{alertblock}{MLE limitation}
+    Treats $\ow$ as a fixed unknown $\Rightarrow$ prone to overfitting on small data.
+  \end{alertblock}
+  \vspace{.3em}
+  \begin{block}{Bayesian view}
+    Treat $\ow$ as a \alert{random variable} with a prior distribution.
+  \end{block}
+  \vspace{.3em}
+  \textbf{Zero-mean Gaussian prior} (hyperparameter $\alpha$):
+  \[
+    p(\ow|\alpha) = \mathcal{N}(\ow;\,\Zero,\,\alpha^{-1}\I) = \left(\frac{\alpha}{2\pi}\right)^{m/2}\!
+    e^{-\frac{\alpha}{2}\ow^T\ow}
+  \]
+  \begin{itemize}
+    \item Encodes belief that weights are small (close to zero).
+    \item $\alpha$ controls the \alert{strength of the prior}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Conjugate Prior and Posterior}
+  By Bayes' rule:
+  \[
+    p(\ow|\X,\t;\alpha,\beta) \propto p(\t|\X,\ow;\beta)\,p(\ow|\alpha)
+  \]
+  \begin{block}{Gaussian prior is conjugate $\Rightarrow$ posterior is Gaussian}
+    \begin{align*}
+      \VSigma_p &= \bigl(\alpha\I + \beta\oX^T\oX\bigr)^{-1}\\[4pt]
+      \mathbf{m}_p &= \beta\,\VSigma_p\,\oX^T\t
+    \end{align*}
+  \end{block}
+  \begin{exampleblock}{Connection to Ridge Regression}
+    $\mathbf{m}_p$ is identical to the Ridge solution with $\lambda = \alpha/\beta$.\\
+    \alert{Regularisation = Gaussian prior on weights.}
+  \end{exampleblock}
+\end{frame}
+
+\subsection{Sequential Bayesian Learning}
+
+\begin{frame}{Sequential Learning}
+  \begin{block}{Core idea}
+    The posterior after observing $\mathcal{T}_{1},\ldots,\mathcal{T}_{k-1}$ becomes the \alert{prior} for step $k$.
+  \end{block}
+  \vspace{.3em}
+  Update chain:
+  \begin{align*}
+    p(\ow|\mathcal{T}_1) &\propto p(\mathcal{T}_1|\ow)\,p(\ow)\\
+    p(\ow|\mathcal{T}_1,\ldots,\mathcal{T}_k) &\propto p(\mathcal{T}_k|\ow)\,p(\ow|\mathcal{T}_1,\ldots,\mathcal{T}_{k-1})
+  \end{align*}
+  \begin{itemize}
+    \item \textbf{Online learning}: processes data one sample (or batch) at a time.
+    \item Each new observation narrows the posterior.
+    \item Full-batch result is mathematically identical to sequential result.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Sequential Learning — Visual Example (1/2)}
+  \begin{columns}[T]
+  \column{.48\textwidth}
+  \begin{block}{Setup}
+    Model: $h(x;b,w_1)=w_1 x+b$\\
+    True: $y=-0.3+0.5x$ + noise $\sigma=0.2$\\
+    Prior: $\mathcal{N}(\Zero, 0.04\I)$
+  \end{block}
+  \vspace{.3em}
+  \textbf{Initial state (no data):}\\
+  Prior is a broad circle centred at $(0,0)$.\\
+  Lines sampled from prior are random in orientation.
+  \column{.48\textwidth}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth,height=5cm,
+      xlabel={$b$},ylabel={$w_1$},
+      xmin=-1,xmax=1,ymin=-1,ymax=1,
+      title={Prior distribution},
+      title style={font=\small},
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny}
+    ]
+    % broad prior
+    \draw[MainBlue,thick,fill=AccentBlue,fill opacity=0.2]
+      (axis cs:0,0) circle[radius=30pt];
+    \addplot[only marks,mark=*,mark size=2pt,MainBlue]
+      coordinates{(-0.3,0.5)};
+    \node[font=\tiny,right,MainBlue] at (axis cs:-0.3,0.55) {true};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Sequential Learning — Visual Example (2/2)}
+  \begin{itemize}
+    \item After \textbf{1 observation}: posterior elongated into a stripe — many $(b,w_1)$ pairs consistent with one point.
+    \item After \textbf{2 observations}: intersection of two stripes; sampled lines pass near both points.
+    \item After \textbf{n observations}: posterior concentrates tightly around $(a_0{=}-0.3,\,a_1{=}0.5)$.
+  \end{itemize}
+  \vspace{.3em}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=.55\textwidth, height=4cm,
+      xlabel={$b$}, ylabel={$w_1$},
+      xmin=-1,xmax=1,ymin=-1,ymax=1,
+      title={Posterior after many observations},
+      title style={font=\small},
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny}
+    ]
+    \draw[MainBlue,thick,fill=AccentBlue,fill opacity=0.3]
+      (axis cs:-0.3,0.5) circle[radius=6pt];
+    \addplot[only marks,mark=star,mark size=3pt,AlertRed]
+      coordinates{(-0.3,0.5)};
+    \node[font=\tiny,right,AlertRed] at (axis cs:-0.28,0.52) {$(a_0,a_1)$};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  Posterior variance shrinks monotonically: $\VSigma_{n+1}\preceq\VSigma_n$.
+\end{frame}
+
+\begin{frame}{Why Does Posterior Variance Decrease?}
+  Posterior precision update when a new point $(\x_{n+1},t_{n+1})$ arrives:
+  \[
+    \VSigma_{n+1}^{-1} = \VSigma_n^{-1} + \beta\,\ox_{n+1}\ox_{n+1}^T
+  \]
+  \begin{itemize}
+    \item $\ox_{n+1}\ox_{n+1}^T$ is \textbf{positive semi-definite} $\Rightarrow$ precision increases.
+    \item Larger precision $\Leftrightarrow$ smaller covariance.
+    \item Via Sherman-Morrison:
+    \[
+      \VSigma_{n+1} = \VSigma_n - \frac{\VSigma_n\ox\ox^T\VSigma_n}{\beta^{-1}+\ox^T\VSigma_n\ox}
+    \]
+    \item $\Delta\VSigma = \VSigma_n - \VSigma_{n+1}$ is positive semi-definite: \alert{variance never increases}.
+  \end{itemize}
+\end{frame}
+
+\subsection{Maximum A Posteriori (MAP)}
+
+\begin{frame}{MAP Estimation}
+  \begin{block}{Definition}
+    $\ow_{MAP}$ = \alert{mode} of the posterior — the most probable parameter vector:
+    \[
+      \ow_{MAP} = \argmax{\ow}\,p(\ow|\X,\t;\alpha,\beta)
+    \]
+  \end{block}
+  Equivalent minimisation (drop constant evidence term):
+  \[
+    \ow_{MAP} = \argmin{\ow}\left[-\log p(\t|\X,\ow;\beta) - \log p(\ow;\alpha)\right]
+  \]
+  Expanding with Gaussian assumptions:
+  \[
+    \frac{\beta}{2}\sum_i r_i(\ow)^2 + \frac{\alpha}{2}\sum_j\overline{w}_j^2
+    \;\propto\;
+    \frac{1}{2}\sum_i r_i(\w)^2 + \frac{\lambda}{2}\|\ow\|^2
+  \]
+  \begin{alertblock}{MAP = Ridge Regression with $\lambda = \alpha/\beta$}
+    Regularisation is a \alert{probabilistic} consequence of a Gaussian prior.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{MAP Predictive Distribution}
+  With the MAP estimate, predict via:
+  \[
+    p(t|\x,\ow_{MAP};\beta) = \mathcal{N}\bigl(t\mid h(\x;\ow_{MAP}),\,\beta^{-1}\bigr)
+  \]
+  \begin{itemize}
+    \item Same form as MLE predictive distribution.
+    \item Uses $\ow_{MAP}$ (regularised) instead of $\ow_{ML}$.
+    \item Still a \textbf{point estimate} of $\ow$ — ignores parameter uncertainty.
+    \item Fully Bayesian approach: integrate over all $\ow$.
+  \end{itemize}
+\end{frame}
+
+% =============================================================================
+\section{Approaches to Prediction}
+% =============================================================================
+
+\begin{frame}{Three Approaches to Prediction in Linear Regression}
+  \begin{block}{Classical (Least Squares / MLE)}
+    \begin{itemize}
+      \item Point estimate $\ow_{LS}$ via minimising quadratic cost (or MLE under Gaussian noise).
+      \item Prediction: $t = \ox^T\ow_{LS}$.
+      \item Regularisation can be added to reduce overfitting.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Three Approaches (continued)}
+  \begin{block}{Bayesian Point Estimation (MAP)}
+    \begin{itemize}
+      \item Derive posterior $p(\ow|\X,\t;\alpha,\beta)$; extract mode $\ow_{MAP}$.
+      \item Equivalent to Ridge: $\ow_{MAP}=\ow_{LS}$ when $\lambda=\alpha/\beta$.
+      \item Prediction: Gaussian $\mathcal{N}(t\mid\ox^T\ow_{MAP},\beta^{-1})$.
+    \end{itemize}
+  \end{block}
+  \vspace{.3em}
+  \begin{block}{Fully Bayesian}
+    \begin{itemize}
+      \item Goal: \alert{predictive distribution} $p(t|\x,\X,\t)$ marginalising over $\ow$:
+      \[
+        p(t|\x,\X,\t;\alpha,\beta) = \int p(t|\x,\ow;\beta)\,p(\ow|\X,\t;\alpha,\beta)\,d\ow
+      \]
+      \item Convolution of two Gaussians $\Rightarrow$ \textbf{Gaussian} result.
+      \item Accounts for parameter uncertainty — not just noise.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+% =============================================================================
+\section{Fully Bayesian Predictive Distribution}
+% =============================================================================
+
+\subsection{Predictive Mean and Variance}
+
+\begin{frame}{The Fully Bayesian Predictive Distribution}
+  \begin{block}{Result}
+    \[
+      p(t|\x,\X,\t;\alpha,\beta) = \mathcal{N}(t;\;m(\x),\;\sigma^2(\x))
+    \]
+    with:
+    \[
+      m(\x) = \beta\,\ox^T\VSigma\,\oX^T\t, \qquad
+      \sigma^2(\x) = \frac{1}{\beta} + \ox^T\VSigma\,\ox
+    \]
+    where $\VSigma = (\alpha\I+\beta\oX^T\oX)^{-1}$.
+  \end{block}
+  \vspace{.3em}
+  \textbf{Two components of predictive variance:}
+  \[
+    \sigma^2(\x) = \underbrace{\frac{1}{\beta}}_{\text{aleatoric (noise)}} + \underbrace{\ox^T\VSigma\,\ox}_{\text{epistemic (model uncertainty)}}
+  \]
+\end{frame}
+
+\begin{frame}{Aleatoric vs.\ Epistemic Uncertainty}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{block}{Aleatoric uncertainty $1/\beta$}
+    \begin{itemize}
+      \item Intrinsic noise in the data.
+      \item Irreducible: cannot be reduced even with more data.
+      \item Represents measurement errors, unobserved variables.
+    \end{itemize}
+  \end{block}
+  \column{.46\textwidth}
+  \begin{block}{Epistemic uncertainty $\ox^T\VSigma\ox$}
+    \begin{itemize}
+      \item Our ignorance of the true $\ow$.
+      \item \alert{Reducible}: decreases as training data grows.
+      \item Small near training points; large in data-void regions.
+    \end{itemize}
+  \end{block}
+  \end{columns}
+  \vspace{.4em}
+  \begin{exampleblock}{Geometric insight}
+    At a test point close to training data: $\ox$ aligns with well-informed directions
+    $\Rightarrow$ $\ox^T\VSigma\ox$ is small.\\
+    In data-void gaps: $\ox$ points in under-constrained directions $\Rightarrow$ large uncertainty.
+  \end{exampleblock}
+\end{frame}
+
+\subsection{Evolution of Predictive Distribution}
+
+\begin{frame}{Bayesian Predictive Distribution — $n=1$}
+  \begin{exampleblock}{Experimental setup}
+    Function: $f(x)=\sin(2\pi x)$; model: $m=9$ Gaussian basis functions; observations with Gaussian noise.
+  \end{exampleblock}
+  \vspace{.2em}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth,height=5.2cm,
+      xlabel={$x$}, ylabel={$t$},
+      xmin=0,xmax=1,ymin=-2.5,ymax=2.5,
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny},thick,
+      title={$n=1$: Predictive distribution},
+      title style={font=\small}
+    ]
+    \addplot[MainBlue,domain=0:1,samples=100]{sin(deg(2*pi*x))};
+    % wide uncertainty
+    \addplot[AlertRed,name path=mu,domain=0:1,samples=100]{0.1*(x-0.5)};
+    \addplot[AccentBlue,name path=up,domain=0:1,samples=100]{0.1*(x-0.5)+1.8};
+    \addplot[AccentBlue,name path=lo,domain=0:1,samples=100]{0.1*(x-0.5)-1.8};
+    \addplot[AccentBlue,fill opacity=0.2,draw=none] fill between[of=up and lo];
+    \addplot[only marks,mark=*,mark size=2pt,black] coordinates{(0.35,0.6)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \column{.46\textwidth}
+  \textbf{With only 1 data point:}
+  \begin{itemize}
+    \item Predictive mean (red) is nearly flat.
+    \item Pink band extremely wide: \alert{high uncertainty} everywhere.
+    \item Many different functions are equally plausible.
+  \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Bayesian Predictive Distribution — $n=4$}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth,height=5.2cm,
+      xlabel={$x$}, ylabel={$t$},
+      xmin=0,xmax=1,ymin=-2.2,ymax=2.2,
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny},thick,
+      title={$n=4$: Predictive distribution},
+      title style={font=\small}
+    ]
+    \addplot[MainBlue,domain=0:1,samples=100]{sin(deg(2*pi*x))};
+    \addplot[AlertRed,domain=0:1,samples=100]{0.9*sin(deg(2*pi*x))};
+    \addplot[AccentBlue,name path=up,domain=0:1,samples=100]{0.9*sin(deg(2*pi*x))+0.9};
+    \addplot[AccentBlue,name path=lo,domain=0:1,samples=100]{0.9*sin(deg(2*pi*x))-0.9};
+    \addplot[AccentBlue,fill opacity=0.2,draw=none] fill between[of=up and lo];
+    \addplot[only marks,mark=*,mark size=2pt,black]
+      coordinates{(0.1,0.5)(0.35,0.65)(0.55,-0.85)(0.85,0.5)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \column{.46\textwidth}
+  \textbf{With $n=4$ data points:}
+  \begin{itemize}
+    \item ``S'' shape of sine begins to emerge.
+    \item Uncertainty band \alert{narrows} near training points.
+    \item Wider in gaps between observations.
+    \item Sampled functions becoming more consistent.
+  \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Bayesian Predictive Distribution — $n=25$}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth,height=5.2cm,
+      xlabel={$x$}, ylabel={$t$},
+      xmin=0,xmax=1,ymin=-1.8,ymax=1.8,
+      grid=both,grid style={line width=.2pt,draw=gray!25},
+      tick label style={font=\tiny},thick,
+      title={$n=25$: Predictive distribution},
+      title style={font=\small}
+    ]
+    \addplot[MainBlue,domain=0:1,samples=100]{sin(deg(2*pi*x))};
+    \addplot[AlertRed,thick,domain=0:1,samples=100]{sin(deg(2*pi*x))};
+    \addplot[AccentBlue,name path=up,domain=0:1,samples=100]{sin(deg(2*pi*x))+0.25};
+    \addplot[AccentBlue,name path=lo,domain=0:1,samples=100]{sin(deg(2*pi*x))-0.25};
+    \addplot[AccentBlue,fill opacity=0.25,draw=none] fill between[of=up and lo];
+    \addplot[only marks,mark=*,mark size=1.5pt,black]
+      coordinates{(0.04,0.22)(0.08,0.44)(0.12,0.65)(0.16,0.9)(0.20,1.1)
+                  (0.24,0.95)(0.28,0.78)(0.32,0.5)(0.36,0.22)(0.40,0.0)
+                  (0.44,-0.3)(0.48,-0.62)(0.52,-0.95)(0.56,-0.88)(0.60,-0.77)
+                  (0.64,-0.55)(0.68,-0.3)(0.72,0.0)(0.76,0.28)(0.80,0.62)
+                  (0.84,0.9)(0.88,1.0)(0.92,0.82)(0.96,0.55)(1.00,0.18)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \column{.46\textwidth}
+  \textbf{With $n=25$ data points:}
+  \begin{itemize}
+    \item Predictive mean = excellent approximation of $\sin(2\pi x)$.
+    \item Uncertainty band nearly uniform and very narrow.
+    \item Sampled curves nearly indistinguishable.
+    \item \alert{Posterior has become very concentrated.}
+  \end{itemize}
+  \vspace{.3em}
+  Bayesian approach provides not just a curve, but a ``margin of error'' that naturally shrinks with more data.
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Predictive Uncertainty Near Training Points}
+  \begin{block}{Why uncertainty is localised}
+    The precision matrix is updated as:
+    \[
+      \VSigma_n^{-1} = \VSigma_0^{-1} + \beta\sum_{i=1}^n \ox_i\ox_i^T
+    \]
+    \begin{itemize}
+      \item Near training point $\x_i$: new $\ox$ aligns with well-informed direction $\Rightarrow$ $\ox^T\VSigma\ox$ \alert{small}.
+      \item In data-void region: $\ox$ in under-constrained direction $\Rightarrow$ $\ox^T\VSigma\ox$ \alert{large}.
+    \end{itemize}
+  \end{block}
+  \vspace{.3em}
+  At $n=25$ with uniform sampling, all basis directions well-covered $\Rightarrow$ nearly uniform uncertainty.
+\end{frame}
+
+% =============================================================================
+\section{Hyperparameter Marginalisation}
+% =============================================================================
+
+\subsection{Fully Bayesian Hyperparameter Treatment}
+
+\begin{frame}{Marginalisation over Hyperparameters}
+  \begin{block}{Ideal fully Bayesian integral}
+    \[
+      p(t|\x,\X,\t) = \int p(t|\x,\ow;\beta)\,p(\ow|\X,\t;\alpha,\beta)\,p(\alpha,\beta|\X,\t)\;d\ow\,d\alpha\,d\beta
+    \]
+  \end{block}
+  \begin{itemize}
+    \item Non-linear dependence of $\mathbf{m}_N,\VSigma$ on $\alpha,\beta$ $\Rightarrow$ \alert{analytically intractable}.
+    \item Three approximation strategies:
+  \end{itemize}
+  \vspace{.3em}
+  \begin{columns}[T]
+  \column{.32\textwidth}
+  \begin{block}{Laplace Approx.}
+    Gaussian approx.\ around MAP mode via second-order Taylor expansion.
+  \end{block}
+  \column{.32\textwidth}
+  \begin{block}{Variational Inference}
+    Cast inference as optimisation; minimise KL divergence between simple proxy $q$ and true posterior.
+  \end{block}
+  \column{.32\textwidth}
+  \begin{block}{MCMC}
+    Stochastic sampling; average over samples:
+    $p(t|\x)\approx\frac{1}{L}\sum_l p(t|\x,\ow^{(l)},\beta^{(l)})$
+  \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Approximation Methods Compared}
+  \begin{center}
+  \begin{tabular}{lccc}
+  \toprule
+  \textbf{Method} & \textbf{Type} & \textbf{Cost} & \textbf{Accuracy}\\
+  \midrule
+  Laplace & Deterministic & Low & Moderate\\
+  Variational Inference & Deterministic & Medium & Moderate–High\\
+  MCMC & Stochastic & High & High (as $L\to\infty$)\\
+  Evidence Framework & Deterministic & Low & Good (practical)\\
+  \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{.4em}
+  \begin{itemize}
+    \item In linear regression: \alert{Evidence Framework} is usually sufficient.
+    \item For non-linear / safety-critical: MCMC or VI preferred.
+    \item MCMC converges to exact integral as $L\to\infty$.
+  \end{itemize}
+\end{frame}
+
+% =============================================================================
+\section{The Evidence Framework (Empirical Bayes)}
+% =============================================================================
+
+\subsection{Log-Evidence and Effective Parameters}
+
+\begin{frame}{Evidence Framework — Motivation}
+  \begin{alertblock}{Problem}
+    Choosing $\alpha$ and $\beta$ by cross-validation is expensive and requires separate validation data.
+  \end{alertblock}
+  \vspace{.3em}
+  \begin{block}{Solution: Empirical Bayes}
+    Choose $\alpha,\beta$ to maximise the \alert{marginal likelihood} (evidence):
+    \[
+      p(\t|\alpha,\beta) = \int p(\t|\ow,\beta)\,p(\ow|\alpha)\,d\ow
+    \]
+    Integrating out $\ow$ provides an \alert{automatic} trade-off between fit and complexity.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Log-Evidence Formula}
+  Both likelihood and prior are Gaussian $\Rightarrow$ integral is analytic:
+  \[
+    \log p(\t|\alpha,\beta)
+    = \frac{m}{2}\log\alpha + \frac{n}{2}\log\beta - E(\mathbf{m}_p)
+    - \frac{1}{2}\log|\mathbf{A}| - \frac{n}{2}\log(2\pi)
+  \]
+  Key quantities:
+  \begin{itemize}
+    \item $\mathbf{A} = \VSigma^{-1} = \alpha\I + \beta\oX^T\oX$ — Hessian of error function (posterior curvature).
+    \item $E(\mathbf{m}_p) = \tfrac{\beta}{2}\|\t-\oX\mathbf{m}_p\|^2 + \tfrac{\alpha}{2}\mathbf{m}_p^T\mathbf{m}_p$ — regularised error at posterior mean.
+  \end{itemize}
+  \vspace{.2em}
+  \begin{exampleblock}{Automatic complexity control}
+    First two terms favour large $\alpha,\beta$; remaining terms penalise complexity.\\
+    Maximising evidence $\Leftrightarrow$ automatic bias-variance trade-off.
+  \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Effective Number of Parameters $\gamma$}
+  Let $\eta_i$ be eigenvalues of $\beta\oX^T\oX$. Define:
+  \[
+    \lambda_i = \frac{\eta_i}{\alpha+\eta_i} \in [0,1]
+  \]
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{block}{Interpretation of $\lambda_i$}
+    \begin{itemize}
+      \item $\eta_i\gg\alpha$: data dominates $\Rightarrow$ $\lambda_i\to 1$ (parameter data-informed).
+      \item $\eta_i\ll\alpha$: prior dominates $\Rightarrow$ $\lambda_i\to 0$ (parameter shrunk to zero).
+    \end{itemize}
+  \end{block}
+  \column{.46\textwidth}
+  \begin{block}{Effective parameter count}
+    \[
+      \gamma = \sum_{i=1}^m \frac{\eta_i}{\alpha+\eta_i}
+    \]
+    Counts directions in parameter space truly informed by data.
+  \end{block}
+  \end{columns}
+  \vspace{.3em}
+  \begin{itemize}
+    \item $\gamma\approx m$: data determines nearly all parameters; regularisation minor.
+    \item $\gamma\ll m$: most parameters constrained by prior; model uses fewer effective degrees of freedom.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Spring Analogy for $\gamma$}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.9]
+    % Weight node
+    \filldraw[MainBlue] (0,0) circle(0.25) node[white,font=\small]{$w_i$};
+    % Prior spring (left)
+    \draw[thick,decorate,decoration={coil,aspect=0.4,segment length=4pt,amplitude=4pt}]
+      (-3.5,0)--(-0.25,0);
+    \node[font=\small,above] at (-2,0.4) {Prior spring};
+    \node[font=\small,below] at (-2,-0.35) {stiffness $\alpha$};
+    \node[font=\small] at (-3.8,0) {$0$};
+    % Data spring (right)
+    \draw[thick,decorate,decoration={coil,aspect=0.4,segment length=4pt,amplitude=4pt}]
+      (0.25,0)--(3.5,0);
+    \node[font=\small,above] at (2,0.4) {Data spring};
+    \node[font=\small,below] at (2,-0.35) {stiffness $\eta_i$};
+    \node[font=\small] at (3.8,0) {$\hat{w}_i$};
+    % anchors
+    \draw[thick] (-3.5,-0.3)--(-3.5,0.3);
+    \draw[thick] (3.5,-0.3)--(3.5,0.3);
+  \end{tikzpicture}
+  \end{center}
+  \vspace{.3em}
+  \begin{itemize}
+    \item Each weight $w_i$ is pulled by two competing springs.
+    \item Prior spring (stiffness $\alpha$) pulls toward \textbf{zero}.
+    \item Data spring (stiffness $\eta_i$) pulls toward \textbf{data estimate} $\hat{w}_i$.
+    \item $\gamma$ = total number of weights significantly pulled away from zero by data.
+  \end{itemize}
+\end{frame}
+
+\subsection{Re-estimation of $\alpha$ and $\beta$}
+
+\begin{frame}{Optimal $\alpha$ and $\beta$ — Re-estimation Equations}
+  Setting derivatives of log-evidence to zero:
+  \vspace{.2em}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{block}{Optimal $\alpha$}
+    \[
+      \alpha = \frac{\gamma}{\mathbf{m}_p^T\mathbf{m}_p}
+    \]
+    \begin{itemize}
+      \item Large posterior weights $\Rightarrow$ reduce $\alpha$ (weaker regularisation).
+      \item Small posterior weights $\Rightarrow$ increase $\alpha$ (prevent overfitting).
+    \end{itemize}
+  \end{block}
+  \column{.46\textwidth}
+  \begin{block}{Optimal $\beta$}
+    \[
+      \frac{1}{\beta} = \frac{1}{n-\gamma}\sum_{i=1}^n(t_i-\mathbf{m}_p^T\ox_i)^2
+    \]
+    Residual variance corrected by effective DOF.\\
+    $n-\gamma$ = effective sample size.
+  \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Iterative Re-estimation Algorithm}
+  Since $\mathbf{m}_p$ and $\gamma$ both depend on $\alpha$ and $\beta$, solve iteratively:
+  \vspace{.3em}
+  \begin{enumerate}
+    \item \textbf{Initialize} $\alpha$ and $\beta$ (e.g.\ $\alpha=1, \beta=1$).
+    \item \textbf{Compute} posterior mean $\mathbf{m}_p$ and covariance $\VSigma_p$.
+    \item \textbf{Compute} effective parameters $\gamma = \sum_i \tfrac{\eta_i}{\alpha+\eta_i}$.
+    \item \textbf{Update} $\alpha = \gamma/(\mathbf{m}_p^T\mathbf{m}_p)$ and $\beta^{-1} = \tfrac{1}{n-\gamma}\sum_i(t_i-\mathbf{m}_p^T\ox_i)^2$.
+    \item \textbf{Repeat} steps 2–4 until convergence.
+  \end{enumerate}
+  \vspace{.4em}
+  \begin{exampleblock}{Advantages}
+    \begin{itemize}
+      \item Converges quickly in practice.
+      \item Relies solely on training data — \alert{no validation set needed}.
+      \item Automatically adapts to data complexity.
+    \end{itemize}
+  \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Evidence Framework — Summary}
+  \begin{block}{What it achieves}
+    \begin{itemize}
+      \item Noisy data ($\small\beta$): evidence maximised by large $\alpha$ $\Rightarrow$ weights shrunk toward zero.
+      \item Clean, informative data: $\gamma\to m$ $\Rightarrow$ model uses full expressive power.
+      \item Self-consistent: no external tuning or cross-validation required.
+    \end{itemize}
+  \end{block}
+  \vspace{.4em}
+  \begin{center}
+  \begin{tikzpicture}[
+    every node/.style={font=\small},
+    box/.style={draw=MainBlue,fill=torgray,rounded corners=4pt,
+                minimum width=3.2cm,minimum height=1cm,align=center}
+  ]
+    \node[box] (init) {Initialise\\$\alpha,\beta$};
+    \node[box,right=1cm of init] (post) {Compute\\$\mathbf{m}_p,\VSigma_p$};
+    \node[box,right=1cm of post] (gam) {Compute $\gamma$};
+    \node[box,below=0.6cm of gam] (upd) {Update\\$\alpha,\beta$};
+    \node[box,left=1cm of upd] (conv) {Converged?};
+    \node[box,left=1cm of conv,fill=ExGreen!20,draw=ExGreen] (done) {Done:\\output $\alpha^*,\beta^*$};
+    \draw[->,thick,MainBlue] (init)--(post);
+    \draw[->,thick,MainBlue] (post)--(gam);
+    \draw[->,thick,MainBlue] (gam)--(upd);
+    \draw[->,thick,MainBlue] (upd)--(conv);
+    \draw[->,thick,MainBlue] (conv)--node[above,font=\tiny]{no} (post);
+    \draw[->,thick,ExGreen] (conv)--node[above,font=\tiny]{yes} (done);
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% =============================================================================
+\section{Summary}
+% =============================================================================
+
+\begin{frame}{Chapter Summary — Linear Models}
+  \begin{columns}[T]
+  \column{.50\textwidth}
+  \begin{block}{Core concepts}
+    \begin{itemize}
+      \item Linear predictor: $h(\x;\w,b)=\w^T\x+b$.
+      \item Basis functions expand expressive power without breaking parameter linearity.
+      \item Design matrix $\VPhi$: transforms dataset.
+    \end{itemize}
+  \end{block}
+  \begin{block}{Optimisation}
+    \begin{itemize}
+      \item Normal equations: closed-form, $O(d^3)$.
+      \item Gradient descent: iterative, scalable.
+    \end{itemize}
+  \end{block}
+  \column{.46\textwidth}
+  \begin{block}{Regularisation}
+    \begin{itemize}
+      \item Ridge ($q{=}2$): shrinks weights, closed-form.
+      \item Lasso ($q{=}1$): sparse solution, feature selection.
+      \item $\lambda$ controls bias-variance trade-off.
+    \end{itemize}
+  \end{block}
+  \begin{block}{Probabilistic / Bayesian}
+    \begin{itemize}
+      \item MLE $\equiv$ Least Squares (Gaussian noise).
+      \item MAP $\equiv$ Ridge ($\lambda{=}\alpha/\beta$).
+      \item Full Bayes: predictive distribution with aleatoric + epistemic uncertainty.
+      \item Evidence Framework: automatic hyperparameter tuning.
+    \end{itemize}
+  \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Key Equations at a Glance}
+  \begin{center}
+  \renewcommand{\arraystretch}{1.6}
+  \begin{tabular}{ll}
+  \toprule
+  \textbf{Concept} & \textbf{Formula}\\
+  \midrule
+  Normal equations & $\ow^* = (\oX^T\oX)^{-1}\oX^T\t$\\
+  Ridge solution & $\ow = (\lambda\I+\oX^T\oX)^{-1}\oX^T\t$\\
+  Posterior mean & $\mathbf{m}_p = \beta\VSigma_p\oX^T\t$\\
+  Posterior cov. & $\VSigma_p = (\alpha\I+\beta\oX^T\oX)^{-1}$\\
+  Predictive mean & $m(\x)=\beta\ox^T\VSigma\oX^T\t$\\
+  Predictive var. & $\sigma^2(\x)=\beta^{-1}+\ox^T\VSigma\ox$\\
+  Effective params & $\gamma=\sum_i\tfrac{\eta_i}{\alpha+\eta_i}$\\
+  Optimal $\alpha$ & $\alpha=\gamma/(\mathbf{m}_p^T\mathbf{m}_p)$\\
+  \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+%\end{document}

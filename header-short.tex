@@ -1,0 +1,508 @@
+% ==============================================================================
+% HEADER LATEX CONSOLIDATO E OTTIMIZZATO
+% ==============================================================================
+
+% --- CONFIGURAZIONE DOCUMENTO E LINGUA ---
+\PassOptionsToPackage{english}{babel}
+\documentclass[11pt, english]{mylapreprint}
+\usepackage[english]{babel}
+\RequirePackage{etex}
+
+
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{CormorantGaramond}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{xkcdcolors}
+\usepackage{graphicx}
+\usepackage{csquotes}
+\usepackage{xstring}
+
+% --- MATEMATICA AVANZATA E SIMBOLI ---
+\usepackage{amsmath, amsfonts, amssymb, amsthm, mathtools}
+\usepackage{dsfont, mathrsfs, relsize, mleftright}
+\usepackage{bm}            % Bold math
+\usepackage{upgreek}       % Greche dritte
+\usepackage{derivative}    % Gestione derivate semplificata
+\usepackage{siunitx}       % Unità di misura SI
+\usepackage{textgreek}     % Simboli greci nel testo
+\usepackage[misc]{ifsym}   % Per \Letter e simboli vari
+\usepackage{cancel}        % Per barrare termini nelle equazioni
+\usepackage{centernot}     % Per negazioni centrate
+\usepackage{annotate-equations}
+
+% --- TABELLE E LAYOUT ---
+\usepackage{booktabs, tabularx, longtable, multirow, colortbl}
+\usepackage{pdflscape, rotating}
+\usepackage{multicol}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{environ}
+\usepackage[skins, breakable]{tcolorbox}
+\usepackage{snotez}        % Per sidenote
+
+% --- ALGORITMI E CODICE ---
+\usepackage[algoruled]{algorithm2e}
+\usepackage{algorithmic}
+\usepackage{listings}
+
+% --- TIKZ E PGFPLOTS ---
+\usepackage{tikz}
+\usepackage{tikz-network}
+\usepackage[customcolors]{hf-tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows, decorations.pathmorphing, positioning, backgrounds, fit, shadows, automata, patterns}
+\usetikzlibrary{calc, intersections, through, shapes, scopes, chains, matrix, shapes.arrows, decorations, snakes}
+
+\tikzset{
+  >=latex, % for default LaTeX arrow head
+  node/.style={thick,circle,draw=myblue,minimum size=22,inner sep=0.5,outer sep=0.6},
+  node in/.style={node,green!20!black,draw=mygreen!30!black,fill=mygreen!25},
+  node hidden/.style={node,blue!20!black,draw=myblue!30!black,fill=myblue!20},
+  node convol/.style={node,orange!20!black,draw=myorange!30!black,fill=myorange!20},
+  node out/.style={node,red!20!black,draw=myred!30!black,fill=myred!20},
+  connect/.style={thick,mydarkblue}, %,line cap=round
+  connect arrow/.style={-{Latex[length=4,width=3.5]},thick,mydarkblue,shorten <=0.5,shorten >=1},
+  node 1/.style={node in}, % node styles, numbered for easy mapping with \nstyle
+  node 2/.style={node hidden},
+  node 3/.style={node out}
+}
+
+% --- CONFIGURAZIONE PAGINA E GEOMETRY ---
+\geometry{
+    left=2.5cm,
+    right=2.5cm,
+    top=3cm,
+    bottom=3.5cm,
+    marginparwidth=0pt,
+    marginparsep=0pt
+}
+
+\makeatletter
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+
+\def\ppfooterB{\footnotesize  \@leadauthor\hspace{7pt}|\hspace{7pt}\@title\hspace{7pt}|\hspace{7pt}\thepage\space of\space\pageref{LastPage}}
+%\def\ppfooterC{\footnotesize \@leadauthor\hspace{7pt}|\hspace{7pt}\@shorttitle}
+\def\ppfooterC{{\footnotesize 
+    \ifnum\value{chapter}>0 Cap. \thechapter\hspace{7pt}|\hspace{7pt}\leftmark\fi 
+}}
+
+\lfoot{\ppfooterC}
+\rfoot{\ppfooterB}
+\preto{\footrule}{\color{MediumGrey}}
+
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[R]{\ppfooterB}
+    \fancyfoot[L]{\ppfooterC}
+}
+\makeatother
+
+% --- DESCRIPTION LIST ---
+\renewcommand{\descriptionlabel}[1]{%
+  \hspace\labelsep
+  {\color{xkcdDarkBlue}\bfseries #1}%
+}
+
+% --- BIBLIOGRAFIA ---
+\usepackage[
+    backend=biber,
+    style=authoryear,
+    natbib=true,
+    hyperref=true,
+    alldates=year
+]{biblatex}
+
+% --- DEFINIZIONE COLORI (Senza duplicati) ---
+\definecolor{node}{RGB}{220,220,220}
+\definecolor{box}{RGB}{240,240,240}
+\definecolor{ft}{RGB}{210,40,40}
+\definecolor{bt}{RGB}{54,94,155}
+\definecolor{nt}{RGB}{90,90,90}
+\definecolor{mt}{RGB}{168,27,49}
+\definecolor{at}{RGB}{170,80,80}
+
+% Colori specifici Berkeley/Metropolis
+\definecolor{BerkeleyGold}{RGB}{193,129,45}
+\definecolor{BerkeleyBlueText}{RGB}{48,99,126}
+\definecolor{mDarkBrown}{HTML}{604c38}
+\definecolor{mDarkTeal}{HTML}{23373b}
+
+% Configurazione semantica Colorlet
+\colorlet{pale}{xkcdLightGrey}
+\colorlet{observed}{xkcdPinkish!60}
+\colorlet{param}{xkcdLightTan}
+\colorlet{latent}{xkcdPeriwinkle}
+\colorlet{evidmath}{xkcdBlack}
+\colorlet{odata}{xkcdDuskBlue}
+\colorlet{elat}{xkcdPurplishRed}
+\colorlet{eparam}{xkcdGreenishBlue}
+\colorlet{edummy}{xkcdBurntSiena}
+\colorlet{efunc}{xkcdBurntSiena}
+\colorlet{evar}{xkcdLightishRed}
+\colorlet{evidmath}{xkcdBlack}
+\colorlet{lightmath}{xkcdMediumGrey!80}
+\colorlet{odata}{xkcdPetrol!80}
+\colorlet{emath1}{xkcdBrightRed}
+\colorlet{emath2}{xkcdRichPurple}
+\colorlet{emath}{xkcdGreenishBlue}
+\colorlet{edummy}{xkcdBurntSiena}
+\colorlet{efunc}{xkcdBurntSiena}
+\colorlet{efunc1}{xkcdNeonPink}
+\colorlet{evar}{xkcdRuby}
+\colorlet{eparam}{xkcdDuskBlue}
+\colorlet{elat}{xkcdPurplishRed}
+\colorlet{egen}{xkcdAmethyst}
+
+\colorlet{myred}{red!80!black}
+\colorlet{myblue}{blue!80!black}
+\colorlet{mygreen}{green!60!black}
+\colorlet{myorange}{orange!70!red!60!black}
+\colorlet{mydarkred}{red!30!black}
+\colorlet{mydarkblue}{blue!40!black}
+\colorlet{mydarkgreen}{green!30!black}
+
+% --- AMBIENTI PERSONALIZZATI ---
+\tcbset{enhanced jigsaw, colback=xkcdTeal!5!white, colframe=xkcdTeal!75!black, fonttitle=\bfseries}
+
+\newenvironment{notebox}[1]{
+    \medskip\noindent
+    \begin{tcolorbox}[breakable, width=\textwidth, boxrule=.1mm, title=#1]
+    \color{xkcdBattleshipGrey!75!black}
+}{\end{tcolorbox}}
+
+\newenvironment{myequation}{\begin{equation}\color{evidmath}}{\end{equation}}
+\newenvironment{myequation*}{\begin{equation*}\color{evidmath}}{\end{equation*}}
+\NewEnviron{myalign}{{\color{evidmath}\begin{align*}\BODY\end{align*}}}
+\newenvironment{myexample}{\bigskip\hrule\medskip\small}{\medskip\hrule\bigskip}
+
+\newtheorem{exmp}{Example}[section]
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+
+% --- MACRO ALGEBRA LINEARE (Vettori e Matrici) ---
+\newcommand{\Vbold}[1]{\ifmmode\mathbf{#1}\else\textbf{#1}\fi}
+\newcommand{\Zero}{\Vbold{0}}
+\newcommand{\Vuno}{\Vbold{1}}
+
+% Generazione automatica lettere Maiuscole Bold
+\makeatletter
+% Lista delle maiuscole
+\@for\letter:=A,B,C,D,F,H,I,K,N,P,R,S,T,U,V,W,X,Y,Z\do{%
+  \expandafter\edef\csname\letter\endcsname{\noexpand\Vbold{\letter}}%
+}
+
+% Lista delle minuscole
+\@for\lcase:=a,b,l,n,u,y,w,z,x,t,v\do{%
+  \expandafter\edef\csname\lcase\endcsname{\noexpand\Vbold{\lcase}}%
+}
+\makeatother
+\newcommand{\TT}{\Vbold{T}}
+
+% Lettere Minuscole Bold
+
+
+% Greche Bold (upgreek/amsmath)
+\newcommand{\VGamma}{\boldsymbol{\Upgamma}}
+\newcommand{\Vlambda}{\boldsymbol{\lambda}}
+\newcommand{\VLambda}{\boldsymbol{\Uplambda}}
+\newcommand{\VSigma}{\boldsymbol{\Upsigma}}
+\newcommand{\Vmu}{\boldsymbol{\mu}}
+\newcommand{\Vtheta}{\boldsymbol{\theta}}
+\newcommand{\VTheta}{\boldsymbol{\Theta}}
+\newcommand{\Vphi}{\boldsymbol{\phi}}
+\newcommand{\VPhi}{\boldsymbol{\Phi}}
+\newcommand{\Vpsi}{\boldsymbol{\psi}}
+\newcommand{\VPsi}{\boldsymbol{\Psi}}
+\newcommand{\Vpi}{\boldsymbol{\pi}}
+\newcommand{\Valpha}{\boldsymbol{\alpha}}
+\newcommand{\Vbeta}{\boldsymbol{\beta}}
+\newcommand{\Vxi}{\boldsymbol{\xi}}
+\newcommand{\Vepsilon}{\boldsymbol{\epsilon}}
+
+\newcommand{\oa}{\overline{\a}}
+\newcommand{\ou}{\overline{\u}}
+\newcommand{\ov}{\overline{\v}}
+\newcommand{\ow}{\overline{\w}}
+\newcommand{\ox}{\overline{\x}}
+\newcommand{\oy}{\overline{\y}}
+\newcommand{\oz}{\overline{\z}}
+\newcommand{\oX}{\overline{\X}}
+\newcommand{\oVxi}{\overline{\Vxi}}
+\newcommand{\oVbeta}{\overline{\Vbeta}}
+\newcommand{\oVgamma}{\overline{\Vgamma}}
+\newcommand{\oVphi}{\overline{\Vphi}}
+\newcommand{\oY}{\overline{\Y}}
+\newcommand{\oBeta}{\overline{\B}}
+
+\newcommand{\func}[1]{#1}%{{\color{efunc}#1}}
+\newcommand{\prm}[1]{#1}
+\newcommand{\lat}[1]{\overline #1}%{{\color{elat}\overline #1}}
+\newcommand{\val}[1]{#1}
+\newcommand{\vr}[1]{#1}
+
+\newcommand{\vlX}{\X}
+\newcommand{\vlxi}{\x_i}
+\newcommand{\vrt}{\Vtheta}
+\newcommand{\vrp}{\Psi}
+\newcommand{\lz}{\overline\z}%{{\color{elat}\overline\z}}
+\newcommand{\lzi}{\lat{\z_i}}
+
+
+%\newcommand{\ox}{{\color{evidmath}\overline\x}}
+\newcommand{\vlx}{\ox}
+\newcommand{\prts}{\Vtheta^*}%{{\color{eparam}\Vtheta^*}}
+\newcommand{\prt}{\hat\Vtheta}%{{\color{eparam}\hat\Vtheta}}
+%\newcommand{\prm}[1]{{\color{eparam}#1}}
+%\newcommand{\X}{{\color{evidmath}\mathbf{X}}}
+\newcommand{\vlxu}{\overline\x_1}%{{\color{evidmath}\overline\x_1}}
+%\newcommand{\vlxi}{{\color{evidmath}\overline\x_i}}
+\newcommand{\vlxn}{\overline\x_n}%{{\color{evidmath}\overline\x_n}}
+%\newcommand{\Z}{{\color{elat}\mathbf{Z}}}
+\newcommand{\dummy}[1]{#1}%{{\color{lightmath}#1}}
+\newcommand{\dz}{\dummy{\z}}
+
+
+\newcommand{\hy}{\hat{y}}
+\newcommand{\tm}{\tilde{\m}}
+\newcommand{\ty}{\tilde{y}}
+\newcommand{\tx}{\tilde{\x}}
+\newcommand{\tX}{\tilde{\X}}
+
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vX}{\mathbf{X}}
+\newcommand{\vZ}{\mathbf{Z}}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vthetastar}{\boldsymbol{\theta}^*}
+\newcommand{\vxi}{\mathbf{x}_i}
+
+% Shortcut Caligrafici
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cXY}{\mathcal{X}\times\mathcal{Y}}
+\newcommand{\oR}{\overline{\mathcal{R}}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\vcd}[1]{\text{VCdim}(#1)}
+
+% --- STATISTICA E PROBABILITÀ ---
+\DeclareMathOperator{\E}{\mathbb{E}}
+\DeclareMathOperator*{\PP}{\scalebox{1.15}{$\mathds{P}$}}
+\DeclareMathOperator*{\EE}{\scalebox{1.15}{$\mathds{E}$}}
+
+\newcommand{\me}[1]{\E \left[ #1 \right]}
+\newcommand{\med}[2]{\E_{#1}\left[ #2 \right]}
+\newcommand{\ev}[2]{\EE_{#1}\left[ #2 \right]}
+\newcommand{\prob}[2]{\PP_{#1}\left[ #2 \right]}
+
+\newcommand{\var}[1]{\text{\textit{Var}}[#1]}
+\newcommand{\cov}[1]{\text{\textit{Cov}}[#1]}
+\newcommand{\diag}[1]{\text{\textit{diag}}#1}
+
+\newcommand{\gaussian}[3]{\frac{1}{\sqrt{2\pi}#3}e^{-\frac{(#1-#2)^{2}}{2#3^{2}}}}
+\newcommand{\gaussiandistr}[3]{#1\sim{\mathcal{N}}(#2,#3)}
+
+% --- OPERATORI E CALCOLO ---
+\newcommand{\bydef}{\overset{\Delta}{=}}
+\newcommand{\defeq}{\bydef}
+\newcommand{\Real}{\mathbb{R}}
+\newcommand{\Integer}{\mathbb{I}}
+\newcommand{\Natural}{\mathbb{N}}
+\newcommand{\Complex}{\mathbb{C}}
+\newcommand{\vnorm}[1]{\left |\left | #1\right |\right |}
+
+\newcommand{\subfunc}[3]{\underset{#2}{\textrm{#1}}\:#3}
+\newcommand{\argmin}[2]{\subfunc{argmin}{#1}{#2}}
+\newcommand{\argmax}[2]{\subfunc{argmax}{#1}{#2}}
+
+\newcommand{\fracpartial}[2]{\pdv{#1}{#2}}
+\newcommand{\gradient}[2]{\mathlarger{\mathlarger{\nabla}}_{\mathsmaller{#1}} #2}
+
+\newcommand{\tset}{{\cal T}}
+
+\newcommand{\matr}[1]{\boldsymbol{#1}}
+
+%matrice righe
+\newcommand{\matrighe}[2]{
+ \left(
+     \begin{array}{ccc}
+          \mbox{--} &  #1  &  \mbox{--} \\
+          & \vdots &  \\
+           \mbox{--} &  #2  &  \mbox{--} 
+     \end{array}
+\right)
+}
+     
+%matcolonne
+\newcommand{\matcolonne}[2]{
+     \left(
+     \begin{array}{ccc}
+          \vert  &  &  \vert \\
+         #1 & \cdots & #2 \\
+           \vert  &  &  \vert 
+     \end{array}
+     \right)}
+     
+ \newcommand{\vcol}[2]{
+\left(
+     \begin{array}{c}
+          #1 \\
+          \vdots \\
+          #2
+     \end{array}
+     \right)}
+     
+\newcommand{\vcoll}[3]{
+\left(
+     \begin{array}{c}
+          #1 \\
+          #2 \\
+          \vdots \\
+          #3
+     \end{array}
+     \right)}
+
+\newcommand{\vriga}[2]{
+\left(
+\begin{array}{ccc}
+#1 & \cdots & #2
+\end{array}
+\right)
+}
+
+\newcommand{\vrigal}[3]{
+\left(
+\begin{array}{cccc}
+#1 & #2 & \cdots & #3
+\end{array}
+\right)
+}
+
+\newcommand{\cseq}[3]{#1,#2,\ldots ,#3}
+
+% somma 1,2,...,n
+\newcommand{\seq}[4]{#1#4 #2#4\ldots #4#3}
+
+% elenco x_1,x_2,...,x_n
+\newcommand{\iseq}[2]{#1_{1},#1_{2},\ldots ,#1_{#2}}
+
+% elenco x_1,...,x_n
+\newcommand{\iseqq}[2]{#1_{1},\ldots ,#1_{#2}}
+
+\newcommand{\tr}[1]{\text{tr}(#1)}
+% --- INDIPENDENZA STOCASTICA ---
+\newcommand{\CI}{\mathrel{\text{\scalebox{1.07}{$\perp\mkern-8mu\perp$}}}}
+\newcommand{\nCI}{\cancel{\CI}}
+\def\cind#1#2#3{#1\CI #2 \mid #3}
+\def\ind#1#2{#1\CI #2}
+
+% --- MACRO VAE / LATENTI (Colorate) ---
+%\newcommand{\val}[1]{{\color{odata}{#1}}}
+%\newcommand{\lat}[1]{{\color{elat}{#1}}}
+%\newcommand{\prm}[1]{{\color{eparam}{#1}}}
+
+%\newcommand{\vlx}{\val{\x}} 
+%\newcommand{\vlX}{\val{\X}}
+%\newcommand{\lz}{\lat{\z}} 
+%\newcommand{\lZ}{\lat{\Z}}
+%\newcommand{\prt}{\prm{\Vtheta}}
+%\newcommand{\prp}{\prm{\Vphi}}
+\DeclareMathOperator*{\HH}{\mathds{H}}
+\newcommand{\entr}[2]{\HH_{\scalebox{.8}{$\scriptscriptstyle #1$}}\mleft(#2\mright)}
+\newcommand{\dkl}[2]{D_{KL} \left({#1} || {#2} \right) }
+
+
+% --- CONFIGURAZIONE LISTINGS (Python) ---
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\color{xkcdDarkAquamarine},
+    keywordstyle=\ttfamily\color{xkcdRedOrange},
+    stringstyle=\color{green!80!black},
+    showstringspaces=false            
+}
+
+% --- TIKZ NEURAL NETWORKS ---
+\newcommand\denselyConnectNodes[2]{
+  \foreach\n [count=\lyrIdx, remember=\lyrIdx as \previdx] in #2 {
+    \foreach\y in {1,...,\n} {
+      \ifnum\lyrIdx>1
+        \foreach\x in {1,...,\prevn}
+          \draw[->] (#1-\previdx-\x) -- (#1-\lyrIdx-\y);
+      \fi
+    }
+    \xdef\prevn{\n}
+  }
+}
+
+% Setup Grafica finale
+\graphicspath{{graphics/}}
+\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
+
+% Importazione comandi esterni (se ancora necessari)
+%\usepackage{commands} 
+\definecolor{titlecolor}{named}{xkcdDarkAquamarine}
+\definecolor{alertcolor}{named}{xkcdDuskyRose}
+
+\definecolor{evidmath}{named}{xkcdCadetBlue}
+\definecolor{lightmath}{named}{xkcdMediumGrey}
+%\definecolor{emath1}{named}{xkcdRedOrange}
+\definecolor{emath1}{named}{xkcdPumpkin}
+\definecolor{emath2}{named}{xkcdIrishGreen}
+\definecolor{emath3}{named}{xkcdDuskyRose}
+
+\newcommand{\gaussiansimplest}[1]{\frac{1}{\sqrt{2\pi}}\textit{exp}\left(-\frac{#1^{2}}{2}\right)}
+
+%%gaussiana multivariata
+\newcommand{\mgaussian}[4]{\frac{1}{(2\pi)^{#4/2}|#3|^{1/2}}\textit{exp}\left(-\frac{1}{2}(#1-#2)^{T}#3^{-1}(#1-#2)\right)}
+
+
+\newcommand{\mL}{\mathcal{L}}
+\newcommand{\mK}{\mathcal{K}}
+\newcommand{\mZ}{\mathcal{Z}}
+\newcommand{\mP}{\mathcal{P}}
+\newcommand{\mQ}{\mathcal{Q}}
+
+\newcommand{\alert}[1]{{\bf\color{xkcdDuskyRose}#1}}
+\newcommand{\partitle}[1]{\textcolor{alertcolor}{#1}}
+\newcommand{\light}[1]{#1}
+
+\usepackage{mleftright}
+\usepackage{dsfont}
+
+\newcommand{\vrtr}{{\vr{\Vtheta_r}}}
+\newcommand{\pdvr}[2]{\frac{\partial }{\partial #2}#1}
+
+\newcommand\drawNodes[3]{
+  % #1 (str): namespace
+  % #2 (list[list[str]]): list of labels to print in the node of each neuron
+  \foreach\neurons [count=\lyrIdx] in #2 {
+    \StrCount{\neurons}{,}[\lyrLength] % use xstring package to save each layer size into \lyrLength macro
+    \foreach\n [count=\nIdx] in \neurons {
+      \node[neuron={#3}] (#1-\lyrIdx-\nIdx) at (2*\lyrIdx, \lyrLength/2-1.4*\nIdx) {\n};
+    }
+  }
+}
+
+\newcommand{\fq}{\func{q}}
+\newcommand{\fqi}{\func{q_i}}
+\newcommand{\fqj}{\func{q}}
+\newcommand{\fqu}{\func{q_1}}
+\newcommand{\fqn}{\func{q_n}}
+\newcommand{\fqmj}{\func{q_{-j}}}
+\newcommand{\fQ}{\func{\mathcal{Q}}}
+\newcommand{\um}[1]{\scalebox{0.4}[1.0]{\( - \)}#1}
+\newcommand{\ELBO}{\mathrm{ELBO}}
+
+\newcommand{\va}[1]{\text{\textit{Var}}[#1]}
+
+\DeclareSymbolFont{yhlargesymbols}{OMX}{yhex}{m}{n} 
+\DeclareMathAccent{\yhwidehat}{\mathord}{yhlargesymbols}{"62}
+% ==============================================================================
+
+\leadauthor{Giorgio Gambosi}
+\shorttitle{Notes on Machine Learning}
+
+

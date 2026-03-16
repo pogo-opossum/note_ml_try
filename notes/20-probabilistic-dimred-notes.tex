@@ -1,0 +1,414 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Probabilistic Dimensionality Reduction}
+
+\section*{Factor Analysis}\label{section_factor_analysis}
+
+Having explored deterministic dimensionality reduction methods such as Principal Component Analysis in earlier chapters, we now turn our attention to probabilistic approaches that provide a richer framework for understanding and modeling high-dimensional data. While PCA offers elegant geometric insights and computational efficiency, it lacks an explicit probabilistic interpretation—it does not naturally define a probability distribution over the observed data, nor does it provide a principled way to quantify uncertainty or handle missing values. Probabilistic dimensionality reduction methods address these limitations by casting the problem in a generative framework where data is modeled as arising from lower-dimensional latent variables through a stochastic process.
+
+Factor analysis represents one of the simplest yet most fundamental instances of this paradigm. It provides a probabilistic framework for dimensionality reduction in which both the observed variable $\mathbf{x}$ and the latent variable $\mathbf{z}$ are continuous and real-valued. The model explicitly incorporates uncertainty through a noise term, making it a true generative model that can produce new data samples and assign likelihoods to observations. A particularly attractive feature of factor analysis is its analytical tractability: despite being a latent variable model, the conditional probability $p(\mathbf{z}|\mathbf{x})$ can be computed in closed form, allowing us to perform exact inference and map observations to their latent representations without resorting to approximation techniques.
+
+The historical roots of factor analysis extend back to the early twentieth century in psychology and the social sciences, where researchers sought to identify unobserved constructs (factors) such as "intelligence" or "personality traits" from observable measurements like test scores or behavioral assessments. The mathematical framework we develop here generalizes this classical motivation to arbitrary domains where we believe that high-dimensional observations are driven by a smaller number of underlying causes or sources of variation.
+
+\subsection*{The Generative Process}
+
+At the heart of factor analysis lies a simple yet powerful generative story about how high-dimensional observations arise from low-dimensional latent causes. Factor analysis posits that each observed data point $\mathbf{x}_i \in \mathbb{R}^D$ in our dataset is generated from a lower-dimensional latent variable or factor $\mathbf{z}_i \in \mathbb{R}^d$ (where we assume $d < D$, often $d \ll D$) through a three-step stochastic process.
+
+In the first step, the latent factor $\mathbf{z} \in \mathbb{R}^d$ is linearly projected into the higher-dimensional observed space $\mathbb{R}^D$ via a matrix $\mathbf{W} \in \mathbb{R}^{D \times d}$. This projection represents the systematic relationship between the latent factors and the observed variables—each column of $\mathbf{W}$ can be thought of as a "loading" that determines how strongly a particular latent factor influences each observed dimension. In the second step, the projected point is translated by a mean vector $\boldsymbol{\mu} \in \mathbb{R}^D$, which centers the distribution of observations in the ambient space. Finally, in the third step, independent Gaussian noise $\boldsymbol{\epsilon} \in \mathbb{R}^D$ is added to each dimension, representing measurement error, individual-specific variation, or any sources of variability not captured by the shared latent factors.
+
+This generative process can be captured concisely by the equation:
+\begin{myequation}
+\mathbf{x} = \mathbf{W}\mathbf{z} + \boldsymbol{\mu} + \boldsymbol{\epsilon}
+\end{myequation}
+
+To complete the model specification, we must define the probability distributions for the random variables involved. The latent variable $\mathbf{z} \in \mathbb{R}^d$ is assigned a standard Gaussian prior with zero mean and identity covariance:
+\begin{myequation}
+p(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \mathbf{0}, \mathbf{I})
+\end{myequation}
+
+This choice of prior is not as restrictive as it might initially appear. Because the latent variables are unobserved, there is inherent ambiguity in their scale and location—we could multiply $\mathbf{z}$ by a matrix and adjust $\mathbf{W}$ accordingly without changing the distribution of $\mathbf{x}$. The standard Gaussian prior merely fixes this gauge freedom by convention, and any linear transformation of the latent space can be absorbed into the factor loading matrix $\mathbf{W}$.
+
+The factor loading matrix $\mathbf{W} \in \mathbb{R}^{D \times d}$ plays a central role in the model. It projects points from the low-dimensional latent space to the high-dimensional observation space, establishing the systematic relationships between latent factors and observed variables. Each column of $\mathbf{W}$ represents a "factor" that influences the observed dimensions, and the magnitude of the entries indicates the strength of these influences. In classical factor analysis terminology, these columns are called factor loadings, and they are often the objects of primary scientific interest when the goal is to identify interpretable latent constructs.
+
+The mean vector $\boldsymbol{\mu} \in \mathbb{R}^D$ represents the center of the observed data distribution. In practice, $\boldsymbol{\mu}$ is typically estimated as the sample mean and then the data is centered by subtracting it, simplifying the subsequent analysis. This centering step is standard in dimensionality reduction methods.
+
+The observation noise $\boldsymbol{\epsilon} \in \mathbb{R}^D$ represents measurement error or unmodeled variation—all the variability in the observations that cannot be explained by the shared latent factors. A crucial and defining assumption of factor analysis is that this noise is independent across dimensions, with distribution:
+\begin{myequation}
+p(\boldsymbol{\epsilon}) = \mathcal{N}(\boldsymbol{\epsilon}; \mathbf{0}, \boldsymbol{\Psi})
+\end{myequation}
+
+where $\boldsymbol{\Psi} \in \mathbb{R}^{D \times D}$ is a diagonal matrix. The diagonal entry $\Psi_{ii}$ represents the noise variance along the $i$-th observed dimension. This diagonal structure is what distinguishes factor analysis from other linear Gaussian models: different observed dimensions can have different noise levels, allowing the model to automatically weight more reliable measurements more heavily during inference. This contrasts with probabilistic PCA, which we will encounter shortly, where the noise is assumed to be isotropic (equal across all dimensions).
+
+The graphical model representation in Figure~\ref{f:fa} makes the conditional independence structure explicit and provides intuition for how information flows through the model.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[
+latent/.style={circle,draw,fill=latent!40!white},
+visible/.style={circle,outer sep=0pt,draw,fill=observed},
+param/.style={circle,draw, fill=param},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=box}, 
+lbl/.style={circle}]
+\draw[line width=.5pt]
+(.75,-2.3) node[plate, minimum height=2.7cm, minimum width=3cm] {}
+(-1.5,-1.5) node[param] (A) {$\boldsymbol{\Psi}$}
+(0,-1.5) node[latent] (B) {$\boldsymbol{\epsilon}$}
+(0,-3) node[visible] (C) {$\mathbf{x}$}
+(1.5,-3) node[latent] (D) {$\mathbf{z}$}
+(-1.5,-3) node[param] (E) {$\boldsymbol{\mu}$}
+(0,-4.25) node[param] (W) {$\mathbf{W}$}
+(2,-3.55) node[lbl] {\footnotesize $n$};
+\draw[->,>=stealth',shorten >=1pt] (A) -- (B);
+\draw[->,>=stealth',shorten >=1pt] (B) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (E) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (D) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (W) -- (C);
+\end{tikzpicture}
+\caption{Graphical model for factor analysis. The latent variables $\boldsymbol{\epsilon}$ and $\mathbf{z}$ are normally distributed: $p(\boldsymbol{\epsilon})=\mathcal{N}(\boldsymbol{\epsilon};\mathbf{0}, \boldsymbol{\Psi})$ and $p(\mathbf{z})=\mathcal{N}(\mathbf{z};\mathbf{0}, \mathbf{I})$. The observed variable $\mathbf{x}$ depends deterministically on these random variables via $\mathbf{x}=\mathbf{W}\mathbf{z}+\boldsymbol{\mu}+\boldsymbol{\epsilon}$. This deterministic dependence on two random variables induces the conditional distribution $p(\mathbf{x}|\mathbf{z})=\mathcal{N}(\mathbf{x}|\mathbf{z};\mathbf{W}\mathbf{z}+\boldsymbol{\mu}, \boldsymbol{\Psi})$.
+}\label{f:fa}
+\end{center}
+\end{figure}
+
+\subsection*{Mathematical Framework: Linear Gaussian Models}
+
+Before deriving the specific formulas for factor analysis, it is valuable to step back and recognize that factor analysis belongs to a broader and extremely important class of probabilistic models known as linear Gaussian models. These models possess particularly elegant mathematical properties that enable analytical inference and learning, making them workhorses of applied statistics and machine learning. Understanding the general framework will not only illuminate factor analysis but also provide tools for analyzing related models.
+
+A linear Gaussian model is defined by the following structure. We have two random variables: an observed variable $\mathbf{x} \in \mathbb{R}^D$ and a latent variable $\mathbf{z} \in \mathbb{R}^d$. The latent variable is assigned a Gaussian prior distribution:
+\begin{myequation}
+p(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \boldsymbol{\mu}_{\mathbf{z}}, \boldsymbol{\Sigma}_{\mathbf{z}})
+\end{myequation}
+
+where $\boldsymbol{\mu}_{\mathbf{z}} \in \mathbb{R}^d$ is the prior mean and $\boldsymbol{\Sigma}_{\mathbf{z}} \in \mathbb{R}^{d \times d}$ is the prior covariance matrix. The critical defining feature is that the conditional distribution of the observed variable given the latent variable is Gaussian with a linear mean function:
+\begin{myequation}
+p(\mathbf{x}|\mathbf{z}) = \mathcal{N}(\mathbf{x}|\mathbf{z}; \mathbf{A}\mathbf{z} + \mathbf{b}, \boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}})
+\end{myequation}
+
+where $\mathbf{A} \in \mathbb{R}^{D \times d}$ is a linear transformation matrix, $\mathbf{b} \in \mathbb{R}^D$ is a translation vector, and $\boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}} \in \mathbb{R}^{D \times D}$ is the conditional covariance (which does not depend on $\mathbf{z}$).
+
+The fundamental and beautiful property of linear Gaussian models is that all marginal and conditional distributions remain Gaussian, with parameters that can be computed in closed form through simple linear algebraic manipulations. This closure property is what makes the family of linear Gaussian models analytically tractable and computationally efficient.
+
+Specifically, the marginal distribution of the observed variable $\mathbf{x}$, obtained by integrating out the latent variable, is Gaussian:
+\begin{myequation}
+p(\mathbf{x}) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_{\mathbf{x}}, \boldsymbol{\Sigma}_{\mathbf{x}})
+\end{myequation}
+
+where the marginal parameters are given by:
+\begin{myequation}
+\boldsymbol{\mu}_{\mathbf{x}} = \mathbf{A}\boldsymbol{\mu}_{\mathbf{z}} + \mathbf{b}
+\end{myequation}
+\begin{myequation}
+\boldsymbol{\Sigma}_{\mathbf{x}} = \boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}} + \mathbf{A}\boldsymbol{\Sigma}_{\mathbf{z}}\mathbf{A}^T
+\end{myequation}
+
+The mean transforms linearly through $\mathbf{A}$ and is shifted by $\mathbf{b}$, exactly as we would expect from linearity. The marginal covariance has two contributions: the conditional noise covariance $\boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}}$ (which represents the variability in $\mathbf{x}$ that remains even when $\mathbf{z}$ is known) and the transformed prior covariance $\mathbf{A}\boldsymbol{\Sigma}_{\mathbf{z}}\mathbf{A}^T$ (which represents the variability inherited from uncertainty about $\mathbf{z}$).
+
+Equally important for inference is the posterior distribution $p(\mathbf{z}|\mathbf{x})$, which quantifies our belief about the latent variable after observing $\mathbf{x}$. This posterior is also Gaussian:
+\begin{myequation}
+p(\mathbf{z}|\mathbf{x}) = \mathcal{N}(\mathbf{z}|\mathbf{x}; \boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}}, \boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}})
+\end{myequation}
+
+with parameters:
+\begin{myequation}
+\boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}} = {(\boldsymbol{\Sigma}_{\mathbf{z}}^{-1} + \mathbf{A}^T\boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}}^{-1}\mathbf{A})}^{-1}
+\end{myequation}
+\begin{myequation}
+\boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}} = \boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}} \left(\mathbf{A}^T\boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}}^{-1}(\mathbf{x} - \mathbf{b}) + \boldsymbol{\Sigma}_{\mathbf{z}}^{-1}\boldsymbol{\mu}_{\mathbf{z}}\right)
+\end{myequation}
+
+These formulas, sometimes called the Gaussian conditioning formulas or Bayes' rule for Gaussians, deserve careful interpretation. The posterior covariance $\boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}}$ does not depend on the specific observation $\mathbf{x}$—it depends only on the model parameters. This reflects the fact that in a linear Gaussian model, observing any $\mathbf{x}$ provides the same amount of information about $\mathbf{z}$ (though the location of the posterior shifts). The posterior covariance is inversely related to the sum of the prior precision $\boldsymbol{\Sigma}_{\mathbf{z}}^{-1}$ and the precision of the likelihood $\mathbf{A}^T\boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}}^{-1}\mathbf{A}$. This shows that the posterior becomes more concentrated (lower covariance, higher precision) when either the prior is concentrated or the likelihood is concentrated, as we would expect from Bayesian updating.
+
+The posterior mean $\boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}}$ is a weighted combination of two terms: $\mathbf{A}^T\boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}}^{-1}(\mathbf{x} - \mathbf{b})$ represents information from the observation (the likelihood), and $\boldsymbol{\Sigma}_{\mathbf{z}}^{-1}\boldsymbol{\mu}_{\mathbf{z}}$ represents information from the prior. These terms are weighted by their respective precisions and then transformed by the posterior covariance matrix. When the likelihood is very precise (small $\boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}}$), the posterior mean is pulled toward what the observation suggests; when the prior is very precise (small $\boldsymbol{\Sigma}_{\mathbf{z}}$), the posterior mean is pulled toward the prior mean. This is the classic Bayesian compromise between prior belief and observed evidence.
+
+These Gaussian conditioning formulas are central to an enormous variety of probabilistic models in machine learning and statistics. They enable exact inference in Kalman filters, Gaussian processes conditioned on observations, factor analysis, probabilistic PCA, and many other models. Their importance cannot be overstated.
+
+\subsection*{The Factor Analysis Model: Specific Instantiation}
+
+Having established the general linear Gaussian framework, we now return to factor analysis by specializing the general formulas to the specific parameter choices that define the model. Factor analysis corresponds to setting:
+\begin{myequation}
+\boldsymbol{\mu}_{\mathbf{z}} = \mathbf{0}, \quad \boldsymbol{\Sigma}_{\mathbf{z}} = \mathbf{I}, \quad \mathbf{A} = \mathbf{W}, \quad \mathbf{b} = \boldsymbol{\mu}, \quad \boldsymbol{\Sigma}_{\mathbf{x}|\mathbf{z}} = \boldsymbol{\Psi}
+\end{myequation}
+
+This specification directly encodes the assumptions we laid out earlier: a standard Gaussian prior on the latent factors, a linear projection through $\mathbf{W}$, a translation by $\boldsymbol{\mu}$, and diagonal noise $\boldsymbol{\Psi}$.
+
+Given these parameter choices, the conditional distribution of observations given latent factors is:
+\begin{myequation}
+p(\mathbf{x}|\mathbf{z}) = \mathcal{N}(\mathbf{x}|\mathbf{z}; \mathbf{W}\mathbf{z} + \boldsymbol{\mu}, \boldsymbol{\Psi})
+\end{myequation}
+
+This formalizes the generative process: given a latent factor value $\mathbf{z}$, we generate an observation by first computing $\mathbf{W}\mathbf{z} + \boldsymbol{\mu}$ (the expected observation location) and then adding Gaussian noise with covariance $\boldsymbol{\Psi}$.
+
+Applying the general marginal formula with our parameter choices, we obtain the marginal distribution over observations:
+\begin{myequation}
+p(\mathbf{x}) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}, \mathbf{W}\mathbf{W}^T + \boldsymbol{\Psi})
+\end{myequation}
+
+This marginal distribution reveals the fundamental insight of factor analysis: the observed data covariance can be decomposed into two interpretable components. The term $\mathbf{W}\mathbf{W}^T$ represents the shared covariance structure captured by the latent factors. Because $\mathbf{W} \in \mathbb{R}^{D \times d}$ with $d < D$, the matrix $\mathbf{W}\mathbf{W}^T$ has rank at most $d$, meaning it lies in a low-dimensional subspace of the space of all $D \times D$ covariance matrices. This low-rank structure encodes the assumption that correlations among observed variables arise from a small number of underlying factors. The term $\boldsymbol{\Psi}$ represents the unique variance or measurement error specific to each dimension. Being diagonal, it contributes no correlations between dimensions—it only adds independent variance along each axis.
+
+This decomposition into shared and unique variance is the conceptual essence of factor analysis. In classical applications, researchers would examine the estimated loading matrix $\mathbf{W}$ to identify which observed variables load heavily on which factors, seeking to interpret the latent factors in terms of meaningful constructs. The diagonal entries of $\boldsymbol{\Psi}$ would indicate how much variance in each observed variable cannot be explained by the common factors, sometimes called the "uniqueness" of that variable.
+
+Applying the general posterior formulas, we obtain the posterior distribution over latent factors given an observation:
+\begin{myequation}
+p(\mathbf{z}|\mathbf{x}) = \mathcal{N}(\mathbf{z}|\mathbf{x}; \boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}}, \boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}})
+\end{myequation}
+
+where:
+\begin{myequation}
+\boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}} = {(\mathbf{I} + \mathbf{W}^T\boldsymbol{\Psi}^{-1}\mathbf{W})}^{-1} = \mathbf{G} \in \mathbb{R}^{d \times d}
+\end{myequation}
+\begin{myequation}
+\boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}} = \mathbf{G}\mathbf{W}^T\boldsymbol{\Psi}^{-1}(\mathbf{x} - \boldsymbol{\mu}) \in \mathbb{R}^d
+\end{myequation}
+
+It is convenient to introduce the notation $\mathbf{G} = {(\mathbf{I} + \mathbf{W}^T\boldsymbol{\Psi}^{-1}\mathbf{W})}^{-1}$ for the posterior covariance, as this matrix appears repeatedly in factor analysis computations. An important observation is that the posterior covariance $\mathbf{G}$ does not depend on the specific observation $\mathbf{x}$—it depends only on the model parameters $\mathbf{W}$ and $\boldsymbol{\Psi}$. This means that all observations provide the same degree of certainty about their latent representations, though of course the location of the posterior (the posterior mean) varies with the observation.
+
+The posterior mean $\boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}}$ provides a natural encoding of observed data points into the latent space. For a given observation $\mathbf{x}$, we compute:
+\begin{myequation}
+\mathbf{z}_{\text{encoded}} = \boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}} = \mathbf{G}\mathbf{W}^T\boldsymbol{\Psi}^{-1}(\mathbf{x} - \boldsymbol{\mu}) \in \mathbb{R}^d
+\end{myequation}
+
+This encoding differs from the deterministic projection used in PCA in several important ways. First, it accounts for the reliability of each observed dimension through the precision matrix $\boldsymbol{\Psi}^{-1}$. Dimensions with higher noise variance (larger $\Psi_{ii}$) contribute less to the posterior mean because they are down-weighted by the inverse covariance. This automatic reliability weighting is a significant advantage in applications where different measurements have different levels of noise or uncertainty. Second, the encoding incorporates uncertainty about the relationship between observations and latent factors through the posterior covariance matrix $\mathbf{G}$. Third, the posterior mean represents the expected value of the latent variable given the observation, which is optimal under squared loss—it minimizes the expected squared distance to the true latent value.
+
+\subsection*{Maximum Likelihood Estimation}
+
+Given a dataset $\mathbf{X} = \{\mathbf{x}_i\}_{i=1}^n$ of $n$ independent observations, we estimate the model parameters $\{\mathbf{W}, \boldsymbol{\mu}, \boldsymbol{\Psi}\}$ by maximizing the log-likelihood. Under the assumption that observations are independent and identically distributed according to the marginal distribution $p(\mathbf{x})$, the log-likelihood factorizes across data points:
+\begin{myequation}
+\log p(\mathbf{X}|\mathbf{W}, \boldsymbol{\mu}, \boldsymbol{\Psi}) = \sum_{i=1}^n \log p(\mathbf{x}_i|\mathbf{W}, \boldsymbol{\mu}, \boldsymbol{\Psi})
+\end{myequation}
+
+Substituting the marginal Gaussian density and expanding the log-likelihood:
+\begin{myequation}
+\log p(\mathbf{X}|\mathbf{W}, \boldsymbol{\mu}, \boldsymbol{\Psi}) = \sum_{i=1}^n \log \mathcal{N}(\mathbf{x}_i; \boldsymbol{\mu}, \boldsymbol{\Psi} + \mathbf{W}\mathbf{W}^T)
+\end{myequation}
+
+Using the formula for the Gaussian log-density:
+\begin{myequation}
+\begin{aligned}
+\log p(\mathbf{X}|\mathbf{W}, \boldsymbol{\mu}, \boldsymbol{\Psi}) &= -\frac{nD}{2}\log(2\pi) - \frac{n}{2}\log |\boldsymbol{\Psi} + \mathbf{W}\mathbf{W}^T| \\
+&\quad - \frac{1}{2}\sum_{i=1}^n (\mathbf{x}_i - \boldsymbol{\mu})^T (\boldsymbol{\Psi} + \mathbf{W}\mathbf{W}^T)^{-1} (\mathbf{x}_i - \boldsymbol{\mu})
+\end{aligned}
+\end{myequation}
+
+The log-likelihood consists of three terms: a constant depending only on the data dimensionality and sample size, a log-determinant term that penalizes overly complex covariance structures, and a quadratic form that measures the fit of the Gaussian to the data.
+
+Setting the gradient with respect to $\boldsymbol{\mu}$ to zero and solving yields the sample mean:
+\begin{myequation}
+\boldsymbol{\mu}^* = \frac{1}{n}\sum_{i=1}^n \mathbf{x}_i = \bar{\mathbf{x}} \in \mathbb{R}^D
+\end{myequation}
+
+This result is intuitive and satisfying: the optimal mean parameter for the generative model is simply the empirical mean of the observations. This is a consequence of the fact that the marginal distribution $p(\mathbf{x})$ is Gaussian with mean $\boldsymbol{\mu}$, and the maximum likelihood estimate of the mean of a Gaussian is the sample mean. As is standard practice in dimensionality reduction, we typically center the data by subtracting $\bar{\mathbf{x}}$ from all observations and work with centered data for the remaining analysis.
+
+Unfortunately, no closed-form solution exists for the loading matrix $\mathbf{W}$ and the noise covariance $\boldsymbol{\Psi}$ by simply setting their gradients to zero and solving. The optimization problem is non-convex due to the complex interaction between these parameters in the covariance matrix $\boldsymbol{\Psi} + \mathbf{W}\mathbf{W}^T$. The log-determinant term couples $\mathbf{W}$ and $\boldsymbol{\Psi}$ in a nonlinear way, and the inverse covariance in the quadratic form creates additional coupling.
+
+Several iterative algorithms can be employed to find maximum likelihood estimates despite the lack of closed-form solutions. The most common and reliable approach is the Expectation-Maximization (EM) algorithm, which alternates between computing expected sufficient statistics under the current posterior distribution (E-step) and maximizing the expected complete-data log-likelihood with respect to parameters (M-step). The EM algorithm has the attractive property that it guarantees monotonic improvement in the likelihood at each iteration, ensuring convergence to at least a local maximum. Gradient-based optimization methods provide an alternative, directly computing gradients of the log-likelihood with respect to $\mathbf{W}$ and $\boldsymbol{\Psi}$ and following the gradient uphill. However, care must be taken to maintain the constraint that $\boldsymbol{\Psi}$ remains diagonal with positive entries throughout the optimization.
+
+\subsection*{Relationship to Principal Component Analysis}
+
+Factor analysis bears a close relationship to Principal Component Analysis, and understanding this connection illuminates both methods. Factor analysis can be viewed as a probabilistic generalization of PCA that introduces explicit noise modeling and allows different dimensions to have different noise levels.
+
+When the noise covariance is constrained to be isotropic—that is, $\boldsymbol{\Psi} = \sigma^2\mathbf{I}$ for some scalar $\sigma^2$—and we take the limit as $\sigma^2 \to 0$, factor analysis converges to classical PCA. In this limiting case, the loading matrix becomes $\mathbf{W}^* = \mathbf{U}_d\mathbf{L}_d^{1/2}$, where $\mathbf{U}_d$ contains the first $d$ principal eigenvectors of the data covariance and $\mathbf{L}_d$ contains the corresponding eigenvalues. The marginal covariance becomes $\mathbf{W}\mathbf{W}^T$, a rank-$d$ matrix that lies exactly in the principal subspace. The model becomes deterministic: observations are generated as $\mathbf{x} = \mathbf{W}\mathbf{z} + \boldsymbol{\mu}$ with no noise term, and all data points lie exactly on the $d$-dimensional linear subspace defined by the columns of $\mathbf{W}$.
+
+Despite this limiting relationship, factor analysis offers several important advantages over classical PCA that justify its use in many applications. First and foremost, factor analysis provides a proper probabilistic framework. It defines an explicit probability distribution over observations, which enables principled likelihood-based model selection (for instance, choosing the number of factors $d$ by comparing likelihoods or using information criteria), hypothesis testing about parameters, and Bayesian inference with priors on $\mathbf{W}$ and $\boldsymbol{\Psi}$.
+
+Second, the explicit noise term $\sigma^2$ (in the isotropic case) or the full diagonal $\boldsymbol{\Psi}$ (in general factor analysis) provides a quantitative measure of how well the $d$-dimensional subspace fits the data. Large noise variances indicate that much of the data variability cannot be explained by the latent factors, while small noise variances indicate a good fit. Classical PCA implicitly assumes zero noise, which can be unrealistic in many applications.
+
+Third, the probabilistic framework enables principled handling of missing values through marginalization. If some entries of an observation $\mathbf{x}$ are missing, we can integrate them out and perform inference based on the observed entries alone. The Gaussian structure of the model makes this marginalization tractable. This is not straightforward in classical PCA, which typically requires imputation or specialized algorithms.
+
+Fourth, factor analysis provides posterior distributions over latent variables $p(\mathbf{z}|\mathbf{x})$ rather than point estimates, quantifying uncertainty in the low-dimensional representation. This uncertainty quantification can be valuable in downstream tasks, allowing us to propagate uncertainty rather than treating projections as fixed.
+
+Fifth, the generative nature of the model allows us to generate new data samples. We can draw latent variables $\mathbf{z} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and then generate observations $\mathbf{x} = \mathbf{W}\mathbf{z} + \boldsymbol{\mu} + \boldsymbol{\epsilon}$, producing synthetic data that captures the statistical structure of the training set. This generative capability is useful for data augmentation, anomaly detection, and understanding the model's learned representation.
+
+Finally, the probabilistic formulation facilitates numerous extensions. We can consider mixtures of factor analyzers to model data with multiple clusters or modes, develop Bayesian versions with priors on parameters and perform full posterior inference, or introduce more complex noise models such as non-Gaussian noise or structured covariance.
+
+\section*{Probabilistic PCA}
+
+Probabilistic PCA (PPCA) occupies a special position in the landscape of dimensionality reduction methods. It represents a particular special case of factor analysis obtained through a single but important simplification: the noise covariance matrix is assumed to be isotropic, meaning all dimensions share the same noise variance. This assumption can be expressed mathematically as:
+\begin{myequation}
+\boldsymbol{\Psi} = \sigma^2\mathbf{I} \in \mathbb{R}^{D \times D}
+\end{myequation}
+
+where $\sigma^2 > 0$ is a scalar parameter representing the uniform noise variance across all observed dimensions.
+
+This seemingly simple constraint has profound consequences. Rather than estimating $D$ separate noise variances (the diagonal entries of $\boldsymbol{\Psi}$ in general factor analysis), we estimate a single global noise parameter $\sigma^2$ that represents the average measurement error across all dimensions. This dramatically reduces the number of parameters and, perhaps more importantly, enables closed-form maximum likelihood solutions for all model parameters—a property not enjoyed by general factor analysis. The resulting model retains the essential probabilistic character and generative interpretation of factor analysis while achieving the analytical tractability and computational efficiency that make it practical for large-scale applications.
+
+Despite the reduction in model flexibility compared to general factor analysis, probabilistic PCA has proven remarkably successful across a wide range of applications. The isotropic noise assumption is often reasonable when we have no a priori reason to believe that some dimensions are more noisy than others, and empirically, the model performs well even when this assumption is only approximately satisfied.
+
+The graphical model representation of PPCA, shown in Figure~\ref{ppca}, differs from general factor analysis only in the constraint on the noise covariance.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[
+latent/.style={circle,draw,fill=latent!40!white},
+visible/.style={circle,outer sep=0pt,draw,fill=observed},
+param/.style={circle,draw, fill=param},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=box}, 
+lbl/.style={circle}]
+\draw[line width=.5pt]
+(.75,-2.3) node[plate, minimum height=2.7cm, minimum width=3cm] {}
+(-1.5,-1.5) node[param] (A) {$\sigma^2$}
+(0,-1.5) node[latent] (B) {$\boldsymbol{\epsilon}_{i}$}
+(0,-3) node[visible] (C) {$\mathbf{x}_i$}
+(1.5,-3) node[latent] (D) {$\mathbf{z}_i$}
+(-1.5,-3) node[param] (E) {$\boldsymbol{\mu}$}
+(0,-4.25) node[param] (W) {$\mathbf{W}$}
+(2,-3.55) node[lbl] {\footnotesize $n$};
+\draw[->,>=stealth',shorten >=1pt] (A) -- (B);
+\draw[->,>=stealth',shorten >=1pt] (B) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (E) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (D) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (W) -- (C);
+\end{tikzpicture}
+\caption{Graphical model for probabilistic PCA. The latent variables $\boldsymbol{\epsilon}$ and $\mathbf{z}$ are normally distributed: $p(\boldsymbol{\epsilon})=\mathcal{N}(\boldsymbol{\epsilon}; \mathbf{0}, \sigma^2\mathbf{I})$ and $p(\mathbf{z})=\mathcal{N}(\mathbf{z}; \mathbf{0}, \mathbf{I})$. The observed variable $\mathbf{x}$ depends deterministically on these random variables via $\mathbf{x}=\mathbf{W}\mathbf{z}+\boldsymbol{\mu}+\boldsymbol{\epsilon}$, inducing the conditional distribution $p(\mathbf{x}|\mathbf{z})=\mathcal{N}(\mathbf{x}|\mathbf{z};\mathbf{W}\mathbf{z}+\boldsymbol{\mu}, \sigma^2\mathbf{I})$.
+}\label{ppca}
+\end{center}
+\end{figure}
+
+\subsection*{Model Specification}
+
+Under the isotropic noise assumption, the generative process remains structurally identical to general factor analysis. An observation is generated according to:
+\begin{myequation}
+\mathbf{x} = \mathbf{W}\mathbf{z} + \boldsymbol{\mu} + \boldsymbol{\epsilon}
+\end{myequation}
+
+where the latent variable $\mathbf{z} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ is drawn from a standard Gaussian prior in $\mathbb{R}^d$, the loading matrix $\mathbf{W} \in \mathbb{R}^{D \times d}$ projects from latent space to observation space, the mean vector $\boldsymbol{\mu} \in \mathbb{R}^D$ translates the distribution, and the noise $\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \sigma^2\mathbf{I})$ is isotropic with scalar variance $\sigma^2$.
+
+The conditional distribution of observations given latent variables becomes:
+\begin{myequation}
+p(\mathbf{x}|\mathbf{z}) = \mathcal{N}(\mathbf{x}|\mathbf{z}; \mathbf{W}\mathbf{z} + \boldsymbol{\mu}, \sigma^2\mathbf{I})
+\end{myequation}
+
+This conditional density assigns high probability to observations near $\mathbf{W}\mathbf{z} + \boldsymbol{\mu}$ and decreases Gaussianly as we move away, with the rate of decrease controlled uniformly by $\sigma^2$ in all directions.
+
+The marginal distribution of observations, obtained by integrating out $\mathbf{z}$, is:
+\begin{myequation}
+p(\mathbf{x}) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}, \mathbf{W}\mathbf{W}^T + \sigma^2\mathbf{I})
+\end{myequation}
+
+The marginal covariance structure $\boldsymbol{\Sigma}_{\mathbf{x}} = \mathbf{W}\mathbf{W}^T + \sigma^2\mathbf{I}$ reveals that PPCA decomposes the total variation in the data into two interpretable components. The term $\mathbf{W}\mathbf{W}^T$ captures structured variation—the correlations between dimensions that arise from shared latent factors. Because $\mathbf{W}$ has rank at most $d$, this matrix is low-rank and lies in a $d$-dimensional subspace of the space of symmetric matrices. The term $\sigma^2\mathbf{I}$ represents isotropic noise—uniform, independent variation across all dimensions that cannot be explained by the latent factors. Unlike general factor analysis where different dimensions can have different noise levels, PPCA assumes this unexplained variation is homogeneous.
+
+This decomposition connects naturally to the geometric picture provided by classical PCA. The columns of $\mathbf{W}$ span a $d$-dimensional linear subspace of $\mathbb{R}^D$, and the term $\mathbf{W}\mathbf{W}^T$ describes variation within this subspace. The noise term $\sigma^2\mathbf{I}$ represents variation orthogonal to the subspace (as well as additional variation within it). When $\sigma^2$ is small, data is concentrated near the subspace; when $\sigma^2$ is large, data is more diffuse and spread out in all directions.
+
+\subsection*{Maximum Likelihood Estimation}
+
+A remarkable and practically important property of probabilistic PCA is that the isotropic noise assumption enables closed-form maximum likelihood solutions for all parameters. This analytical tractability stands in contrast to general factor analysis, which requires iterative algorithms like EM. The availability of closed-form solutions makes PPCA computationally efficient and conceptually transparent—we can write down explicit formulas for the optimal parameters and understand their geometric meaning.
+
+Given a dataset $\mathbf{X} = \{\mathbf{x}_i\}_{i=1}^n$ of $n$ independent observations, the log-likelihood under PPCA is:
+\begin{myequation}
+\begin{aligned}
+\log p(\mathbf{X}; \mathbf{W}, \boldsymbol{\mu}, \sigma^2) &= -\frac{nD}{2}\log(2\pi) - \frac{n}{2}\log |\mathbf{W}\mathbf{W}^T + \sigma^2\mathbf{I}| \\
+&\quad - \frac{1}{2}\sum_{i=1}^n (\mathbf{x}_i - \boldsymbol{\mu})^T (\mathbf{W}\mathbf{W}^T + \sigma^2\mathbf{I})^{-1} (\mathbf{x}_i - \boldsymbol{\mu})
+\end{aligned}
+\end{myequation}
+
+This expression is identical in form to the general factor analysis likelihood, but the isotropic constraint $\boldsymbol{\Psi} = \sigma^2\mathbf{I}$ allows us to solve the optimization problem analytically.
+
+Maximizing with respect to $\boldsymbol{\mu}$ yields the intuitive result that the optimal mean is the sample mean:
+\begin{myequation}
+\boldsymbol{\mu}^* = \frac{1}{n}\sum_{i=1}^n \mathbf{x}_i = \bar{\mathbf{x}}
+\end{myequation}
+
+As is standard, we center the data by subtracting $\bar{\mathbf{x}}$ and work with centered observations for the remaining optimization. Let $\mathbf{S}$ denote the sample covariance matrix (or scatter matrix) of the centered data:
+\begin{myequation}
+\mathbf{S} = \frac{1}{n}\sum_{i=1}^n (\mathbf{x}_i - \bar{\mathbf{x}})(\mathbf{x}_i - \bar{\mathbf{x}})^T \in \mathbb{R}^{D \times D}
+\end{myequation}
+
+This matrix summarizes the empirical second-order statistics of the data and plays a central role in the maximum likelihood solution.
+
+To find the optimal loading matrix $\mathbf{W}$ and noise variance $\sigma^2$, we perform the eigendecomposition of the sample covariance matrix $\mathbf{S}$. Let $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_D \geq 0$ denote the eigenvalues of $\mathbf{S}$, ordered in decreasing magnitude, and let $\{\mathbf{u}_i\}_{i=1}^D$ denote the corresponding orthonormal eigenvectors. This eigendecomposition can be written as:
+\begin{myequation}
+\mathbf{S} = \sum_{i=1}^D \lambda_i \mathbf{u}_i\mathbf{u}_i^T
+\end{myequation}
+
+The eigenvalues $\{\lambda_i\}$ measure the variance of the data along the corresponding eigenvector directions $\{\mathbf{u}_i\}$, with $\lambda_1$ being the largest variance (the first principal direction) and $\lambda_D$ being the smallest.
+
+We define two matrices from this eigendecomposition. Let $\mathbf{U}_d \in \mathbb{R}^{D \times d}$ be the matrix whose columns are the first $d$ eigenvectors corresponding to the $d$ largest eigenvalues:
+\begin{myequation}
+\mathbf{U}_d = [\mathbf{u}_1 \ \mathbf{u}_2 \ \cdots \ \mathbf{u}_d]
+\end{myequation}
+
+Let $\mathbf{L}_d \in \mathbb{R}^{d \times d}$ be the diagonal matrix containing these $d$ largest eigenvalues:
+\begin{myequation}
+\mathbf{L}_d = \text{diag}(\lambda_1, \lambda_2, \ldots, \lambda_d)
+\end{myequation}
+
+The maximum likelihood solution for the loading matrix is then:
+\begin{myequation}
+\mathbf{W}^* = \mathbf{U}_d(\mathbf{L}_d - \sigma^2\mathbf{I})^{1/2} \in \mathbb{R}^{D \times d}
+\end{myequation}
+
+where the square root of a diagonal matrix is taken element-wise. This formula has a clear geometric interpretation that connects PPCA to classical PCA. The columns of $\mathbf{W}^*$ point in the directions of the principal eigenvectors $\mathbf{u}_1, \ldots, \mathbf{u}_d$—the same directions identified by classical PCA. However, each eigenvector $\mathbf{u}_i$ is scaled by $\sqrt{\lambda_i - \sigma^2}$ rather than $\sqrt{\lambda_i}$ (as in PCA). The term $\lambda_i - \sigma^2$ represents the "signal" variance along that direction after subtracting the isotropic noise variance $\sigma^2$. When $\sigma^2 \to 0$, we recover classical PCA where columns are scaled by $\sqrt{\lambda_i}$. When $\sigma^2$ is appreciable, the scaling accounts for the fact that part of the observed variance $\lambda_i$ is due to noise rather than systematic variation captured by the latent factors.
+
+An important and somewhat subtle property of probabilistic PCA is rotational invariance in the latent space. For any $d \times d$ orthogonal matrix $\mathbf{R}$ satisfying $\mathbf{R}\mathbf{R}^T = \mathbf{I}$, the modified loading matrix:
+\begin{myequation}
+\tilde{\mathbf{W}}^* = \mathbf{U}_d(\mathbf{L}_d - \sigma^2\mathbf{I})^{1/2}\mathbf{R}
+\end{myequation}
+
+yields exactly the same marginal distribution $p(\mathbf{x})$ because:
+\begin{myequation}
+\tilde{\mathbf{W}}^*(\tilde{\mathbf{W}}^*)^T = \mathbf{U}_d(\mathbf{L}_d - \sigma^2\mathbf{I})^{1/2}\mathbf{R}\mathbf{R}^T(\mathbf{L}_d - \sigma^2\mathbf{I})^{1/2}\mathbf{U}_d^T = \mathbf{W}^*(\mathbf{W}^*)^T
+\end{myequation}
+
+This invariance reflects the fact that the latent space coordinates are only defined up to an arbitrary rotation. What matters for the marginal distribution over observations is the $d$-dimensional subspace spanned by the columns of $\mathbf{W}$, not the particular orthonormal basis chosen to represent that subspace. We could rotate the latent coordinates by any orthogonal matrix $\mathbf{R}$ and compensate by rotating $\mathbf{W}$ accordingly, leaving the model's predictions unchanged. In practice, we typically choose $\mathbf{R} = \mathbf{I}$ for simplicity, but this rotational freedom means that the individual columns of $\mathbf{W}$ should not be interpreted as having unique meaning—only the subspace they collectively span is well-defined.
+
+The maximum likelihood estimate for the noise variance has an elegant interpretation:
+\begin{myequation}
+\sigma^{2*} = \frac{1}{D-d}\sum_{i=d+1}^D \lambda_i
+\end{myequation}
+
+This is the average variance along the discarded dimensions—the directions not included in the principal subspace. Since the eigenvalue $\lambda_i$ measures the data variance along the direction of eigenvector $\mathbf{u}_i$, this formula says that we model the $d$ principal directions (those with largest eigenvalues) explicitly through the latent factors $\mathbf{W}\mathbf{z}$, and we attribute the remaining $D-d$ directions to isotropic noise. The noise variance $\sigma^2$ is estimated as the mean of the eigenvalues corresponding to these discarded directions.
+
+This provides a principled way to partition the total data variance into "signal" and "noise." The signal is the variance along the top $d$ eigenvector directions, captured by the low-rank term $\mathbf{W}\mathbf{W}^T$. The noise is the average variance along the remaining $D-d$ directions, captured by the isotropic term $\sigma^2\mathbf{I}$. When the discarded eigenvalues are all small and roughly equal, the isotropic noise assumption is well-justified. When they vary substantially, general factor analysis with diagonal $\boldsymbol{\Psi}$ might be more appropriate.
+
+\subsection*{Connection to Classical PCA}
+
+Probabilistic PCA provides a probabilistic foundation and generative interpretation for classical PCA, revealing the implicit assumptions underlying PCA and extending it in useful ways.
+
+As the noise variance $\sigma^2$ approaches zero, PPCA converges to classical PCA in several senses. The loading matrix becomes $\mathbf{W}^* = \mathbf{U}_d\mathbf{L}_d^{1/2}$, exactly matching PCA's construction. The marginal covariance becomes $\mathbf{W}\mathbf{W}^T$, a rank-$d$ matrix that lies precisely in the principal subspace spanned by the top $d$ eigenvectors. The model becomes deterministic: observations are generated as $\mathbf{x} = \mathbf{W}\mathbf{z} + \boldsymbol{\mu}$ with no noise term, meaning all data points lie exactly on the $d$-dimensional linear subspace defined by the columns of $\mathbf{W}$.
+
+Despite this limiting relationship, PPCA offers several key advantages over classical PCA that make it preferable in many contexts. First, PPCA provides a proper probabilistic framework by defining an explicit probability distribution over observations. This enables likelihood-based model selection for choosing the latent dimensionality $d$ (for instance, by comparing likelihoods for different values of $d$ or using information criteria like AIC or BIC), hypothesis testing about model parameters, and the possibility of Bayesian extensions with priors on $\mathbf{W}$ and $\sigma^2$.
+
+Second, the explicit noise term $\sigma^2$ provides a quantitative measure of how well the $d$-dimensional subspace fits the data. A small value of $\sigma^2$ indicates that the principal subspace captures most of the data variation, while a large value indicates substantial variation orthogonal to the subspace. Classical PCA implicitly assumes zero noise (or equivalently, infinite signal-to-noise ratio), which is often unrealistic. PPCA acknowledges that real data contains measurement error and unexplained variation.
+
+Third, the probabilistic framework enables principled handling of missing values through marginalization. If some entries of an observation $\mathbf{x}$ are missing, we can compute the likelihood by integrating over the missing values, which is tractable given the Gaussian structure. This allows us to perform maximum likelihood estimation even with incomplete data, using algorithms like EM to iterate between imputing missing values and updating parameters. Classical PCA requires either complete data or ad-hoc imputation strategies.
+
+Fourth, PPCA provides posterior distributions over latent variables $p(\mathbf{z}|\mathbf{x})$ rather than point estimates. This uncertainty quantification can be valuable in downstream applications, allowing us to propagate uncertainty about the low-dimensional representation rather than treating projections as deterministic. For instance, if we use the latent representation as features for classification, we can account for the fact that we are uncertain about the true latent values.
+
+Fifth, the generative capability of PPCA allows us to synthesize new data samples. We can draw latent variables $\mathbf{z} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and generate observations $\mathbf{x} = \mathbf{W}\mathbf{z} + \boldsymbol{\mu} + \boldsymbol{\epsilon}$, producing synthetic data that captures the statistical structure learned from the training set. This generative ability is useful for data augmentation, simulating scenarios, and understanding what the model has learned.
+
+Finally, the probabilistic formulation facilitates numerous extensions. We can develop mixtures of PPCAs to model data with multiple clusters or modes, each represented by its own local low-dimensional subspace. We can introduce priors on the parameters and perform full Bayesian inference, obtaining posterior distributions over $\mathbf{W}$ and $\sigma^2$ that quantify our uncertainty about the model itself. We can consider variants with non-Gaussian noise or more structured covariance. The probabilistic framework provides a principled starting point for these generalizations.
+
+\subsection*{Projection to Latent Space}
+
+Given a new observation $\mathbf{x}$, we can compute its posterior distribution in latent space using the Gaussian conditioning formulas specialized to the PPCA setting where $\boldsymbol{\Psi} = \sigma^2\mathbf{I}$. The posterior distribution is Gaussian:
+\begin{myequation}
+p(\mathbf{z}|\mathbf{x}) = \mathcal{N}(\mathbf{z}|\mathbf{x}; \boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}}, \boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}})
+\end{myequation}
+
+where the posterior covariance and mean are given by:
+\begin{myequation}
+\boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}} = (\mathbf{I} + \sigma^{-2}\mathbf{W}^T\mathbf{W})^{-1}
+\end{myequation}
+\begin{myequation}
+\boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}} = \sigma^{-2}\boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}}\mathbf{W}^T(\mathbf{x} - \boldsymbol{\mu})
+\end{myequation}
+
+The posterior covariance $\boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}}$ does not depend on the specific observation $\mathbf{x}$—it is determined entirely by the model parameters $\mathbf{W}$ and $\sigma^2$. This reflects the linear Gaussian structure: all observations provide the same amount of information about their latent codes, though the location of the posterior naturally varies.
+
+The posterior mean $\boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}}$ provides the optimal reconstruction of the latent code in the minimum mean squared error sense—it minimizes $\mathbb{E}[\|\mathbf{z} - \hat{\mathbf{z}}\|^2 | \mathbf{x}]$ among all estimators $\hat{\mathbf{z}}$ that are functions of $\mathbf{x}$. As the noise variance $\sigma^2$ approaches zero, the posterior mean converges to the classical PCA projection. To see this, note that as $\sigma^2 \to 0$:
+\begin{myequation}
+\boldsymbol{\Sigma}_{\mathbf{z}|\mathbf{x}} \to (\mathbf{W}^T\mathbf{W})^{-1}
+\end{myequation}
+\begin{myequation}
+\boldsymbol{\mu}_{\mathbf{z}|\mathbf{x}} \to (\mathbf{W}^T\mathbf{W})^{-1}\mathbf{W}^T(\mathbf{x} - \boldsymbol{\mu})
+\end{myequation}
+
+When $\mathbf{W}$ has orthonormal columns (which occurs when $\sigma^2 = 0$ and we choose $\mathbf{R} = \mathbf{I}$ in the rotational freedom), we have $\mathbf{W}^T\mathbf{W} = \mathbf{I}$, and the posterior mean becomes $\mathbf{W}^T(\mathbf{x} - \boldsymbol{\mu})$—precisely the classical PCA projection. Thus, PPCA gracefully interpolates between a proper probabilistic model (when $\sigma^2 > 0$) and classical PCA (when $\sigma^2 \to 0$), unifying these perspectives within a single framework.
+
+
+
+
+
+
+
+
+%\end{document}

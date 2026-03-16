@@ -1,0 +1,126 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{A Refresher on Lagrange Multipliers}
+
+Optimization is at the heart of machine learning: training a model almost invariably means minimizing a loss function with respect to a set of parameters. In many problems of practical interest, however, the minimization cannot be carried out freely over the entire parameter space. Instead, the solution must satisfy a set of constraints that reflect physical requirements, normalization conditions, or structural assumptions about the model. The method of Lagrange multipliers is the classical tool for handling such constrained problems in a principled and systematic way.
+
+\section*{Equality Constraints}
+
+We begin with the simplest constrained setting, in which all constraints are equalities. The problem takes the form
+\begin{align*}
+\min_{\x} &\;\; f(\x)\\
+\text{subject to} &\;\; h_{i}(\x)=0, \qquad i=1,\ldots,l.
+\end{align*}
+The feasible set here is the subset of $\Real^n$ on which all the functions $h_i$ vanish simultaneously. The key idea of Lagrange's method is to convert this constrained problem into an unconstrained one by forming the \emph{Lagrangian}, a single scalar function that combines the objective and the constraints:
+\begin{myequation}
+L(\x, \Vlambda)=f(\x)+\sum_{i=1}^{l}\lambda_{i}h_{i}(\x).
+\end{myequation}
+The real numbers $\lambda_{i}$ are called \emph{Lagrange multipliers}. Each multiplier $\lambda_i$ is associated with one equality constraint and acts as a ``price'' for violating it: the term $\lambda_i h_i(\x)$ penalizes departures from $h_i(\x) = 0$ in proportion to the magnitude of the violation and the multiplier.
+
+To understand why the Lagrangian captures the original problem, it is instructive to look at its partial derivatives separately. Imposing
+\begin{myequation}
+\nabla_{\x}L(\x, \Vlambda)=0
+\end{myequation}
+means searching for a stationary point of $L$ with respect to $\x$---that is, the value of $\x$ that minimizes (or maximizes) $L$ with the multipliers held fixed. Imposing instead
+\begin{myequation}
+\nabla_{\Vlambda}L(\x, \Vlambda)=0
+\end{myequation}
+amounts to enforcing $h_{i}(\x)=0$ for all $i$, since the gradient of $L$ with respect to $\lambda_i$ is simply $h_i(\x)$. Setting this gradient to zero therefore means requiring that all constraints be satisfied, i.e.\ that $\x$ is feasible.
+
+Requiring that all derivatives with respect to both $\x$ and $\Vlambda$ vanish simultaneously is therefore equivalent to the original constrained problem: it asks for a point that is stationary in the objective direction and feasible in the constraint direction at the same time. Geometrically, this stationarity condition encodes the requirement that at a constrained optimum the gradient of $f$ must be expressible as a linear combination of the constraint gradients $\nabla h_i$---the multipliers $\lambda_i$ are precisely the coefficients of that linear combination.
+
+\subsection*{A Worked Example}
+
+To make the method concrete, consider the problem
+\begin{align*}
+\min_{x_{1},x_{2}} &\;\; 1-x_{1}^{2}-x_{2}^{2}\\
+\text{subject to} &\;\; x_{1}+x_{2}-1=0.
+\end{align*}
+Without the constraint, the objective $1-x_1^2-x_2^2$ would be minimized by sending $x_1$ and $x_2$ to infinity (it has no unconstrained minimum). The equality constraint restricts the search to the line $x_1+x_2=1$, on which the problem becomes well-posed.
+
+The Lagrangian is
+\begin{myequation}
+L(x_{1},x_{2},\lambda)=1-x_{1}^{2}-x_{2}^{2}+\lambda(x_{1}+x_{2}-1).
+\end{myequation}
+Setting the three partial derivatives to zero yields the system
+\begin{align*}
+\frac{\partial L}{\partial x_{1}}&=-2x_{1}+\lambda=0,\\
+\frac{\partial L}{\partial x_{2}}&=-2x_{2}+\lambda=0,\\
+\frac{\partial L}{\partial \lambda}&=x_{1}+x_{2}-1=0.
+\end{align*}
+The first two equations give $x_1 = x_2 = \lambda/2$. Substituting into the third equation, $\lambda/2 + \lambda/2 = 1$, so $\lambda = 1$, and therefore $x_1 = x_2 = 1/2$. The optimal solution is $\x^* = (1/2,\, 1/2)$, with objective value $1 - 1/4 - 1/4 = 1/2$. The Lagrange multiplier value $\lambda=1$, while not the primary quantity of interest, has a meaningful interpretation: it measures the sensitivity of the optimal objective value to a perturbation of the right-hand side of the constraint.
+
+\section*{Inequality Constraints and the Primal Problem}
+
+We now consider the more general and practically important case in which the constraints include both equalities and inequalities:
+\begin{align*}
+\min_{\x} &\;\; f(\x)\\
+\text{subject to} &\;\; g_{i}(\x)\leq 0, \qquad i=1,\ldots,k,\\
+                  &\;\; h_{i}(\x)=0, \qquad i=1,\ldots,l.
+\end{align*}
+This is called the \emph{primal problem}. The introduction of inequality constraints requires a more careful treatment, because the direction in which a constraint can be violated is now one-sided: $g_i(\x) > 0$ constitutes a violation, while $g_i(\x) < 0$ means the constraint is satisfied with slack.
+
+To handle both types of constraints simultaneously, we introduce the \emph{generalized Lagrangian}
+\begin{myequation}
+L(\x,\Valpha,\Vlambda)=f(\x)+\sum_{i=1}^{k}\lambda_{i}g_{i}(\x)+\sum_{i=1}^{l}\alpha_{i}h_{i}(\x),
+\end{myequation}
+where $\Vlambda = (\lambda_1,\ldots,\lambda_k)$ are the multipliers associated with the inequality constraints and $\Valpha = (\alpha_1,\ldots,\alpha_l)$ are those associated with the equality constraints. Crucially, the multipliers for the inequality constraints must be non-negative, $\lambda_i \geq 0$, for reasons that will become clear shortly.
+
+To see how this Lagrangian encodes the original constraints, define the function
+\begin{myequation}
+\theta_{p}(\x)=\max_{\Vlambda,\Valpha:\,\lambda_{i}\geq 0}L(\x,\Vlambda,\Valpha),
+\end{myequation}
+which is the maximum of $L$ over all valid multipliers, for a fixed $\x$. Consider what happens for different choices of $\x$. If $\x$ violates some constraint---say $g_{i}(\x)>0$ for some $i$, or $h_{i}(\x)\neq 0$ for some $i$---then one can make $\theta_p(\x)$ arbitrarily large: if $g_i(\x) > 0$, simply take $\lambda_i \to +\infty$; if $h_i(\x) \neq 0$, take $\alpha_i$ with the appropriate sign and send its magnitude to infinity (positive $\alpha_i$ if $h_i(\x)>0$, negative if $h_i(\x)<0$). In these cases $\theta_p(\x) = +\infty$. On the other hand, if $\x$ satisfies all constraints, then $g_i(\x) \leq 0$ for all $i$ and $h_i(\x) = 0$ for all $i$. Since $\lambda_i \geq 0$, each term $\lambda_i g_i(\x)$ is non-positive, and each term $\alpha_i h_i(\x) = 0$. The maximum of $L$ over the multipliers is therefore achieved by setting $\lambda_i = 0$ for all $i$ (to avoid the non-positive penalty dragging the value down), giving $\theta_p(\x) = f(\x)$.
+
+In summary, $\theta_p$ acts as an exact penalty function:
+\begin{myequation}
+\theta_p(\x) = \begin{cases} f(\x) & \text{if } \x \text{ satisfies all constraints,} \\ +\infty & \text{otherwise.} \end{cases}
+\end{myequation}
+This means the primal minimization problem
+\begin{myequation}
+p^* = \min_{\x}\theta_{p}(\x)=\min_{\x}\max_{\Vlambda,\Valpha:\,\lambda_{i}\geq 0}L(\x,\Vlambda,\Valpha)
+\end{myequation}
+has exactly the same solutions as the original constrained problem, and the same optimal value $p^*$. The minimax formulation is a precise reformulation of the constrained optimization problem as an unconstrained one, with the multipliers acting as adversaries that enforce feasibility.
+
+\section*{The Dual Problem}
+
+Having reformulated the primal problem as a minimax, we can consider what happens when the order of optimization is reversed. Define
+\begin{myequation}
+\theta_{d}(\Vlambda,\Valpha)=\min_{\x}\,L(\x,\Vlambda,\Valpha),
+\end{myequation}
+the minimum of the Lagrangian over $\x$ for fixed multipliers. The function $\theta_d$ is sometimes called the \emph{dual function}; unlike $\theta_p$, it is always concave in $(\Vlambda, \Valpha)$ regardless of the nature of the original problem, since the pointwise minimum of affine functions is concave. Based on $\theta_d$, we define the \emph{dual problem}
+\begin{myequation}
+d^{*}=\max_{\Vlambda,\Valpha:\,\lambda_{i}\geq 0}\theta_{d}(\Vlambda,\Valpha)=\max_{\Vlambda,\Valpha:\,\lambda_{i}\geq 0}\min_{\x}\,L(\x,\Vlambda,\Valpha).
+\end{myequation}
+The primal and dual problems are related by the fundamental \emph{max-min inequality}: for any function $f(x,y)$,
+\begin{myequation}
+\max_{x}\min_{y}f(x,y)\leq\min_{y}\max_{x}f(x,y).
+\end{myequation}
+This inequality says that the best you can achieve by first minimizing then maximizing is never worse than what you get by doing the operations in the opposite order. Applying this to the Lagrangian immediately gives \emph{weak duality}:
+\begin{myequation}
+d^{*}=\max_{\Vlambda,\Valpha:\,\lambda_{i}\geq 0}\min_{\x}\,L(\x,\Vlambda,\Valpha)\leq\min_{\x}\max_{\Vlambda,\Valpha:\,\lambda_{i}\geq 0}L(\x,\Vlambda,\Valpha)=p^{*}.
+\end{myequation}
+The dual objective $d^*$ is therefore always a lower bound on the primal optimal value $p^*$. The difference $p^* - d^* \geq 0$ is called the \emph{duality gap}.
+
+Under sufficiently general conditions---and in particular when the constraints are linear and the objective function $f$ is convex (meaning it has non-negative second derivative, or positive semidefinite Hessian in the multivariate case)---the duality gap closes entirely. This is the celebrated \emph{strong duality} result: there exist optimal primal and dual solutions $\x^*$, $\Vlambda^*$, $\Valpha^*$ such that
+\begin{myequation}
+p^{*}=\theta_{p}(\x^{*})=\theta_{d}(\Vlambda^{*},\Valpha^{*})=d^{*}=L(\x^{*},\Vlambda^{*},\Valpha^{*}).
+\end{myequation}
+Strong duality is practically important because the dual problem is often easier to solve than the primal: it is always a concave maximization problem, and its dimension may be smaller. In support vector machines, for example, the dual formulation reveals the role of the support vectors and leads to the kernel trick, transforming the original finite-dimensional quadratic program into one whose solution depends only on inner products between data points.
+
+\section*{The KKT Conditions}
+
+When strong duality holds, the optimal solutions $\x^*$, $\Vlambda^*$, $\Valpha^*$ satisfy a system of necessary and sufficient conditions known as the \emph{Karush--Kuhn--Tucker (KKT) conditions}:
+\begin{align*}
+\nabla_{\x}L(\x^{*},\Vlambda^{*},\Valpha^{*})&=\Zero &\text{(stationarity)}\\
+g_{i}(\x^{*})&\leq 0,\qquad i=1,\ldots,k &\text{(primal feasibility: inequalities)}\\
+h_{i}(\x^{*})&=0,\qquad i=1,\ldots,l &\text{(primal feasibility: equalities)}\\
+\lambda^{*}_{i}&\geq 0,\qquad i=1,\ldots,k &\text{(dual feasibility)}\\
+\lambda_{i}^{*}g_{i}(\x^{*})&=0,\qquad i=1,\ldots,k &\text{(complementary slackness)}
+\end{align*}
+Each condition has a clear meaning. The stationarity condition requires that the gradient of the Lagrangian with respect to $\x$ vanishes at the optimum: this is the first-order necessary condition for $\x^*$ to be a stationary point of $L$ given the multipliers. The second and third conditions simply restate that $\x^*$ is feasible for the original primal problem. The fourth condition---non-negativity of the multipliers associated with inequality constraints---is what ensures the penalty interpretation described above: without $\lambda_i \geq 0$, a violated constraint $g_i(\x) > 0$ could be rewarded rather than penalized by choosing $\lambda_i < 0$.
+
+The fifth and most subtle condition is \emph{complementary slackness}: the product $\lambda_i^* g_i(\x^*) = 0$ for every inequality constraint. Since both $\lambda_i^* \geq 0$ and $g_i(\x^*) \leq 0$, this condition says that at least one of the two factors must be zero. Concretely, it implies the following dichotomy for each inequality constraint. If the constraint is \emph{active} at the optimum, meaning $g_i(\x^*)=0$ (the solution sits exactly on the boundary of the feasible region), then $\lambda_i^*$ can be positive: the constraint is ``felt'' by the optimizer and the multiplier measures how much the objective would improve if the constraint were relaxed. If instead the constraint is \emph{inactive}, meaning $g_i(\x^*)<0$ (the solution lies strictly inside the feasible region), then the constraint is not binding and the corresponding multiplier must be zero, $\lambda_i^*=0$: an inactive constraint has no influence on the optimal solution, just as if it were not there.
+
+Complementary slackness therefore provides a precise quantitative characterization of which constraints are operative at the solution and which are not, connecting the geometry of the feasible set to the algebraic structure of the optimal multipliers. In practice, the KKT conditions serve as a system of equations and inequalities whose solution yields both the optimal primal variable $\x^*$ and the optimal multipliers $\Vlambda^*$, $\Valpha^*$. For convex problems with linear constraints, satisfying the KKT conditions is both necessary and sufficient for global optimality.

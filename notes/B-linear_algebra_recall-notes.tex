@@ -1,0 +1,397 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Linear algebra recall}
+
+In this chapter we briefly recall the notation and the basic operations that are used throughout linear algebra. The goal is not to be exhaustive, but to fix conventions and provide a compact reference for the concepts that arise most frequently in the rest of these notes.
+
+We write $\A\in\Real^{m\times n}$ to denote a real matrix with $m$ rows and $n$ columns---that is, an $m\times n$ array of real numbers. A column vector $\x\in\Real^n$ is an $n\times 1$ matrix, i.e.\ a matrix with a single column and $n$ rows. A row vector, a $1\times n$ matrix, is written as $\x^T$. The $i$-th component of $\x$ is denoted $x_i$, so that
+\begin{myequation}
+\x=\vcol{x_1}{x_2}{x_n}.
+\end{myequation}
+The entry in row $i$ and column $j$ of the matrix $\A$ is denoted $a_{ij}$ (or equivalently $A_{ij}$ or $A_{i,j}$). Writing out all entries explicitly:
+\begin{myequation}
+\A=
+ \left[
+ \begin{array}{cccc}
+      a_{11} & a_{12} & \cdots & a_{1n}\\
+      a_{21} & a_{22} & \cdots & a_{2n} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      a_{m1} & a_{m2} & \cdots & a_{mn}
+ \end{array}
+ \right].
+\end{myequation}
+It is often convenient to think of $\A$ not as a flat array, but as either a collection of column vectors or a stack of row vectors. We write $a_j$ (or $\A_{:,j}$) for the $j$-th column and $a_i^T$ (or $\A_{i,:}$) for the $i$-th row, so that
+\begin{myequation}
+\A=\matcolonne{a_1}{a_2}{a_n}
+\qquad\text{(column view)},
+\qquad
+\A=\matrighe{a_1^T}{a_2^T}{a_m^T}
+\qquad\text{(row view)}.
+\end{myequation}
+Both perspectives will be used interchangeably, and choosing the appropriate one often leads to cleaner derivations.
+
+\subsection*{Multiplication}
+
+We now recall the most common products involving vectors and matrices, along with equivalent ways of interpreting them. These multiple interpretations are not merely notational alternatives; each one captures a different geometric or algebraic insight and proves useful in different contexts.
+
+Given two vectors $\x,\y\in\Real^n$, their \emph{inner product} $\x\cdot\y$ is the real number
+\begin{myequation}
+\x^T\y=\vriga{x_1}{x_2}{x_n}\vcol{y_1}{y_2}{y_n}=\sum_{i=1}^nx_iy_i.
+\end{myequation}
+Geometrically, the inner product is linked to lengths and angles: $\x^T\y = \|\x\|\|\y\|\cos\theta$, where $\theta$ is the angle between $\x$ and $\y$. In particular, orthogonality---the geometric notion of perpendicularity---corresponds exactly to a zero inner product.
+
+Given the same two vectors $\x,\y\in\Real^n$, their \emph{outer product} is the $n\times n$ matrix
+\begin{myequation}
+\x\y^T=\vcol{x_1}{x_2}{x_n}\vriga{y_1}{y_2}{y_n}=
+ \left[
+ \begin{array}{cccc}
+      x_1y_1&x_1y_2&\cdots & x_1y_n \\
+     x_2y_1&x_2y_2&\cdots & x_2y_n \\
+      \vdots & \vdots & \ddots &\vdots \\
+      x_ny_1&x_ny_2&\cdots & x_ny_n
+ \end{array}
+ \right].
+\end{myequation}
+While the inner product contracts two vectors into a scalar, the outer product expands them into a matrix. The result always has rank at most one and is useful for building rank-one updates and decompositions.
+
+The most fundamental operation is the product of a matrix $\A\in\Real^{m\times n}$ with a vector $\x\in\Real^n$, producing a vector $\y=\A\x\in\Real^m$. Reading this operation row-by-row, each entry of $\y$ is an inner product of a row of $\A$ with $\x$:
+\begin{myequation}
+\y=\matrighe{a_1^T}{a_2^T}{a_m^T}\x=\vcol{ a_1^T\x}{ a_2^T\x}{ a_m^T\x}=\vcol{\sum_{i=1}^na_{1i}x_i}{\sum_{i=1}^na_{2i}x_i}{ \sum_{i=1}^na_{mi}x_i}.
+\end{myequation}
+Reading the same operation column-by-column reveals an equally important interpretation: $\y$ is a linear combination of the columns of $\A$, with coefficients given by the entries of $\x$:
+\begin{myequation}
+\y=\matcolonne{a_1}{a_2}{a_n}\x=a_1 x_1+a_2x_2+\cdots +a_n x_n.
+\end{myequation}
+This column view makes clear that matrix-vector products always produce vectors in the column space of $\A$, a fact that will be central when we discuss rank and invertibility.
+
+Analogously, the \emph{left product} of a row vector $\x^T\in\Real^m$ with $\A\in\Real^{m\times n}$ produces a row vector $\y^T=\x^T\A\in\Real^n$, where
+\begin{align*}
+\y^T&=\x^T\matcolonne{a_1}{a_2}{a_n}=\matcolonne{\x^Ta_1}{\x^Ta_2}{\x^Ta_n}\\
+&=\matcolonne{\sum_{i=1}^nx_{i}a_{i1}}{\sum_{i=1}^nx_{i}a_{i2}}{\sum_{i=1}^nx_{i}a_{in}},
+\end{align*}
+or, equivalently, as a linear combination of the rows of $\A$ with coefficients $x_1,\ldots,x_m$:
+\begin{myequation}
+\y^T=\vriga{x_1}{x_2}{x_n}\matrighe{a_1^T }{a_2^T }{a_m^T }\x=\seq{x_1a_1^T}{x_2a_2^T}{x_na_n^T}{+}.
+\end{myequation}
+
+Given two matrices $\A\in\Real^{m\times n}$ and $\B\in\Real^{n\times p}$, their \emph{product} is the matrix $\C\in\Real^{m\times p}$ whose $(i,j)$ entry is
+\begin{myequation}
+c_{ij}=\sum_{k=1}^na_{ik}b_{kj}.
+\end{myequation}
+This single definition admits several useful interpretations. First, $\C$ can be seen as the matrix of inner products between the rows of $\A$ and the columns of $\B$:
+\begin{myequation}
+\C=\matrighe{a_1^T}{a_2^T}{a_m^T}\matcolonne{b_1}{b_2}{b_p}
+=\left[
+ \begin{array}{cccc}
+      a_1^Tb_1&a_1^Tb_2&\cdots & a_1^Tb_p \\
+     a_2^Tb_1&a_2^Tb_2&\cdots & a_2^Tb_p \\
+      \vdots & \vdots & \ddots &\vdots \\
+      a_m^Tb_1&a_m^Tb_2&\cdots & a_m^Tb_p
+ \end{array}
+ \right].
+\end{myequation}
+Second, $\C$ can be expressed as a sum of outer products of the columns of $\A$ with the rows of $\B$:
+\begin{myequation}
+\C=\matcolonne{a_1}{a_2}{a_n}\matrighe{b_1^T}{b_2^T}{b_n^T}=\sum_{i=1}^na_ib_i^T.
+\end{myequation}
+This outer-product decomposition is particularly useful in low-rank approximation and in understanding how matrix products build up their rank. Third, the columns of $\C$ are obtained by multiplying $\A$ by each column of $\B$ in turn:
+\begin{myequation}
+\C=\A\matcolonne{b_1}{b_2}{b_p}=\matrighe{\A b_1}{\A b_2}{\A b_p},
+\end{myequation}
+and symmetrically, the rows of $\C$ are obtained by multiplying each row of $\A$ by $\B$:
+\begin{myequation}
+\C=\matrighe{a_1^T}{a_2^T}{a_m^T}\B
+=\matrighe{a_1^T\B}{a_2^T\B}{a_m^T\B}.
+\end{myequation}
+
+Matrix multiplication is associative, $(\A\B)\C=\A(\B\C)$, and distributes over addition, $\A(\B+\C)=\A\B+\A\C$. The sum $\A+\B$ of two matrices of the same size $m\times n$ is computed entrywise, $c_{ij}=a_{ij}+b_{ij}$. Crucially, matrix multiplication is \emph{not} commutative in general: it may well happen that $\A\B\neq\B\A$, even when both products are defined and have the same size.
+
+\subsection*{Operations and properties}
+
+The \emph{identity matrix} of size $n$, denoted $\V{I}_{n}\in\Real^{n\times n}$, is a square matrix with ones on the main diagonal and zeros elsewhere:
+\begin{myequation}
+I_{ij}=\begin{cases}1 & i=j \\
+0 & \text{otherwise.}
+\end{cases}
+\end{myequation}
+It plays the role of the multiplicative neutral element: for every $\A\in\Real^{m\times n}$ one has $\A\V{I}_{n}=\V{I}_{m}\A=\A$. More generally, a \emph{diagonal matrix} $\D_{n}=\diag(d_1,\ldots,d_n)\in\Real^{n\times n}$ is zero outside the main diagonal:
+\begin{myequation}
+D_{ij}=\begin{cases}d_i & i=j \\
+0 & \text{otherwise,}
+\end{cases}
+\end{myequation}
+and the identity is the special case $\V{I}_{n}=\diag(1,1,\ldots,1)$.
+
+Given a matrix $\A\in\Real^{m\times n}$, its \emph{transpose} $\A^T\in\Real^{n\times m}$ is obtained by swapping rows and columns, so that $(A^T)_{ij}=A_{ji}$. The transpose satisfies three fundamental properties: it is its own inverse, $(\A^T)^T=\A$; it reverses products, $(\A\B)^T=\B^T\A^T$; and it distributes over sums, $(\A+\B)^T=\A^T+\B^T$. The reversal of order in $(\A\B)^T=\B^T\A^T$ is analogous to the reversal of order in the inverse of a product and must be kept in mind carefully in multi-factor expressions. A square matrix $\A\in\Real^{n\times n}$ is \emph{symmetric} if $\A=\A^T$ and \emph{skew-symmetric} if $\A=-\A^T$. Every square matrix can be uniquely decomposed into a symmetric and a skew-symmetric part:
+\begin{myequation}
+\A=\frac{1}{2}(\A+\A^T)+\frac{1}{2}(\A-\A^T),
+\end{myequation}
+where $\A+\A^T$ and $\A\A^T$ are always symmetric, and $\A-\A^T$ is always skew-symmetric.
+
+Given a square matrix $\A\in\Real^{n\times n}$, the \emph{trace} $\tr{\A}$ is the sum of the diagonal entries:
+\begin{myequation}
+\tr{\A}=\sum_{i=1}^na_{ii}.
+\end{myequation}
+The trace is linear in $\A$: $\tr{\A+\B}=\tr{\A}+\tr{\B}$ and $\tr{\lambda\A}=\lambda\tr{\A}$. Its most important property is \emph{cyclic invariance}: for any compatible matrices $\A_1,\A_2,\ldots,\A_r$,
+\begin{myequation}
+\tr{\V{A_1}\V{A_2}\ldots \V{A_r}}=\tr{\V{A_r}\V{A_1}\ldots \V{A_{r-1}}}=\ldots=\tr{\V{A_2}\V{A_3}\ldots \V{A_1}},
+\end{myequation}
+meaning one may cyclically permute the factors inside a trace without changing its value. In particular, $\tr{\A\B}=\tr{\B\A}$ for any $\A\in\Real^{m\times n}$ and $\B\in\Real^{n\times m}$, even though $\A\B$ and $\B\A$ are in general different matrices of different sizes.
+
+The \emph{norm} $\vnorm{\x}$ of a vector $\x$ measures its ``length.'' Any norm must be non-negative, zero only for the zero vector, scale with the vector, and satisfy the triangle inequality $\vnorm{\x+\y}\leq\vnorm{\x}+\vnorm{\y}$. The most common instances in practice are the $\ell_1$ norm, the $\ell_2$ (Euclidean) norm, the general $\ell_p$ norm, and the $\ell_\infty$ norm:
+\begin{myequation}
+\vnorm{\x}_1=\sum_{i=1}^n|x_i|,
+\qquad
+\vnorm{\x}_2=\sqrt{\sum_{i=1}^n|x_i|^2},
+\qquad
+\vnorm{\x}_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p},
+\qquad
+\vnorm{\x}_\infty=\max_i |x_i|.
+\end{myequation}
+Each norm induces a different notion of distance and corresponds to a different geometry: the $\ell_1$ ball is a cross-polytope, the $\ell_2$ ball is a sphere, and the $\ell_\infty$ ball is a hypercube. For matrices, the \emph{Frobenius norm} is the natural analogue of the $\ell_2$ vector norm, treating the matrix as a long vector of entries:
+\begin{myequation}
+\vnorm{\A}_F=\sqrt{\sum_{i=1}^m\sum_{j=1}^na_{ij}^2}=\sqrt{\tr{\A^T\A}}.
+\end{myequation}
+The identity $\vnorm{\A}_F=\sqrt{\tr{\A^T\A}}$ is useful in optimization, as it connects the matrix norm to the trace, whose derivatives are easy to compute.
+
+A set of vectors $\{x_1,x_2,\ldots,x_n\}\subset\Real^m$ is called \emph{linearly dependent} if some vector in the set can be written as a linear combination of the others, i.e.\ if there exist real numbers $\alpha_1,\ldots,\alpha_{n-1}$ such that
+\begin{myequation}
+\V{x_n}=\sum_{i=1}^{n-1}\alpha_i\V{x_i}.
+\end{myequation}
+Otherwise, the vectors are \emph{linearly independent}: no vector in the set can be reconstructed from the others, and each vector contributes genuinely new ``direction'' to the set. The \emph{rank} $\rho(\A)$ of a matrix $\A\in\Real^{m\times n}$ is the dimension of the largest set of linearly independent columns (equivalently rows, since these two quantities coincide). It satisfies $\rho(\A)\leq\min(m,n)$, $\rho(\A)=\rho(\A^T)$, $\rho(\A\B)\leq\min(\rho(\A),\rho(\B))$, and $\rho(\A+\B)\leq\rho(\A)+\rho(\B)$. A matrix achieving the maximum possible rank $\min(m,n)$ is said to have \emph{full rank}.
+
+Given a square matrix $\A\in\Real^{n\times n}$, the \emph{inverse} $\A^{-1}$ is the unique matrix such that $\A^{-1}\A=\A\A^{-1}=\V{I}$. If $\A^{-1}$ exists, $\A$ is called \emph{invertible} or \emph{non-singular}; equivalently, it has full rank. The inverse satisfies $(\A^{-1})^{-1}=\A$, the product-reversal rule $(\A\B)^{-1}=\B^{-1}\A^{-1}$ (analogous to that of the transpose), and $(\A^{-1})^T=(\A^T)^{-1}$.
+
+Two vectors $\x,\y\in\Real^n$ are \emph{orthogonal} if $\x^T\y=0$; a vector is \emph{normalized} if $\vnorm{\x}_2=1$; and two vectors are \emph{orthonormal} if they are both normalized and mutually orthogonal. A square matrix $\A\in\Real^{n\times n}$ is \emph{orthogonal} if all its columns are mutually orthogonal, and \emph{orthonormal} if its columns are mutually orthonormal, in which case $\A\A^T=\A^T\A=\V{I}$. Orthonormal matrices are isometries: they preserve inner products and norms, and their inverse equals their transpose. The \emph{span} of a set of vectors $\{x_1,\ldots,x_n\}\subset\Real^m$ is the set of all their linear combinations:
+\begin{myequation}
+\text{span}(\{x_1,\ldots,x_n\})=\left\{v\in\Real^{m}: v=\sum_{i=1}^n\alpha_i\x_i,\ \alpha_i\in\Real\right\}.
+\end{myequation}
+If $n=m$ and the vectors are linearly independent, their span is all of $\Real^m$.
+
+A matrix $\A\in\Real^{m\times n}$ defines a linear mapping from $\Real^{n}$ to $\Real^{m}$, associating to each $\x\in\Real^{n}$ the image $\A\x\in\Real^{m}$. Two subspaces are naturally associated with this mapping. The \emph{range} (or column space, or image) of $\A$ is the subspace of $\Real^{m}$ spanned by its columns:
+\begin{myequation}
+\text{range}(\A)=\left\{\y\in\Real^m:\y=\A\x \text{ for some } \x\in\Real^n\right\},
+\end{myequation}
+whose dimension equals the rank $\rho(\A)$. The \emph{null space} $\mathcal{N}(\A)$ is the set of all vectors mapped to zero:
+\begin{myequation}
+\mathcal{N}(\A)=\left\{\x\in\Real^n: \A\x=\V{0}\right\},
+\end{myequation}
+whose dimension equals $n-\rho(\A)$ by the rank-nullity theorem. The range and null space together capture the behavior of the linear map: vectors in the range are reachable, while vectors in the null space are ``invisible'' to $\A$.
+
+The \emph{determinant} $\det(\A)$ (or $|\A|$) of a square matrix $\A\in\Real^{n\times n}$ is the scalar function characterized by three foundational properties: $\det(\V{I}_{n})=1$; multiplying a single row by $t$ multiplies the determinant by $t$; and swapping two rows changes the sign of the determinant. From these axioms follow many useful consequences: $|\A|=|\A^T|$; $|\A\B|=|\A||\B|$; $|\A|=0$ if and only if $\A$ is singular; and if $\A$ is invertible, $|\A^{-1}|=|\A|^{-1}$. These properties make the determinant both a measure of the volume scaling induced by $\A$ (the absolute value of the determinant equals the volume of the image of the unit hypercube under $\A$) and a criterion for invertibility.
+
+A classical way to compute determinants uses cofactor expansion. Given $\A\in\Real^{n\times n}$, let $\A_{\backslash i,\backslash j}\in\Real^{(n-1)\times(n-1)}$ be the matrix obtained by deleting row $i$ and column $j$. The \emph{cofactor} of $a_{ij}$ is $C_{ij}=(-1)^{i+j}|\A_{\backslash i,\backslash j}|$. Expanding along any column $j$ or row $i$ yields:
+\begin{myequation}
+|\A|=\sum_{i=1}^na_{ij}C_{ij}
+\qquad\text{(expansion along column }j\text{)},
+\end{myequation}
+\begin{myequation}
+|\A|=\sum_{j=1}^na_{ij}C_{ij}
+\qquad\text{(expansion along row }i\text{)}.
+\end{myequation}
+The base case is $|\A|=a_{11}$ for a $1\times 1$ matrix. The \emph{adjugate matrix} $\text{adj}(\A)$ has $(i,j)$ entry equal to the cofactor of the $(j,i)$ entry of $\A$ (note the transposition):
+\begin{myequation}
+(\text{adj}(\A))_{ij}=(-1)^{i+j}|\A_{\backslash j,\backslash i}|.
+\end{myequation}
+The adjugate appears in the formula $\A^{-1}=\text{adj}(\A)/|\A|$ for the inverse of a non-singular matrix.
+
+\subsection*{Quadratic forms}
+
+Given $\A\in\Real^{n\times n}$ and $\x\in\Real^n$, the scalar $\x^T\A\x\in\Real$ is called a \emph{quadratic form}. Expanding the matrix-vector products explicitly:
+\begin{myequation}
+\x^T\A\x=\sum_{i=1}^nx_i(\A\x)_i=\sum_{i=1}^nx_i\left(\sum_{j=1}^na_{ij}x_j\right)=\sum_{i=1}^n\sum_{j=1}^na_{ij}x_ix_j.
+\end{myequation}
+A useful observation is that, since $\x^T\A\x$ is a scalar and therefore equal to its own transpose:
+\begin{myequation}
+\x^T\A\x=(\x^T\A\x)^T=\x^T\A^T\x,
+\end{myequation}
+we can write
+\begin{myequation}
+\x^T\A\x=\frac{1}{2}\x^T\A\x+\frac{1}{2}\x^T\A^{T}\x=\x^T\!\left(\frac{\A+\A^T}{2}\right)\x.
+\end{myequation}
+Since $(\A+\A^T)/2$ is symmetric for every $\A$, this shows that only the symmetric part of $\A$ contributes to the quadratic form. For this reason, when analyzing quadratic forms it is customary---and without loss of generality---to assume $\A$ is symmetric.
+
+Symmetric matrices are classified according to the sign of the quadratic form they induce. A symmetric matrix $\A\in\Real^{n\times n}$ is \emph{positive definite} if $\x^T\A\x>0$ for every nonzero $\x$; \emph{positive semidefinite} if $\x^T\A\x\geq 0$; \emph{negative definite} if $\x^T\A\x<0$; and \emph{negative semidefinite} if $\x^T\A\x\leq 0$. Any definite matrix (whether positive or negative) has full rank and is therefore invertible, since a zero in the null space would produce a vanishing quadratic form. A particularly important example is $\A^T\A$ for any $\A\in\Real^{m\times n}$: for every nonzero $\x$,
+\begin{myequation}
+\x^{T}(\A^{T}\A)\x=(\A\x)^{T}(\A\x)=\vnorm{\A\x}_{2}^2\geq 0,
+\end{myequation}
+so $\A^T\A$ is always positive semidefinite, and positive definite if and only if the columns of $\A$ are linearly independent (i.e.\ $\A$ has full column rank).
+
+\subsection*{Eigenvalues and eigenvectors}
+
+Given a square matrix $\A\in\Real^{n\times n}$, we say that $\lambda\in\mathbb{C}$ is an \emph{eigenvalue} of $\A$ if there exists a nonzero vector $\u\in\mathbb{C}^n$ such that
+\begin{myequation}
+\A\u=\lambda\u.
+\end{myequation}
+The vector $\u$ is called an \emph{eigenvector} associated with $\lambda$. The equation $\A\u=\lambda\u$ says that $\A$ acts on $\u$ by pure scaling: it does not change the direction of $\u$, only its magnitude. This geometric simplicity makes eigenvectors the natural coordinate system for understanding the action of $\A$.
+
+Note that if $\A\u=\lambda\u$ and $c\neq 0$, then $\A(c\u)=\lambda(c\u)$, so any nonzero scalar multiple of an eigenvector is again an eigenvector for the same eigenvalue. We therefore often normalize and refer to the unit-norm eigenvector. Two elements $\lambda\in\mathbb{C}$ and $\u\in\mathbb{C}^n$ form an eigenvalue--eigenvector pair if and only if
+\begin{myequation}
+(\lambda\I_{n}-\A)\u=\Zero_{n}.
+\end{myequation}
+This homogeneous system has nonzero solutions if and only if $\lambda\I-\A$ is not invertible, which holds if and only if the \emph{characteristic polynomial} vanishes:
+\begin{myequation}
+|(\lambda\I-\A)|= 0.
+\end{myequation}
+Since this polynomial has degree $n$, it has exactly $n$ roots (counted with multiplicity) over $\mathbb{C}$, which are the $n$ eigenvalues of $\A$.
+
+The eigenvalues carry a great deal of information about the matrix. Denoting the eigenvalues $\lambda_1,\ldots,\lambda_n$ with corresponding eigenvectors $\u_1,\ldots,\u_n$, four important relationships hold. First, the trace equals the sum of eigenvalues:
+\begin{myequation}
+\tr{\A}=\sum_{i=1}^n\lambda_i.
+\end{myequation}
+Second, the determinant equals their product:
+\begin{myequation}
+|\A|=\prod_{i=1}^n\lambda_i.
+\end{myequation}
+These two identities connect the eigenvalues to the trace and determinant, providing a useful bridge between different algebraic invariants. Third, the rank of $\A$ equals the number of nonzero eigenvalues. Fourth, if $\A$ is invertible and $\A\u_i=\lambda_i\u_i$, then $\A^{-1}\u_i=(1/\lambda_i)\u_i$: the eigenvectors of $\A^{-1}$ are the same as those of $\A$, and their eigenvalues are reciprocals. Similarly, the eigenvalues of a diagonal matrix $\D=\text{diag}(d_1,\ldots,d_n)$ are simply its diagonal entries $d_1,\ldots,d_n$.
+
+The eigenvector equations for all eigenvalues can be written compactly in matrix form as
+\begin{myequation}
+\A\U=\U\VLambda,
+\end{myequation}
+where the columns of $\U$ are the eigenvectors of $\A$ and $\VLambda=\text{diag}(\lambda_1,\ldots,\lambda_n)$. If the eigenvectors are linearly independent, $\U$ is invertible and we obtain the \emph{diagonalization}
+\begin{myequation}
+\A=\U\VLambda\U^{-1}.
+\end{myequation}
+This factorization expresses $\A$ in a coordinate system aligned with its eigenvectors, where it acts by simple component-wise scaling. Not all matrices are diagonalizable, but symmetric matrices are especially well-behaved. If $\A$ is symmetric, then all its eigenvalues are real, the eigenvectors can be chosen to form an orthonormal basis, and the diagonalization simplifies to
+\begin{myequation}
+\A=\U\VLambda\U^T,
+\end{myequation}
+since the inverse of an orthonormal matrix equals its transpose. This \emph{spectral decomposition} (or eigendecomposition) of a symmetric matrix is one of the most useful factorizations in applied mathematics.
+
+The spectral decomposition also provides an elegant characterization of the quadratic form associated with a symmetric matrix. For every $\x$, substituting $\y=\U^T\x$ (a rotation of coordinates into the eigenvector basis):
+\begin{myequation}
+\x^T\A\x=\x^T\U\VLambda\U^T\x=
+\y^T\VLambda\y=\sum_{i=1}^n\lambda_iy_i^2.
+\end{myequation}
+This expression makes the definiteness classification completely transparent: if all $\lambda_i>0$ then $\x^T\A\x>0$ for all nonzero $\x$ (positive definite); if all $\lambda_i\geq 0$ then $\A$ is positive semidefinite; and so on. For symmetric matrices, positive definiteness is therefore equivalent to having all eigenvalues positive, and positive semidefiniteness is equivalent to having all eigenvalues nonnegative.
+
+\subsection*{Singular value decomposition}
+
+The eigendecomposition is defined only for square matrices, and even for them it requires the matrix to be diagonalizable. The \emph{singular value decomposition} (SVD) is a more general factorization that applies to any real matrix $\A\in\Real^{n\times m}$, rectangular or square, and reveals the geometric action of $\A$ in full generality.
+
+Let $r$ denote the rank of $\A^T\A\in\Real^{m\times m}$. Since $\A^T\A$ is positive semidefinite and has rank $r$, it has exactly $r$ positive real eigenvalues $\lambda_1,\ldots,\lambda_r$. Let $\u_1,\ldots,\u_r\in\Real^m$ be corresponding orthonormal eigenvectors:
+\begin{myequation}
+(\A^{T}\A)\u_{i}=\lambda_{i}\u_{i}, \qquad i=1,\ldots,r.
+\end{myequation}
+Because each $\lambda_i$ is positive, its square root $\sigma_i=\sqrt{\lambda_i}$ is well defined; these quantities are called \emph{singular values}. For each $i=1,\ldots,r$, define a vector in $\Real^n$ by
+\begin{myequation}
+\w_{i}=\frac{1}{\sigma_{i}}\A\u_{i}.
+\end{myequation}
+The vectors $\w_1,\ldots,\w_r$ are orthonormal. To verify orthogonality, for any pair $i,j$:
+\begin{align*}
+\w_{i}\cdot\w_{j}&=\left(\frac{1}{\sigma_{i}}\A\u_{i}\right)^{T}\!\left(\frac{1}{\sigma_{j}}\A\u_{j}\right)\\
+&=\frac{1}{\sigma_{i}\sigma_{j}}\u_{i}^{T}\A^{T}\A\u_{j}\\
+&=\frac{1}{\sigma_{i}\sigma_{j}}\u_{i}^{T}(\lambda_{j}\u_{j})\\
+&=\frac{\sigma_{j}}{\sigma_{i}}\u_{i}^{T}\u_{j},
+\end{align*}
+which equals zero whenever $i\neq j$ since $\u_1,\ldots,\u_r$ are orthonormal. For unit norm, since $\A\u_i=\sigma_i\w_i$ by definition:
+\begin{align*}
+\vnorm{\w_{i}}^{2}&=\frac{1}{\lambda_{i}}(\A\u_{i})^{T}(\A\u_{i})=
+\frac{1}{\lambda_{i}}\u_{i}^{T}(\A^{T}\A\u_{i})
+=\frac{1}{\lambda_{i}}\u_{i}^{T}(\lambda_{i}\u_{i})=1.
+\end{align*}
+
+Now complete $\u_1,\ldots,\u_r$ to an orthonormal basis $\u_1,\ldots,\u_m$ of $\Real^m$, and $\w_1,\ldots,\w_r$ to an orthonormal basis $\w_1,\ldots,\w_n$ of $\Real^n$. Collect the basis vectors column-wise into the orthogonal matrices
+\begin{myequation}
+\U=\matcolonne{\u_{1}}{\u_{2}}{\u_{m}}\in\Real^{m\times m},
+\qquad
+\W=\matcolonne{\w_{1}}{\w_{2}}{\w_{n}}\in\Real^{n\times n},
+\end{myequation}
+and define the $n\times m$ matrix $\VSigma$ whose $(i,i)$ entry equals $\sigma_i$ for $i=1,\ldots,r$ and all other entries are zero:
+\begin{myequation}
+\VSigma=\left[
+ \begin{array}{ccccccc}
+  \sigma_{1}&0&\cdots&0&0&\cdots&0\\
+  0&\sigma_{2}&\cdots&0&0&\cdots&0\\
+  \vdots&\vdots&\ddots&\vdots&\vdots&\ddots&\vdots\\
+  0&0&\cdots&\sigma_{r}&0&\vdots&0\\
+   0&0&\cdots&0&0&\vdots&0\\
+   \vdots&\vdots&\ddots&\vdots&\vdots&\ddots&\vdots\\
+   0&0&\cdots&0&0&\vdots&0
+ \end{array}
+ \right].
+\end{myequation}
+One can verify that $\A\U=\W\VSigma$ by checking that both sides agree on each basis vector $\u_i$: for $i\leq r$, $\A\u_i=\sigma_i\w_i$ by construction, and for $i>r$, $\A\u_i=\V{0}$ since $\u_i$ lies in the null space of $\A^T\A$ and hence of $\A$. Since $\U$ is orthogonal, $\U^{-1}=\U^T$, and we obtain the \emph{singular value decomposition}:
+\begin{myequation}
+\A=\W\VSigma\U^{T}.
+\end{myequation}
+This factorization has a clear geometric reading: $\U^T$ rotates coordinates in the domain $\Real^m$, $\VSigma$ scales the first $r$ coordinates by the singular values (setting the remaining ones to zero), and $\W$ rotates the result in the codomain $\Real^n$. Any matrix, regardless of shape, can therefore be understood as a composition of two rotations and one rescaling. The SVD is the foundation for principal component analysis, low-rank approximation, and the pseudoinverse, among many other applications.
+
+\subsection*{Matrix calculus}
+
+Many problems in machine learning and statistics require minimizing or maximizing a scalar function of a matrix or vector. Matrix calculus provides a compact language for these computations. Let $f:\Real^{m\times n}\to\Real$ be a function mapping a matrix $\A$ to a real number. The \emph{gradient} of $f$ with respect to $\A$ is the matrix of partial derivatives with the same shape as $\A$:
+\begin{myequation}
+\nabla_Af(\A)=
+ \left[
+ \begin{array}{cccc}
+      \frac{\partial f(\A)}{\partial a_{11}} &  \frac{\partial f(\A)}{\partial a_{12}} & \cdots &  \frac{\partial f(\A)}{\partial a_{1n}}\\
+      \frac{\partial f(\A)}{\partial a_{21}} &  \frac{\partial f(\A)}{\partial a_{22}} & \cdots &  \frac{\partial f(\A)}{\partial a_{2n}}\\
+      \vdots & \vdots & \ddots & \vdots \\
+      \frac{\partial f(\A)}{\partial a_{m1}} &  \frac{\partial f(\A)}{\partial a_{m2}} & \cdots &  \frac{\partial f(\A)}{\partial a_{mn}}\\
+ \end{array}
+ \right],
+\end{myequation}
+so that $\nabla_Af(\A)_{ij}=\partial f(\A)/\partial a_{ij}$. Several identities are particularly useful in optimization and learning problems:
+\begin{myequation}
+\nabla_A\tr{\A\B}=\B^{T},
+\qquad
+\nabla_{A^{T}}f(\A)=\left(\nabla_{A}f(\A)\right)^{T},
+\qquad
+\nabla_A\tr{\A\B\A^{T}\C}=\C\A\B+\C^{T}\A\B^{T},
+\qquad
+\nabla_A |\A|=|\A|(\A^{-1})^{T}.
+\end{myequation}
+
+As a special case, the gradient of $f:\Real^n\to\Real$ with respect to a vector $\x$ is the column vector
+\begin{myequation}
+\nabla_xf(\x)=\vcol{ \frac{\partial f(\x)}{\partial x_1} }{ \frac{\partial f(\x)}{\partial x_2} }{ \frac{\partial f(\x)}{\partial x_n} }.
+\end{myequation}
+The gradient inherits linearity: $\nabla_x(f(\x)+g(\x))=\nabla_xf(\x)+\nabla_xg(\x)$ and $\nabla_x(t\cdot f(\x))=t\cdot\nabla_xf(\x)$ for every $t\in\Real$. The \emph{Hessian matrix} $\nabla_x^2f(\x)$ collects all second-order partial derivatives:
+\begin{myequation}
+\nabla_x^2f(\x)=
+ \left[
+ \begin{array}{cccc}
+      \frac{\partial^2 f(\x)}{\partial x_1^2} &  \frac{\partial^2 f(\x)}{\partial x_1\partial x_2} & \cdots &  \frac{\partial^2 f(\x)}{\partial x_1\partial x_n}\\
+       \frac{\partial^2 f(\x)}{\partial x_2\partial x_1} &  \frac{\partial^2 f(\x)}{\partial x_2^2} & \cdots &  \frac{\partial^2 f(\x)}{\partial x_2\partial x_n}\\
+      \vdots & \vdots & \ddots & \vdots \\
+      \frac{\partial^2 f(\x)}{\partial x_n\partial x_1} &  \frac{\partial^2 f(\x)}{\partial x_n\partial x_2} & \cdots &  \frac{\partial^2 f(\x)}{\partial x_n^2}\\
+ \end{array}
+ \right],
+\end{myequation}
+so that $\nabla_x^2f(\x)_{ij}=\partial^2 f(\x)/\partial x_i\partial x_j$. The Hessian is symmetric under mild smoothness conditions (Clairaut's theorem), and its definiteness characterizes the curvature of $f$: a positive definite Hessian at a critical point certifies a local minimum.
+
+Two basic identities are used repeatedly. First, for the linear function $f(\x)=\B^T\x$:
+\begin{myequation}
+f(\x)=\sum_{i=1}^nb_ix_i,
+\qquad
+\frac{\partial f(\x)}{\partial x_k}=b_k,
+\qquad\Rightarrow\qquad
+\nabla_x\B^T\x=\B.
+\end{myequation}
+Second, for the quadratic form $f(\x)=\x^T\A\x$ with $\A$ symmetric, the gradient and Hessian are computed by explicit differentiation. Writing $f(\x)=\sum_{i,j}A_{ij}x_ix_j$ and differentiating with respect to $x_k$:
+\begin{eqnarray*}
+\frac{\partial f(\x)}{\partial x_k} & = & \frac{\partial}{\partial x_k}\left[ \sum_{i\neq k}\sum_{j\neq k}A_{ij}x_ix_j+\sum_{i\neq k}A_{ik}x_ix_k+\sum_{j\neq k}A_{kj}x_kx_j+A_{kk}x_k^2  \right]\\
+  & = & \sum_{i\neq k}A_{ik}x_i+\sum_{j\neq k}A_{kj}x_j+2A_{kk}x_k\\
+  & = & \sum_{i=1}^nA_{ik}x_i+\sum_{j=1}^nA_{kj}x_j=2\sum_{i=1}^nA_{ki}x_i,
+\end{eqnarray*}
+where the last step uses symmetry of $\A$. In vector form, $\nabla_x\x^T\A\x=2\A\x$. Differentiating once more,
+\begin{myequation}
+\frac{\partial^2f(\x)}{\partial x_k\partial x_l}=\frac{\partial}{\partial x_k}\left[2\sum_{i=1}^nA_{li}x_i\right]=2A_{lk}=2A_{kl},
+\end{myequation}
+again using symmetry, so $\nabla_x^2\x^T\A\x=2\A$.
+
+As a concrete application of matrix calculus, we now derive the least-squares approximation. Let $\A\in\Real^{m\times n}$ and $\b\in\Real^m$ be such that $\b\notin\text{range}(\A)$, meaning the linear system $\A\x=\b$ has no exact solution. In this case, we seek the vector $\x\in\Real^n$ that minimizes the Euclidean residual $\vnorm{\A\x-\b}_2$. Since the norm is non-negative and its square is a smooth function, minimizing $\vnorm{\A\x-\b}_2$ is equivalent to minimizing its square:
+\begin{myequation}
+(\A\x-\b)^T(\A\x-\b)=\x^T\A^T\A\x-\x^{T}\A^{T}\b-\b^T\A\x+\b^T\b=\x^T\A^T\A\x-2\b^T\A\x+\b^T\b.
+\end{myequation}
+Applying the identities $\nabla_x\x^T\A^T\A\x=2\A^T\A\x$ and $\nabla_x\b^T\A\x=\A^T\b$, the gradient with respect to $\x$ is
+\begin{eqnarray*}
+\nabla_x\left(\x^T\A^T\A\x-2\b^T\A\x+\b^T\b\right)&=& 2\A^T\A\x-2\A^T\b.
+\end{eqnarray*}
+Setting this to zero gives the \emph{normal equations} $\A^T\A\x=\A^T\b$, whose solution is
+\begin{myequation}
+\x=\left(\A^T\A\right)^{-1}\A^T\b,
+\end{myequation}
+assuming $\A^T\A$ is invertible (which holds when $\A$ has full column rank). The matrix $(\A^T\A)^{-1}\A^T$ is called the \emph{pseudoinverse} of $\A$, and the vector $\hat{\b}=\A\x=\A(\A^T\A)^{-1}\A^T\b$ is the orthogonal projection of $\b$ onto the column space of $\A$. The least-squares solution therefore has a clean geometric interpretation: it is the vector $\x$ such that $\A\x$ is the closest point in $\text{range}(\A)$ to $\b$.

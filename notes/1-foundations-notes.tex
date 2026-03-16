@@ -1,0 +1,364 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+%\input{header.tex}
+%
+%\title{Notes on Machine Learning}
+%\class{Course of Machine Learning}
+%\course{Master Degree in Computer Science}
+%\university{University of Rome ``Tor Vergata''}
+%\acyear{2025-2026}
+%\author{Giorgio Gambosi}
+%
+%\begin{document}
+%
+%\maketitle
+
+\chapter{Foundations of Machine Learning}
+
+\section*{Introductory concepts}
+Machine learning rests on a deceptively simple observation: data is rarely random. Whether we're analyzing images, text, sensor measurements, or human behavior, the data we collect contains hidden patterns -- structures that reflect the underlying process that generated the data. The fundamental challenge, and the promise, of machine learning is to automatically discover these patterns from observations, without being explicitly programmed with the rules that govern the data.
+
+This discovery happens through learning from examples. We begin with a collection of observations, each a snapshot of some phenomenon we wish to understand. From these examples, we construct \alert{models} -- mathematical abstractions that capture the relationships and patterns present in the data. These models then serve as tools for prediction, understanding, and decision-making on new, previously unseen data.
+
+
+\subsection*{Three Paradigms of Learning}
+
+Machine learning encompasses three fundamentally different learning scenarios, each posing its own challenges and opportunities:
+
+\subsubsection*{Supervised Learning}
+
+In supervised learning, we have pairs of data, composed by observations, in the form of a set of features, and corresponding target values. Our goal is straightforward: learn the relationship between observations and targets so we can predict targets for new input observations.
+
+Imagine we have a dataset of houses with features like square footage, number of bedrooms, and location. If each house also has a known selling price that we wish to predict given the other features, we're in a supervised setting. We want to learn a function that maps features to prices, so we can estimate the price of a new house from its characteristics.
+
+Supervised learning splits into two categories depending on the nature of the target:
+
+\begin{description}
+\item[Regression] The target is a real number (continuous): this is the case when predicting prices, temperatures, stock values, or any quantity on a numerical spectrum.
+
+\item[Classification] The target is a discrete category: here, we wish to predict whether an email is spam or not, recognizing handwritten digits (0-9), diagnosing diseases, or determining sentiment in text.
+\end{description}
+
+In both cases, we formalize the learning process by defining a model -- either a function $y(\mathbf{x})$ that directly outputs a prediction, or a probability distribution $p(t|\mathbf{x})$ that quantifies our uncertainty about the target value. We then use the training data to adjust this model's parameters so it captures the underlying input-output relationship as accurately as possible.
+
+
+\subsubsection*{Unsupervised Learning}
+
+Unsupervised learning operates in a more exploratory setting. We have data, but no explicit targets guiding us. Instead, our goal is to uncover the inherent structure within the data, to understand its nature and organize it in meaningful ways.
+
+Unsupervised learning manifests in several important forms. \alert{Clustering} groups similar items together, automatically revealing natural categories or segments in the data without being told what those categories should be. \alert{Density estimation} models the underlying probability distribution that generated the data, revealing where data points are concentrated, how they're distributed across the feature space. \alert{Dimensionality reduction} projects high-dimensional data onto lower-dimensional representations while preserving essential information -- this is crucial when data has hundreds or thousands of features but lies indeed primarily in a much lower-dimensional subspace, due to hidden correlations among features.
+
+A particularly powerful application of unsupervised learning is \alert{generative modeling}, where we learn to generate new synthetic data points that appear to come from the same underlying process as our training data. Large language models, diffusion models, and GANs exemplify this capability: after observing enough examples, they can generate new text, images, or other content that feels authentic and novel. This requires the model to have truly learned the deep structure of the data distribution.
+
+Even without explicit targets, unsupervised learning still relies on models. These models represent our understanding of the data structure and enable us to perform several valuable tasks: they allow us to identify outliers and anomalies (points that deviate significantly from the learned pattern), they facilitate visualization and interpretation of complex, high-dimensional data, and they provide the foundation for feature engineering -- the process of creating new, more informative representations of the data.
+
+\subsubsection*{Reinforcement Learning}
+
+Reinforcement learning represents a fundamentally different learning paradigm. Rather than working with a fixed dataset, we learn through dynamic interaction with an environment. An agent repeatedly chooses actions, observes the consequences, and adjusts its behavior to maximize cumulative reward over time.
+
+Concretely, at each step the agent observes the current \alert{state} of the environment and must select an \alert{action} from its available options. The environment responds by providing two pieces of feedback: a \alert{reward} indicating the immediate benefit of that action, and a new state representing the updated environment. The agent's goal is to discover an optimal \alert{policy} -- a strategy that maps states to actions in a way that maximizes expected cumulative reward.
+
+Mathematically, if we denote the policy as $\pi: S \rightarrow A$ (mapping states to actions), the optimization objective is:
+
+\begin{myequation}
+\pi^* = \argmax{\pi} \mathbb{E}_{\pi}\left[\sum_{t=0}^{\infty} \gamma^t r_t\right]
+\end{myequation}
+
+where $\gamma \in [0,1]$ is a discount factor balancing immediate versus future rewards, and $r_t$ is the reward at step $t$.
+
+Reinforcement learning has proven remarkably successful in domains where trial-and-error learning makes sense: game playing (where AlphaGo defeated world champions), robotics (learning motor skills and navigation), and autonomous systems (optimizing resource allocation). The central tension in reinforcement learning is the exploration-exploitation tradeoff: we must try new actions to discover potentially better strategies, but we also want to exploit actions we know are good to maximize reward.
+
+Because reinforcement learning operates in an interactive, sequential decision-making framework quite different from supervised and unsupervised learning, it employs distinct mathematical techniques and algorithms. For this reason, we shall set it aside and focus primarily on supervised and unsupervised learning.
+
+\subsection*{Data Representation}
+At the heart of any machine learning approach lies a fundamental choice: how to represent data. Real-world entities -- images, documents, customers, transactions, biological samples -- must be converted into feature vectors that machine learning algorithms can process.
+
+A \alert{feature vector} $\mathbf{x} = (x_1, x_2, \ldots, x_d)$ is a collection of $d$ numerical measurements describing some object. These features are both our way of looking at the objects and the raw material from which models are built. The choice of which features to include is consequential: it affects both the quality of predictions and the computational efficiency of learning.
+
+Consider an image classification task. We could represent each pixel intensity as a feature, yielding millions of features -- but this is often wasteful and noisy. Alternatively, we might extract higher-level features like edge orientations or textures. For medical diagnosis from clinical data, we might include measurements like blood pressure, cholesterol levels, and test results. For text analysis, we might count word frequencies or learn semantic embeddings. The same underlying object can be represented in innumerable ways, and the choice profoundly shapes the learning problem.
+
+This is why \alert{feature engineering} -- the process of defining new features through functional combinations of existing ones, selecting the most informative subset, or learning better representations entirely -- is often as important as the choice of the learning algorithm itself. Sometimes domain expertise guides this process: a cardiologist knows which measurements matter for heart disease. Other times, sophisticated unsupervised learning techniques discover the most informative lower-dimensional representations automatically.
+
+
+\subsection*{The Learning Process}
+
+Regardless of which learning paradigm we adopt, the fundamental process is similar. We begin with a \alert{training set} $\mathcal{T} = (\mathbf{X}, \mathbf{t})$ containing $n$ examples. In supervised learning, each example pairs an input feature vector $\mathbf{x}_i$ with its target value $t_i$. In unsupervised learning, we have only the feature vectors $\mathbf{X} = \{\mathbf{x}_1, \ldots, \mathbf{x}_n\}$.
+
+The learning algorithm processes this training data to construct a model -- a function or probability distribution that captures the patterns present in the training data. But here's the crucial point: we don't care how well the model fits the training data. What matters is how well it generalizes to new, unseen data.
+
+This distinction between training and test performance reveals the core challenge in machine learning: \alert{generalization}. A model that memorizes the training data perfectly will fail on new examples it hasn't seen. Conversely, a model that's too simple may miss important patterns. We seek the middle ground -- models that capture genuine structure in the data-generating process without overfitting to noise or idiosyncrasies in our particular training sample.
+
+Achieving good generalization requires understanding several interrelated concepts. The \alert{capacity} or \alert{complexity} of a model determines how flexible it can be: more complex models can fit more intricate patterns but risk overfitting. The \alert{bias-variance tradeoff} reflects the tension between underfitting (models too simple to capture the true pattern) and overfitting (models that adapt too closely to training noise). \alert{Regularization} techniques penalize model complexity, encouraging simpler solutions that generalize better. 
+\medskip
+
+%\subsection*{The Role of Models}
+
+Throughout all these learning scenarios, models serve as the bridge between data and prediction. A model embodies what we've learned from the training data -- our best current understanding of the underlying patterns and relationships.
+
+In supervised learning, the model learns the input-output relationship, enabling predictions for new inputs. In unsupervised learning, the model captures the structure of the data distribution, enabling clustering, density estimation, or synthesis of new examples. The specific form a model takes depends on the task: it might be a simple linear function, a complex neural network, a probabilistic distribution, a tree-based ensemble, or something else entirely.
+
+What unites all these diverse approaches is their shared goal: to construct a model from data that captures genuine patterns while remaining general enough to perform well beyond the training set. 
+
+ \section*{Formal Definition of a Supervised Machine Learning Task}
+
+At its core, a supervised learning task is defined over two essential domains: the \alert{domain set} $\mathcal{X}$ and the \alert{label set} $\mathcal{Y}$.
+
+The domain set $\mathcal{X}$ represents the collection of objects we wish to label or make predictions about. Each object $\x \in \mathcal{X}$ is typically modeled as an array of \alert{features}---think of features as measurable properties or attributes of the object. Formally, we represent an object as $\x = (x_1, x_2, \ldots, x_d)$, where $d$ denotes the \alert{dimensionality}, or the total number of features describing the object. In more advanced scenarios, objects might have more intricate structures such as sequences or graphs, but for most standard problems, this feature representation suffices.
+
+The label set $\mathcal{Y}$ contains all possible output values that we might assign to objects in $\mathcal{X}$. The nature of this set fundamentally determines what kind of learning problem we're facing. If $\mathcal{Y}$ is continuous (think of all real numbers in a certain range), we're dealing with a \alert{regression} task, where we predict numerical values. Conversely, when $\mathcal{Y}$ is discrete (a finite set of distinct categories), we have a \alert{classification} task. Within classification, we further distinguish between \alert{binary classification} when $|\mathcal{Y}| = 2$ (just two possible categories) and \alert{multi-class classification} when $|\mathcal{Y}| > 2$.
+
+To learn how to map objects to their labels, the learning algorithm $\mathcal{A}$ receives a \alert{training set} $\mathcal{T}$, which is a collection of item-label pairs: $\mathcal{T} = \{(\x_1, t_1), \ldots, (\x_n, t_n)\}$. These pairs are usually organized into a \alert{feature matrix} $\X$ containing all the objects as rows, and a \alert{target vector} $\t$ containing all the corresponding labels:
+\begin{myequation}
+\X = \matrighe{\x_1}{\x_n}, \quad \t = \vcol{t_1}{t_n}
+\end{myequation}
+
+The ultimate goal of the learning algorithm is to return a \alert{prediction rule}---also called a \alert{classifier} or \alert{regressor} depending on the task---which is a function $h: \mathcal{X} \mapsto \mathcal{Y}$. This function should be able to predict a label $y$ for any new object $\x$ it encounters.
+
+When making predictions, we have two main strategies. The first is \alert{direct target value prediction}, where the algorithm outputs a single predicted label $y$ by directly computing $h(\x)$. The second approach is \alert{probability distribution prediction}, where the algorithm outputs a probability distribution over $\mathcal{Y}$, providing an estimated probability $p(y|\x)$ for each possible label. If we need to commit to a single prediction in this case, we typically apply an independent decision rule, such as selecting the label with the highest probability.
+
+\subsection*{Three Approaches to Deriving a Predictor}
+
+There are fundamentally three different strategies for constructing a prediction function, each with its own characteristics and use cases.
+
+\subsubsection*{Direct Prediction Computation}
+
+In the simplest approach, we apply a predefined algorithm $A$ directly at prediction time. Rather than learning a fixed function from the training set, the algorithm computes a fresh prediction for each new item by taking into account the entire training set. Formally, the algorithm computes $y = h(\x, \mathcal{T})$---notice how both the new item $\x$ and the entire training set appear as inputs. This approach performs no explicit learning phase; instead, the training examples are stored and referenced during prediction.
+
+\begin{center}
+\begin{tikzpicture}
+\Vertex[Math, x=.5, y=0, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B0}
+\Vertex[Math, x=2.5, y=0, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+\Edge[lw=.5pt, Direct](B0)(B1)
+\Vertex[Math, x=2.5, y=1.7, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+\Vertex[Math, x=4, y=0, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=5mm, minimum height=5mm, line width=.1pt}]{C7}
+\Edge[lw=.5pt, Direct](B01)(B1)
+\Edge[lw=.5pt, Direct](B1)(C7)
+\end{tikzpicture}
+\end{center}
+
+A classic example is the \alert{$k$-nearest neighbors} algorithm. When we want to predict the class for a new item $\x$, we find the $k$ objects in the training set $\X$ that are closest to $\x$ according to some distance measure. The predicted class is simply the majority class among these $k$ nearest neighbors. This approach is appealingly simple: it requires no explicit learning phase and can adapt naturally to different regions of the input space. Also, note that no model of the data is introduced to describe the properties of the data itself useful for the prediction.
+
+\subsubsection*{Model-Based Learning Approach}
+
+The second approach is far more typical in modern machine learning. Here, we don't defer all computation to prediction time. Instead, we define a \alert{hypothesis class} $\mathcal{H}$---a predefined family of functions mapping $\mathcal{X}$ to $\mathcal{Y}$---and use a learning algorithm $\mathcal{A}$ to select the single best function from this class. The algorithm derives a specific function $h_{\mathcal{T}} \in \mathcal{H}$ that best (according to some criterion) approximates the training examples in $\mathcal{T}$. Once we have this function, predictions for new items are straightforward: we simply apply $h_{\mathcal{T}}(\x)$.
+
+\begin{center}
+\begin{tikzpicture}
+\Vertex[Math, x=.5, y=0, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+\Text[position=left, x=-1, y=0, distance=1.5mm, fontsize=\normalsize]{learning}
+\Vertex[Math, x=2.5, y=0, color=xkcdAmethyst, opacity=.3, shape=rectangle, label=\mathcal{A}, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+\Edge[lw=.5pt, Direct](B01)(B1)
+\Vertex[Math, x=4.5, y=0, color=xkcdLipstickRed, label=A_{\mathcal{T}}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=.1pt}]{C7}
+\Edge[lw=.5pt, Direct](B1)(C7)
+\Vertex[Math, x=1, y=-2, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B00}
+\Text[position=left, x=-1, y=-1.8, distance=1.5mm, fontsize=\normalsize]{predicting}
+\Vertex[Math, x=2.5, y=-2, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=0.1pt}]{B10}
+\Edge[lw=.5pt, Direct](B00)(B10)
+\Vertex[Math, x=3.8, y=-2, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=5mm, minimum height=5mm, line width=.1pt}]{C70}
+\Edge[lw=.5pt, Direct](B10)(C70)
+\end{tikzpicture}
+\end{center}
+
+In many cases, the hypothesis class $\mathcal{H}$ consists of \alert{parametric functions}---functions with the same underlying structure but differing in their parameter values. We can denote such a class as $\mathcal{H}_{\boldsymbol{\theta}}$, where $\boldsymbol{\theta} = (\theta_1, \ldots, \theta_m)$ is a vector of parameters. The learning task then reduces to finding the optimal parameter values that best fit the training data.
+
+Linear regression provides an excellent illustration. In linear regression, we assume that the target value can be predicted as a weighted sum of the features, plus a constant term:
+\begin{myequation}
+y = \sum_{i=1}^d w_i x_i + w_0 = \w^T \overline{\x}
+\end{myequation}
+where $\w = (w_0, w_1, \ldots, w_d)^T$ is the parameter vector and $\overline{\x} = (1, x_1, \ldots, x_d)^T$ includes a constant component for the bias term. The hypothesis class here is the set of all $(d+1)$-dimensional linear functions, and the learning algorithm must find the weights $w_0, w_1, \ldots, w_d$ that minimize prediction error on the training set.
+
+\subsubsection*{Ensemble Learning Approach}
+
+The third approach takes a different philosophy: instead of searching for a single best predictor, we construct multiple predictors and combine their predictions. This \alert{ensemble} strategy often yields better performance than any individual predictor, as different models can capture different patterns in the data.
+
+The process unfolds in three stages. First, we derive a collection of $s$ different predictors $A^{(1)}_{\mathcal{T}}, \ldots, A^{(s)}_{\mathcal{T}}$ from the training set, each computing a function $h^{(i)}_{\mathcal{T}}: \mathcal{X} \rightarrow \mathcal{Y}$. These predictors might differ in their structure, their parameters, or the subset of training data they use. Second, we derive a weight $w^{(i)}$ for each predictor, reflecting its estimated quality or reliability. Third, when we need to make a prediction for a new item $\x$, we gather the predictions $y^{(i)} = h^{(i)}_{\mathcal{T}}(\x)$ from each individual predictor and combine them using the weights.
+
+\begin{center}
+\begin{tikzpicture}
+\Vertex[Math, x=.5, y=0, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+\Text[position=left, x=-1, y=0, distance=1.5mm, fontsize=\normalsize]{learning}
+\Vertex[Math, x=2.5, y=0, color=xkcdAmethyst, opacity=.3, shape=rectangle, label=\mathcal{A}, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+\Edge[lw=.5pt, Direct](B01)(B1)
+\Vertex[Math, x=4.5, y=-1, color=xkcdLipstickRed, label=A_{\mathcal{T}}^{(s)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C7}
+\Vertex[Math, x=5.4, y=-1, color=xkcdTeal, label=w^{(s)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C700}
+\Vertex[Math, x=4.5, y=1, color=xkcdLipstickRed, label=A_{\mathcal{T}}^{(1)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C8}
+\Vertex[Math, x=5.4, y=1, color=xkcdTeal, label=w^{(1)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C701}
+\node (D0) at (4.85, 0) {$\vdots$};
+\Edge[lw=.5pt, Direct](B1)(C7)
+\Edge[lw=.5pt, Direct](B1)(C8)
+\Vertex[Math, x=1, y=-3, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B00}
+\Text[position=left, x=-1, y=-1.8, distance=1.5mm, fontsize=\normalsize]{predicting}
+\Vertex[Math, x=2.5, y=-2, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}^{(1)}, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B10}
+\node (D1) at (2.5, -3) {$\vdots$};
+\Vertex[Math, x=2.5, y=-4, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}^{(s)}, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B11}
+\Edge[lw=.5pt, Direct](B00)(B10)
+\Edge[lw=.5pt, Direct](B00)(B11)
+\Vertex[Math, x=3.8, y=-2, color=xkcdOrange, label=y^{(1)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=9mm, minimum height=8mm, line width=.1pt}]{C70}
+\Vertex[Math, x=4.8, y=-2, color=xkcdLightGrey, label=\times, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C702}
+\Vertex[Math, x=5.8, y=-2, color=xkcdTeal, label=w^{(1)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=.9cm, minimum height=.8cm, line width=.1pt}]{C71}
+\node (D2) at (3.8, -3) {$\vdots$};
+\Vertex[Math, x=3.8, y=-4, color=xkcdOrange, label=y^{(s)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=9mm, minimum height=8mm, line width=.1pt}]{C80}
+\Vertex[Math, x=4.8, y=-4, color=xkcdLightGrey, label=\times, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C802}
+\Vertex[Math, x=5.8, y=-4, color=xkcdTeal, label=w^{(s)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=.9cm, minimum height=.8cm, line width=.1pt}]{C81}
+\Edge[lw=.5pt, Direct](B10)(C70)
+\Edge[lw=.5pt, Direct](B11)(C80)
+\Edge[lw=.5pt, Direct](C70)(C702)
+\Edge[lw=.5pt, Direct](C80)(C802)
+\Edge[lw=.5pt, Direct](C71)(C702)
+\Edge[lw=.5pt, Direct](C81)(C802)
+\node (D3) at (4.8, -3) {$\vdots$};
+\Vertex[Math, x=5.8, y=-3, color=xkcdLightGrey, label=+, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C90}
+\Vertex[Math, x=6.8, y=-3, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=6mm, minimum height=5mm, line width=.1pt}]{C91}
+\Edge[lw=.5pt, Direct](C702)(C90)
+\Edge[lw=.5pt, Direct](C802)(C90)
+\Edge[lw=.5pt, Direct](C90)(C91)
+\end{tikzpicture}
+\end{center}
+
+The combination method depends on the task at hand. For regression, we typically compute a weighted average of the individual predictions:
+\begin{myequation}
+h(\x) = \sum_{i=1}^s w^{(i)} h^{(i)}(\x)
+\end{myequation}
+where the weights satisfy $\sum_{i=1}^s w^{(i)} = 1$ and $w^{(i)} \geq 0$ for all $i$, ensuring that the result is interpretable as an average. For classification tasks, a natural approach is \alert{weighted voting}, where we select the class that receives the most weight:
+\begin{myequation}
+h(\x) = \argmax{y \in \mathcal{Y}} \sum_{i=1}^s w^{(i)} \mathds{1}[h^{(i)}(\x) = y]
+\end{myequation}
+where $\mathds{1}[\cdot]$ is the indicator function that equals one if the predicate is true and zero otherwise. This aggregates the votes from all predictors, weighting each vote by the predictor's reliability.
+
+An important variant of ensemble learning is \alert{fully Bayesian} prediction. Rather than working with a discrete set of predictors, we derive a probability distribution on the parameters values from the dataset, which is used to effectively average predictions over all possible parameter values. Mathematically, since parameters are usually real variables, the weighted sum becomes an integral over the parameter space.
+
+%\subsection*{Comparison and Contrast}
+
+These three approaches represent fundamentally different philosophies about when and how to process the training data. In direct prediction, we process both the new item and the entire training set at prediction time, performing all computation on demand. In model-based learning, we invest computational effort upfront during a learning phase to produce a compact predictor that can be applied efficiently later. In ensemble methods, we sidestep the question of finding a single best model by embracing multiple perspectives, each encoded in a different predictor, and letting them collectively decide the final prediction. Each approach has advantages: direct methods are flexible and can adapt locally to the data; model-based methods are efficient and interpretable; ensemble methods are robust and often achieve superior predictive performance.
+
+\subsection*{Probabilistic Framework for Machine Learning}
+
+To build a rigorous foundation for understanding machine learning, we need to think probabilistically about how data arises. The core assumption is that both the objects we observe and their labels come from some underlying stochastic process which results into a probability distribution on the labels domain.
+
+We then assume that the objects in any training set are sampled (we assume independently) from an unknown probability distribution $p_M$ over the domain $\mathcal{X}$. For each object $\x \in \mathcal{X}$, the quantity $p_M(\x)$ represents the probability that $\x$ appears in our dataset. Similarly, we assume that labels are not deterministically assigned to objects but rather arise from a conditional probability distribution $p_C(t|\x)$. This captures the realistic scenario where multiple legitimate labels might exist for the same object, whether due to labeling noise, inherent ambiguity, or subjective judgment. Together, these assumptions induce a joint distribution $p(\x, t) = p_M(\x) p_C(t|\x)$ over object-label pairs.
+
+For simplicity and intuition, we will often make the simpler assumption that there exists an unknown \alert{ground truth function} $f: \mathcal{X} \to \mathcal{Y}$ such that labels are deterministically generated as $t = f(\x)$. This can be viewed as a special case where $p_C(t|\x)$ places all its probability mass on the value $f(\x)$. While this deterministic view is  conceptually cleaner, the more general probabilistic setting better reflects real-world scenarios where perfect labels don't always exist.
+
+\subsubsection*{Risk and Loss}
+
+Once we have a predictor $h: \mathcal{X} \to \mathcal{Y}$, we need a way to measure how well it performs. The foundation of this measurement is the \alert{loss function} $L: \mathcal{Y} \times \mathcal{Y} \to \mathbb{R}$, which quantifies the penalty incurred when we predict $y$ but the true label is $t$. For example, in binary classification with the \alert{0-1 loss}, we pay a penalty of 1 for any wrong prediction and 0 for correct ones:
+\begin{myequation}\color{evidmath}
+L(y, t) = \mathds{1}[y \neq t]
+\end{myequation}
+
+For a single object $\x$, the \alert{prediction risk} $\mathcal{R}(y, \x)$ measures the expected loss under the true label distribution. In the deterministic setting where labels come from a function $f$, this is simply:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_f(y, \x) \defeq L(y, f(\x))
+\end{myequation}
+
+In the general probabilistic case, where we only know the conditional distribution $p_C(t|\x)$, the prediction risk becomes an expectation over all possible labels:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_C}(y, \x) \defeq \ev{t \sim p_C(\cdot|\x)}{L(y, t)} = \int_{\mathcal{Y}} L(y, t) \, p_C(t|\x) \, dt
+\end{myequation}
+
+For discrete label sets like those in classification, this integral becomes a sum:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_C}(y, \x) \defeq \sum_{t \in \mathcal{Y}} L(y, t) \, p_C(t|\x)
+\end{myequation}
+
+The key insight is that lower prediction risk means better alignment between our prediction and the true label distribution.
+
+%\subsubsection*{Expected Risk: The Ultimate Objective}
+
+To evaluate a predictor $h$ overall, we must aggregate the prediction risk across all possible objects according to their probability of occurrence. This leads to the notion of \alert{expected risk} (or \alert{true risk}), which measures the average loss we would incur if we applied $h$ to infinitely many examples drawn from the true distribution:
+
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_M, f}(h) \defeq \ev{\x \sim p_M}{L(h(\x), f(\x))} = \int_{\mathcal{X}} L(h(\x), f(\x)) \, p_M(\x) \, d\x
+\end{myequation}
+
+In the probabilistic setting:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_p(h) \defeq \ev{(\x,t) \sim p}{L(h(\x), t)} = \int_{\mathcal{X}} \int_{\mathcal{Y}} L(h(\x), t) \, p_M(\x) \, p_C(t|\x) \, d\x \, dt
+\end{myequation}
+
+When we use 0-1 loss, the expected risk simplifies to the probability of making an error:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_M, f}(h) = \prob{\x \sim p_M}{h(\x) \neq f(\x)}
+\end{myequation}
+
+This is the most intuitive metric: it directly tells us how often our predictor is wrong on randomly sampled data.
+
+Unfortunately, in machine learning the true distributions $p_M$ and $p_C$ (or equivalently, the function $f$) are by hypothesis unknown and unknowable. We cannot directly compute the expected risk because we don't have access to the infinite stream of future data. Instead, we must work with the finite sample we have: the training set $\mathcal{T}$.
+
+This motivates the definition of \alert{empirical risk}, an estimate of the true expected risk based only on the training data. The empirical risk is simply the average loss over all training examples:
+\begin{myequation}\color{evidmath}
+\overline{\mathcal{R}}_{\mathcal{T}}(h) \defeq \frac{1}{|\mathcal{T}|} \sum_{(\x,t) \in \mathcal{T}} L(h(\x), t)
+\end{myequation}
+
+For 0-1 loss, this quantity has a particularly natural interpretation: it is the \alert{error rate}, the fraction of training examples that $h$ misclassifies:
+\begin{myequation}\color{evidmath}
+\overline{\mathcal{R}}_{\mathcal{T}}(h) = \frac{1}{|\mathcal{T}|} \sum_{(\x,t) \in \mathcal{T}} \mathds{1}[h(\x) \neq t] = \frac{\left|\{(\x,t) \in \mathcal{T} \mid h(\x) \neq t\}\right|}{|\mathcal{T}|}
+\end{myequation}
+
+%\subsubsection*{The Learning Problem as Optimization}
+
+The strategy in machine learning is then straightforward: since we cannot minimize the true expected risk, we minimize the empirical risk instead. Assuming we have a hypothesis class $\mathcal{H}$ (a predefined family of candidate predictors), learning becomes an optimization problem:
+
+\begin{myequation}\color{evidmath}
+h_{\mathcal{T}} = \argmin{h \in \mathcal{H}} \overline{\mathcal{R}}_{\mathcal{T}}(h)
+\end{myequation}
+
+That is, we search for the predictor in $\mathcal{H}$ that minimizes the empirical risk on our training data. The hypothesis class $\mathcal{H}$, also called the \alert{inductive bias}, encodes our assumptions about what kind of predictor is plausible. By restricting to $\mathcal{H}$, we make an implicit statement about the structure of the underlying problem.
+
+However, this approach comes with a subtle but profound caveat: minimizing empirical risk does not automatically guarantee good performance on future unseen data. A predictor could fit the training set perfectly while performing poorly on new examples - a phenomenon known as \alert{overfitting}. The gap between training risk and true risk is one of the fundamental subjects of statistical learning theory, which we will explore further as we progress.
+
+In essence, the probabilistic framework transforms the vague goal of ``learning from data'' into a concrete mathematical problem: find a function in a specified class that best explains the observed data according to a chosen loss function. Yet it also reminds us that this mathematical surrogate - minimizing empirical risk - is only a proxy for what we truly care about: minimizing expected risk on unknown future data.
+
+\subsection*{Inductive Bias}
+
+One of the most consequential decisions in machine learning is the choice of the hypothesis class $\mathcal{H}$. This choice embodies what we might call the learner's \alert{inductive bias} - a set of assumptions about what kind of predictor is likely to work well for the problem at hand. When we restrict ourselves to functions in $\mathcal{H}$, we're essentially saying: ``I believe that somewhere in this class lies a function that will generalize well to unseen data.'' The question is: how should we choose this class?
+
+There are two competing concerns that drive this choice. First, if $\mathcal{H}$ is too small, we risk excluding the true underlying function entirely. In this case, even with infinite training data and perfect optimization, we cannot achieve low error because our class simply isn't expressive enough. Second, if $\mathcal{H}$ is too large, we gain flexibility but invite a different danger: the learning algorithm might find a function that fits the training data perfectly while performing terribly on new data. Understanding this tension requires us to think deeply about overfitting and the fundamental tradeoff between bias and variance.
+
+%\subsubsection*{Overfitting: When Training Success Masks Failure}
+\medskip
+Let's start with a concrete example that illustrates the overfitting problem. Consider a binary classification task where the true conditional probability of class 1 is balanced: $p_C(t=1|\x) = \frac{1}{2}$ for all objects. We use the standard 0-1 loss, where we pay a penalty of 1 for any misclassification and 0 otherwise.
+
+Now imagine we define our hypothesis class to be extremely permissive: $\mathcal{H}$ consists of all possible functions from $\mathcal{X}$ to $\{0, 1\}$. With this choice, consider the following predictor:
+\begin{myequation}\color{evidmath}
+h_{\mathcal{T}}(\x) = \begin{cases}
+1 & \text{if } \x = \x_i \in \X \text{ and } t_i = 1 \\
+0 & \text{otherwise}
+\end{cases}
+\end{myequation}
+
+This function is a pure \alert{memorizer}: it outputs 1 precisely for those training objects that were labeled 1, and outputs 0 for everything else. What happens when we evaluate it?
+
+On the training set $\mathcal{T}$, the empirical risk is exactly zero---every training example is classified correctly by construction. The function has essentially committed the entire training set to memory. However, this apparent success is an illusion. When we apply $h_{\mathcal{T}}$ to new objects sampled from the population, the probability that any given new object appears in the training set is vanishingly small. Therefore, for most new objects, the function outputs 0, predicting the minority class. Since the two classes are equally likely, this naive strategy is no better than random guessing, achieving an expected risk of approximately $\frac{1}{2}$.
+
+This gap between training performance and true performance is the essence of \alert{overfitting}. The predictor has not learned any genuine pattern; it has merely memorized the training data while failing to capture any generalizable structure. In practical terms, overfitting occurs when $\mathcal{H}$ is so large that the learning algorithm can find functions that achieve perfect empirical risk despite having high expected risk.
+
+%\subsubsection*{Underfitting: When the Class Is Too Restrictive}
+\medskip
+The opposite problem arises if we choose $\mathcal{H}$ to be too small. Suppose, for instance, that the true underlying function is highly nonlinear, but we restrict ourselves to linear predictors. No matter how much training data we collect or how well we optimize within our restricted class, we cannot escape the fundamental limitation: linear functions cannot approximate nonlinear patterns. The best linear approximation might still leave substantial error on both training and test data. This scenario is called \alert{underfitting}---the hypothesis class is too restrictive to capture the complexity of the true relationship.
+
+With underfitting, there is no gap between training and test error because the predictor is too rigid to memorize anything. Instead, the problem is that both training and test errors remain unacceptably high. We fail to fit the training data well, and consequently, we also fail to generalize.
+
+\subsubsection*{The Bias-Variance Tradeoff}
+
+To understand these phenomena more deeply, we need to introduce two concepts that are central to statistical learning theory: \alert{bias} and \alert{variance}. 
+
+Consider repeatedly generating different training sets $\mathcal{T}_1,  \mathcal{T}_2, \mathcal{T}_3, \ldots$ from the true distribution $p_M$ and training a learning algorithm $\mathcal{A}$ on each one. Each training set will be slightly different (assuming the data is randomly sampled), and consequently, the algorithm will produce different predictors $h_{\mathcal{T}_1}, h_{\mathcal{T}_2}, h_{\mathcal{T}_3}, \ldots$ each time. 
+
+The \alert{bias} of a learning algorithm measures how far the average predictor (averaged over many training sets) is from the true underlying function. Formally, bias captures systematic error---if we train on countless datasets drawn from the same distribution, do the resulting predictors tend to be systematically wrong in the same direction? High bias typically arises from restrictive hypothesis classes that cannot represent complex patterns. A linear model applied to a highly nonlinear problem will have high bias regardless of how much data you provide.
+
+The \alert{variance}, by contrast, measures how much the learned predictor fluctuates depending on which particular training set we happened to receive. If the hypothesis class is very large and flexible, small variations in the training set can lead to dramatically different learned functions. High variance means the algorithm is sensitive to the specific noise and quirks of the training data. This is the signature of overfitting: the algorithm has so much flexibility that it fits not only the signal but also the noise.
+
+The fundamental insight is that these two sources of error are in tension. If we choose a small, restrictive hypothesis class (like linear functions), we reduce variance because the class simply isn't flexible enough to chase every noise fluctuation in the data. But we pay the price of high bias because we cannot represent the true function. Conversely, if we choose a large, expressive hypothesis class (like the set of all possible functions), we can drive bias down to nearly zero because we can approximate almost any target function. But we increase variance dramatically because the algorithm can now fit the training noise.
+
+The \alert{bias-variance tradeoff} is the realization that we cannot simultaneously minimize both sources of error. There is an optimal hypothesis class size that balances these two concerns. Too small, and bias dominates; too large, and variance dominates. The sweet spot depends on the problem at hand: the complexity of the true underlying function, the amount of training data available, and the noise in the observations.
+
+In practice, this tradeoff manifests in the learning curves we observe. When we train on small datasets, a very flexible model may actually perform well on both training and test data if it's able to capture the true pattern before it captures noise. But as the training set grows, flexible models begin to overfit because there's more data with different noise patterns to memorize. Meanwhile, restrictive models may never fit the training data well, no matter how much data we provide. The art of machine learning lies in choosing an inductive bias that matches the actual complexity of the underlying task.
+
+%\subsubsection*{Computational and Statistical Considerations}
+\medskip
+Beyond the bias-variance tradeoff, there is a second practical concern: computational feasibility. Even if we believe that the true function lies in a certain hypothesis class $\mathcal{H}$, finding the predictor in $\mathcal{H}$ that minimizes empirical risk may be computationally intractable. Some hypothesis classes, though statistically sound, lead to optimization problems that are NP-hard or otherwise computationally prohibitive. In such cases, we might deliberately choose a smaller or different class $\mathcal{H}'$ simply to make the learning problem solvable in reasonable time. This introduces an additional layer to the inductive bias: not only do we encode our statistical beliefs about the problem, but we also pragmatically constrain ourselves based on what we can actually compute. The choice of hypothesis class thus reflects a blend of statistical theory and computational reality.
+
+%\clearpage
+%\pagestyle{empty}
+%\end{document}

@@ -1,0 +1,205 @@
+\PassOptionsToPackage{english}{babel}
+\documentclass[11pt]{lapreprint}
+
+% --- PACCHETTI FONDAMENTALI ---
+\RequirePackage{etex}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{CormorantGaramond}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{xkcdcolors}
+\usepackage{graphicx}
+\usepackage{csquotes}
+
+% --- MATEMATICA E SIMBOLI ---
+\usepackage{amsmath, amsfonts, amssymb, amsthm, mathtools}
+\usepackage{dsfont, mathrsfs, relsize, mleftright}
+\usepackage{bm}
+\usepackage{derivative}
+\usepackage{siunitx}
+\usepackage{textgreek}
+\usepackage[misc]{ifsym} % Per \Letter
+\usepackage{cancel}
+\usepackage{annotate-equations}
+
+% --- TABELLE E LAYOUT ---
+\usepackage{booktabs, tabularx, longtable, multirow, colortbl}
+\usepackage{pdflscape, rotating}
+\usepackage{multicol}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{environ}
+\usepackage[skins, breakable]{tcolorbox}
+\usepackage{snotez} % Per sidenotes
+
+% --- ALGORITMI E CODICE ---
+\usepackage[algoruled]{algorithm2e}
+\usepackage{algorithmic}
+\usepackage{listings}
+
+% --- TIKZ E PGFPLOTS ---
+\usepackage{tikz}
+\usepackage{tikz-network}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows, decorations.pathmorphing, positioning, backgrounds, fit, shadows, automata, patterns, calc, intersections, through, shapes, scopes, chains, matrix, shapes.arrows, decorations}
+
+% --- CONFIGURAZIONE PAGINA E FOOTER ---
+\geometry{
+    left=2.5cm,
+    right=2.5cm,
+    top=3cm,
+    bottom=3.5cm,
+    marginparwidth=0pt,
+    marginparsep=0pt
+}
+
+\makeatletter
+\def\ppfooterB{\footnotesize \@title\hspace{7pt}|\hspace{7pt}\thepage\space of\space\pageref{LastPage}}
+\def\ppfooterC{\footnotesize \@leadauthor\hspace{7pt}|\hspace{7pt}\@shorttitle}
+
+\lfoot{\ppfooterC}
+\rfoot{\ppfooterB}
+\preto{\footrule}{\color{MediumGrey}}
+
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[R]{\ppfooterB}
+    \fancyfoot[L]{\ppfooterC}
+}
+\makeatother
+
+% --- BIBLIOGRAFIA ---
+\usepackage[
+    backend=biber,
+    style=authoryear,
+    natbib=true,
+    hyperref=true,
+    alldates=year
+]{biblatex}
+
+% --- SETUP GRAFICA E COLORI ---
+\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
+\graphicspath{{graphics/}}
+
+\definecolor{node}{RGB}{220,220,220}
+\definecolor{box}{RGB}{240,240,240}
+\definecolor{ft}{RGB}{210,40,40}
+\definecolor{bt}{RGB}{54,94,155}
+\definecolor{nt}{RGB}{90,90,90}
+
+\colorlet{pale}{xkcdLightGrey}
+\colorlet{observed}{xkcdPinkish!60}
+\colorlet{param}{xkcdLightTan}
+\colorlet{latent}{xkcdPeriwinkle}
+
+\definecolor{titlecolor}{named}{xkcdDarkAquamarine}
+\definecolor{alertcolor}{named}{xkcdDuskyRose}
+\definecolor{evidmath}{named}{xkcdCadetBlue}
+\definecolor{lightmath}{named}{xkcdMediumGrey}
+\definecolor{emath1}{named}{xkcdPumpkin}
+\definecolor{emath2}{named}{xkcdIrishGreen}
+\definecolor{emath3}{named}{xkcdDuskyRose}
+
+% --- AMBIENTI PERSONALIZZATI ---
+\tcbset{enhanced jigsaw, colback=xkcdTeal!5!white, colframe=xkcdTeal!75!black, fonttitle=\bfseries}
+
+\newenvironment{notebox}[1]{
+    \medskip\noindent
+    \begin{tcolorbox}[breakable, width=\textwidth, boxrule=.1mm, lefttitle=2mm, title=#1]
+    \color{xkcdBattleshipGrey!75!black}
+}{\end{tcolorbox}}
+
+\newenvironment{smallbluetext}{\footnotesize\color{xkcdDuskBlue}}{\par}
+\newenvironment{myexample}{\bigskip\hrule\medskip\small}{\medskip\hrule\bigskip}
+
+\newtheorem{exmp}{Example}[section]
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+
+% Ambienti matematici colorati
+\newenvironment{myequation}{\begin{equation*}\color{evidmath}}{\end{equation*}}
+\NewEnviron{myalign}{{\color{evidmath}\begin{align*}\BODY\end{align*}}}
+
+% --- COMANDI PERSONALIZZATI ---
+%\newcommand\hmmax{0}
+%\newcommand\bmmax{0}
+
+\newcommand{\KL}{\mathrm{KL}\infdivx}
+\newcommand{\ELBO}{\mathrm{ELBO}}
+\newcommand{\dataset}{\mathcal{D}}
+\newcommand{\fracpartial}[2]{\pdv{#1}{#2}}
+\newcommand{\gradient}[2]{\mathlarger{\mathlarger{\nabla}}_{\mathsmaller{#1}} #2}
+
+\DeclareMathOperator*{\PP}{\mathds{P}}
+\DeclareMathOperator*{\EE}{\mathds{E}}
+\newcommand\prob[2]{\PP_{#1}\left[\,#2\,\right]}
+\newcommand{\ev}[2]{\EE_{#1}\left[\,#2\,\right]}
+
+%\newcommand{\Real}{\mathbb{R}}
+\newcommand{\defeq}{\stackrel{\Delta}{=}}
+\newcommand{\alert}[1]{{\bf\color{xkcdDuskyRose}#1}}
+\newcommand{\partitle}[1]{\textcolor{alertcolor}{#1}}
+
+% Shortcuts Variabili
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vX}{\mathbf{X}}
+\newcommand{\vZ}{\mathbf{Z}}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vthetastar}{\boldsymbol{\theta}^*}
+\newcommand{\vxi}{\mathbf{x}_i}
+
+% Shortcut Caligrafici
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cXY}{\mathcal{X}\times\mathcal{Y}}
+\newcommand{\oR}{\overline{\mathcal{R}}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\vcd}[1]{\text{VCdim}(#1)}
+
+\newcommand{\LB}[2]{\mathcal{L}^{#1}(\mathbf{T},\Phi; #2)}
+\newcommand{\LBT}[2]{\widetilde{\mathcal{L}}^{#1}(\mathbf{T},\Phi; #2)}
+
+% --- TIKZ NEURAL NETWORKS ---
+\usepackage{xstring}
+\newcommand\denselyConnectNodes[2]{
+  \foreach\n [count=\lyrIdx, remember=\lyrIdx as \previdx, remember=\n as \prevn] in #2 {
+    \foreach\y in {1,...,\n} {
+      \ifnum\lyrIdx>1
+        \foreach\x in {1,...,\prevn}
+          \draw[->] (#1-\previdx-\x) -- (#1-\lyrIdx-\y);
+      \fi
+    }
+  }
+}
+
+\newcommand\drawNodes[3]{
+  \foreach\neurons [count=\lyrIdx] in #2 {
+    \StrCount{\neurons}{,}[\lyrLength]
+    \foreach\n [count=\nIdx] in \neurons {
+      \node[neuron={#3}] (#1-\lyrIdx-\nIdx) at (2*\lyrIdx, \lyrLength/2-1.4*\nIdx) {\n};
+    }
+  }
+}
+
+% --- LISTINGS SETUP ---
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\color{xkcdDarkAquamarine},
+    otherkeywords={self},            
+    keywordstyle=\ttfamily\color{xkcdRedOrange},
+    keywords=[2]{True,False},
+    keywordstyle={[2]\ttfamily\color{xkcdRedOrange}},
+    stringstyle=\color{green!80!black},
+    showstringspaces=false            
+}
+
+% Importazione comandi esterni (se necessari)
+\usepackage{commands} 
+
+
+
+\leadauthor{Giorgio Gambosi}
+\shorttitle{Notes on Machine Learning}

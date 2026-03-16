@@ -1,0 +1,600 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+\chapter{Variational Approaches to Inference}
+
+\section*{The Challenge of Intractable Posteriors and the Variational Solution}
+
+In our earlier exploration of latent variable models and the Expectation-Maximization algorithm, we encountered a recurring pattern: the need to compute posterior distributions over latent variables given observations. When these posterior distributions are tractable—admitting closed-form expressions or efficient computational procedures—we can apply the EM algorithm directly to maximize the likelihood of observed data. However, in many models of practical interest, the posterior distribution $p(\mathbf{z}|\mathbf{x};\boldsymbol{\theta})$ is intractable, meaning we cannot compute it exactly or even approximate it efficiently through standard methods. This intractability poses a fundamental challenge to learning and inference, as it prevents us from executing the E-step of the EM algorithm, which requires evaluating expectations with respect to the posterior.
+
+The variational approach offers a principled solution to this challenge by reframing the inference problem as an optimization problem. Rather than attempting to compute the true posterior exactly, we introduce a family of tractable distributions and search within this family for the member that best approximates the true posterior according to some measure of similarity. This transformation from a difficult integration or sampling problem into a (hopefully) more manageable optimization problem is the essence of variational inference, and it has proven to be one of the most powerful and widely applicable techniques in modern machine learning.
+
+Before developing the variational framework in detail, let us carefully review the situation we face when dealing with latent variable models, establishing precisely where the difficulty arises and what approaches we might pursue.
+
+\subsection*{Recapitulating the Inference Challenge}
+
+Consider a latent variable model characterized by the joint distribution $p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})$ over observations $\mathbf{x}$ and latent variables $\mathbf{z}$, parameterized by $\boldsymbol{\theta}$. Our goal is to find the parameter value $\boldsymbol{\theta}^*$ that maximizes the marginal likelihood (or log-likelihood) of the observed data:
+\begin{myequation}
+\boldsymbol{\theta}^* = \arg\max_{\boldsymbol{\theta}} \log p(\mathbf{x}; \boldsymbol{\theta})
+\end{myequation}
+
+The fundamental difficulty is that evaluating this marginal likelihood requires integrating out the latent variables:
+\begin{myequation}
+p(\mathbf{x}; \boldsymbol{\theta}) = \int_{\mathcal{Z}} p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}) \, d\mathbf{z}
+\end{myequation}
+
+In high-dimensional latent spaces or when the joint distribution has complex structure, this integral is typically intractable. We cannot maximize the marginal log-likelihood directly, nor can we simply maximize the joint likelihood $\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})$ for a specific latent value $\mathbf{z}$, because we do not observe the latent variables—we do not know which $\mathbf{z}$ corresponds to each observation $\mathbf{x}$.
+
+One might hope to circumvent this difficulty by marginalizing before taking the logarithm:
+\begin{myequation}
+\boldsymbol{\theta}^* = \arg\max_{\boldsymbol{\theta}} \int_{\mathcal{Z}} \log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}) \, d\mathbf{z}
+\end{myequation}
+
+However, this reformulation does not resolve the computational challenge. The integral over the latent space remains difficult to evaluate, and the optimization problem is no simpler than before.
+
+The insight that led to the EM algorithm was to replace the unknown latent value $\mathbf{z}$ with an expectation taken with respect to a distribution over $\mathbf{z}$. Rather than maximizing the joint log-likelihood for a fixed but unknown $\mathbf{z}$, we maximize the expected joint log-likelihood under a distribution that captures our uncertainty about $\mathbf{z}$. Initially, one might consider using the prior distribution $p(\mathbf{z}; \hat{\boldsymbol{\theta}})$ evaluated at a current parameter estimate $\hat{\boldsymbol{\theta}}$:
+\begin{myequation}
+\boldsymbol{\theta}^* = \arg\max_{\boldsymbol{\theta}} \mathbb{E}_{\mathbf{z} \sim p(\mathbf{z}; \hat{\boldsymbol{\theta}})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})] = \arg\max_{\boldsymbol{\theta}} \int_{\mathcal{Z}} p(\mathbf{z}; \hat{\boldsymbol{\theta}}) \log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}) \, d\mathbf{z}
+\end{myequation}
+
+However, this approach ignores the critical information provided by the observation $\mathbf{x}$. Since $\mathbf{x}$ and $\mathbf{z}$ are not independent in our model, we should condition on the observed data when forming expectations about the latent variables. This leads to the superior strategy of taking expectations with respect to the posterior distribution:
+\begin{myequation}
+\boldsymbol{\theta}^* = \arg\max_{\boldsymbol{\theta}} \mathbb{E}_{\mathbf{z} \sim p(\mathbf{z}|\mathbf{x}; \hat{\boldsymbol{\theta}})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})] = \arg\max_{\boldsymbol{\theta}} \int_{\mathcal{Z}} p(\mathbf{z}|\mathbf{x}; \hat{\boldsymbol{\theta}}) \log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}) \, d\mathbf{z}
+\end{myequation}
+
+This expectation forms the Q-function at the heart of the EM algorithm. In the favorable cases where the posterior $p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta})$ can be computed in closed form and the expectation can be optimized analytically (or at least efficiently using gradient methods), we obtain the standard EM algorithm. Each iteration alternates between computing the posterior under the current parameters (E-step) and maximizing the expected complete-data log-likelihood (M-step).
+
+However, when computing $p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta})$ is itself intractable, we must seek an approximation. This is where variational inference enters: we introduce an approximate distribution $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ parameterized by variational parameters $\boldsymbol{\phi}$, chosen from some tractable family, that serves as a surrogate for the true posterior.
+
+Furthermore, even when the posterior can be computed, maximizing the Q-function may not admit a closed-form solution. In such cases, we can apply a gradient-based iterative method for a fixed number of steps to obtain an approximate maximum. This variant, where the M-step is not performed to exact convergence, is known as Generalized EM and represents a practical compromise between computational feasibility and theoretical optimality.
+
+\subsection*{The Variational Inference Framework}
+
+The central idea of variational methods is to transform the problem of inference—typically an integration or sampling problem—into an optimization problem that may be more amenable to efficient computation. This transformation relies on the observation that while we cannot compute the exact posterior distribution $p(\mathbf{z})$ (which might be a posterior $p(\mathbf{z}|\mathbf{x})$ conditioned on observations, or more generally any complex distribution we wish to work with), we can often find a good approximation within a simpler, tractable family of distributions.
+
+Suppose we are given an intractable probability distribution $p(\mathbf{z})$ that we need to approximate for the purposes of inference or expectation computation. We might pursue this approximation through different paradigms. Numerically, we could employ sampling methods such as Markov Chain Monte Carlo (MCMC), which generate samples from $p(\mathbf{z})$ (or approximately from $p(\mathbf{z})$) and use these samples to compute Monte Carlo estimates of expectations and other quantities of interest. Analytically, we could introduce a family of tractable approximating distributions and select the member of this family that is, in some sense, closest to $p(\mathbf{z})$.
+
+Variational techniques adopt the second, analytical approach. We define a family $\mathcal{F}$ of tractable distributions over the latent variable $\mathbf{z}$, where "tractable" typically means that we can efficiently compute expectations with respect to distributions in $\mathcal{F}$, evaluate their densities, and optimize over the family. We then solve an optimization problem to find the distribution $q \in \mathcal{F}$ that is most similar to $p$ according to some measure of distributional similarity. The most commonly used similarity measure is the Kullback-Leibler (KL) divergence, though other choices are possible. Once we have found the optimal approximating distribution $q^*$, we refer to $q^*$ rather than $p$ when performing inference, computing expectations, or making predictions.
+
+The quality of the variational approximation depends critically on two factors: the choice of the variational family $\mathcal{F}$ and the choice of the divergence measure. A richer family $\mathcal{F}$ can capture more of the structure of $p$, but typically at the cost of increased computational complexity in the optimization. A sparser family is computationally attractive but may provide poor approximations. The art of variational inference lies in choosing a family that balances expressiveness and tractability.
+
+\subsection*{Mean Field Variational Inference}
+
+Before we can perform variational optimization, we must choose the form of the variational family $\mathcal{F}$. While there are many possibilities, two assumptions have proven particularly useful in making the variational optimization problem tractable and have given rise to widely used frameworks.
+
+The first assumption is that $\mathcal{F}$ consists of distributions from a parametric family with a specified functional form, meaning each distribution in $\mathcal{F}$ can be written as $q(\mathbf{z}; \boldsymbol{\omega})$ for some parameter vector $\boldsymbol{\omega}$. Under this restriction, the variational inference problem reduces to parameter optimization: we search for the optimal $\boldsymbol{\omega}^*$ rather than searching over an infinite-dimensional space of distributions. This parametric framework takes different specific forms depending on the chosen family. For instance, if we assume $q(\mathbf{z}; \boldsymbol{\omega})$ is a multivariate Gaussian distribution, the parameters $\boldsymbol{\omega}$ specify the mean vector and covariance matrix, and we are performing Gaussian variational inference. The optimization then seeks the Gaussian that best approximates the true posterior, which may or may not itself be Gaussian.
+
+The second assumption, which gives rise to mean field variational inference, is that $q(\mathbf{z})$ factorizes over disjoint subsets of the components of the latent variable. Formally, we assume there exists a partition of $\mathbf{z}$ into components $\mathbf{z}_1, \ldots, \mathbf{z}_m$ such that:
+\begin{myequation}
+q(\mathbf{z}) = \prod_{j=1}^m q_j(\mathbf{z}_j)
+\end{myequation}
+
+This factorization assumption is the defining characteristic of mean field methods. The term "mean field" originates from statistical physics, where similar approximations were developed to study large systems of interacting particles by replacing the effect of all other particles on a given particle with an average or "mean" field. In the context of probabilistic inference, the mean field assumption asserts that the variational posterior factorizes into independent factors, each governing a subset of the latent variables. This is typically a strong assumption—the true posterior $p(\mathbf{z}|\mathbf{x})$ usually exhibits correlations among the latent variables—but it dramatically simplifies the optimization problem and has proven remarkably effective in practice.
+
+The two assumptions can be combined: we might assume both that the distribution factorizes (mean field) and that each factor belongs to a specific parametric family. This would yield $q(\mathbf{z}; \boldsymbol{\omega}) = \prod_{j=1}^m q_j(\mathbf{z}_j; \boldsymbol{\omega}_j)$, where each factor $q_j$ has its own parameters $\boldsymbol{\omega}_j$. Maximizing the evidence lower bound (ELBO) remains a variational optimization task, but it now reduces to finding the optimal parameters for each factor.
+
+Under the mean field assumption, each subset of latent variables $\mathbf{z}_j$ is governed by its own variational factor $q_j(\mathbf{z}_j)$. These factors are independent of one another by construction, meaning the variational posterior exhibits no correlations between different groups. We must optimize each factor, typically through an iterative coordinate ascent procedure. The optimal distribution that approximates the true posterior $p(\mathbf{z})$ is ultimately the product of all these independently optimized factors. While this independence assumption sacrifices some accuracy compared to a more expressive variational family, it makes the optimization tractable and often provides sufficient approximation quality for practical applications.
+
+\section*{Variational EM: Combining Variational Inference with Parameter Learning}
+
+Having established the general framework of variational inference, we now return to the specific context that motivates our development: learning the parameters of a latent variable model $p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})$ when the posterior distribution $p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta})$ is intractable. Our goal remains to maximize the marginal log-likelihood $\log p(\mathbf{x}; \boldsymbol{\theta})$ with respect to $\boldsymbol{\theta}$, but we must now do so while simultaneously approximating the intractable posterior.
+
+The variational EM algorithm addresses this challenge by interleaving two optimization problems: one that finds the best approximation to the posterior for fixed parameters (a generalization of the E-step), and another that maximizes an expected log-likelihood using the approximate posterior (the M-step). Each iteration of variational EM has the following structure.
+
+Given a current parameter value $\boldsymbol{\theta}^{(k)}$, we first seek a good approximation to the posterior $p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta}^{(k)})$ by optimizing the evidence lower bound (ELBO):
+\begin{myequation}
+\mathcal{L}(q, \mathbf{x}, \boldsymbol{\theta}^{(k)}) = \mathbb{E}_{q(\mathbf{z})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})] - \mathbb{E}_{q(\mathbf{z})} [\log q(\mathbf{z})] \leq \log p(\mathbf{x}; \boldsymbol{\theta}^{(k)})
+\end{myequation}
+
+This functional depends on the choice of distribution $q$, and we find the distribution $q^{(k)}$ that provides the best possible ELBO with respect to the log-likelihood $\log p(\mathbf{x}; \boldsymbol{\theta}^{(k)})$. Maximizing $\mathcal{L}(q, \mathbf{x}, \boldsymbol{\theta}^{(k)})$ with respect to $q$ is equivalent to minimizing the KL divergence $D_{\text{KL}}(q(\mathbf{z}) \| p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta}^{(k)}))$, as we have established in our earlier treatment of the EM algorithm. In the ideal case where we can set $q^{(k)}(\mathbf{z}) = p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta}^{(k)})$, we achieve equality in the ELBO bound and recover exact EM.
+
+However, when the posterior is intractable, we cannot set $q$ equal to the true posterior. Instead, we maximize $\mathcal{L}(q, \mathbf{x}, \boldsymbol{\theta}^{(k)})$ by varying $q$ only within a predefined family $\mathcal{F}$ of tractable distributions. This yields the variational E-step:
+\begin{myequation}
+q^{(k)}(\mathbf{z}) = \arg\max_{q \in \mathcal{F}} \mathcal{L}(q, \mathbf{x}, \boldsymbol{\theta}^{(k)})
+\end{myequation}
+
+Because the true posterior $p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta}^{(k)})$ typically does not lie in the restricted family $\mathcal{F}$, we have:
+\begin{myequation}
+D_{\text{KL}}(q^{(k)}(\mathbf{z}) \| p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta}^{(k)})) > 0
+\end{myequation}
+
+and consequently:
+\begin{myequation}
+\log p(\mathbf{x}; \boldsymbol{\theta}^{(k)}) > \mathcal{L}(q^{(k)}, \mathbf{x}, \boldsymbol{\theta}^{(k)})
+\end{myequation}
+
+The gap between the true log-likelihood and the ELBO represents the approximation error introduced by restricting to the family $\mathcal{F}$. This is an unavoidable cost of making inference tractable.
+
+Having obtained the approximate posterior $q^{(k)}$, we proceed to the M-step, where we maximize the expected complete-data log-likelihood:
+\begin{myequation}
+Q(q^{(k)}, \mathbf{x}, \boldsymbol{\theta}) = \mathbb{E}_{q^{(k)}(\mathbf{z})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})]
+\end{myequation}
+
+with respect to $\boldsymbol{\theta}$. This maximization yields the new parameter estimate $\boldsymbol{\theta}^{(k+1)}$.
+
+The key mathematical relationship underpinning variational EM is the decomposition:
+\begin{myequation}
+\log p(\mathbf{x}; \boldsymbol{\theta}) = \mathcal{L}(q, \mathbf{x}, \boldsymbol{\theta}) + D_{\text{KL}}(q(\mathbf{z}) \| p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta}))
+\end{myequation}
+
+This identity reveals that the log-likelihood can be written as the sum of the ELBO and the KL divergence between the variational distribution and the true posterior. Since the KL divergence is always non-negative, the ELBO provides a lower bound on the log-likelihood, justifying its name. Moreover, the gap between the ELBO and the log-likelihood is precisely quantified by the divergence, which measures how well $q$ approximates the true posterior.
+
+The sequence of diagrams in Figures~\ref{fig311}--\ref{fig34} illustrates the behavior of variational EM across iterations. After the variational E-step (Figure~\ref{fig311}), we have found $q^{(k)}$ that minimizes the KL divergence for the current parameters $\boldsymbol{\theta}^{(k)}$, bringing the ELBO as close as possible to the log-likelihood given the constraint $q \in \mathcal{F}$. The M-step (Figure~\ref{fig32}) then increases the ELBO by optimizing the parameters, which necessarily increases the true log-likelihood as well since $\mathcal{L}(q^{(k)}, \mathbf{x}, \boldsymbol{\theta})$ is a lower bound. However, after updating the parameters to $\boldsymbol{\theta}^{(k+1)}$, the variational distribution $q^{(k)}$ is no longer optimal for the new parameters—the KL divergence $D_{\text{KL}}(q^{(k)} \| p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta}^{(k+1)}))$ will generally be larger than it was for $\boldsymbol{\theta}^{(k)}$ (Figure~\ref{fig33}). This necessitates a new E-step to re-optimize the variational distribution for the updated parameters (Figure~\ref{fig34}), and the algorithm continues iterating until convergence.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.8,latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=xkcdOceanBlue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(2.6,-2.8) node[lbl] {\footnotesize $\log p(\mathbf{x};\boldsymbol{\theta}^{(k)})$}
+(-2,-1.5) node[lbl] {\footnotesize $D_{\text{KL}}(q^{(k)},\mathbf{x}, \boldsymbol{\theta}^{(k)})$}
+(-1.8,-3) node[lbl] {\footnotesize $\mathcal{L}(q^{(k)},\mathbf{x}, \boldsymbol{\theta}^{(k)})$};
+\draw[line width=1pt]  (-4,-4) -- (4,-4);
+\draw[dashed, draw=xkcdCoral,line width=1pt] (-4,-2) -- (4,-2);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-1) -- (4,-1);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-4) -- (-.5,-2);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-2) -- (-.5,-1);
+\draw[<->,>=stealth',shorten >=1pt] (1.5,-4) -- (1.5,-1);
+\end{tikzpicture}
+\caption{After E-step}\label{fig311}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.7, latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=blue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(0.8,-3) node[lbl] {\footnotesize$\log p(\mathbf{x};\boldsymbol{\theta}^{(k)})$}
+(-3.5,-3) node[lbl] {\footnotesize$\mathcal{L}(q^{(k)},\mathbf{x},\boldsymbol{\theta}^{(k)})$}
+(-3.5,-1) node[lbl] {\footnotesize $D_{\text{KL}}(q^{(k)},\mathbf{x},\boldsymbol{\theta}^{(k)})$}
+(4.7,-2.5) node[lbl] {\footnotesize$\mathcal{L}(q^{(k)},\mathbf{x},\boldsymbol{\theta}^{(k+1)})$};
+\draw[line width=1pt]  (-4,-4) -- (4,-4);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-.5) -- (4,-.5);
+\draw[dashed,draw=xkcdOceanBlue,line width=1pt] (-4,.5) -- (4,.5);
+\draw[dashed,draw=xkcdCoral,line width=1pt] (-4,-1.5) -- (4,-1.5);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-4) -- (-2,-1.5);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-1.5) -- (-2,-.5);
+\draw[<->,>=stealth',shorten >=1pt] (3,-4) -- (3,.5);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-4) -- (-.5,-.5);
+\end{tikzpicture}
+\caption{After M-step}\label{fig32}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.7, latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=blue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(0.8,-2.2) node[lbl] {\footnotesize$\log p(\mathbf{x};\boldsymbol{\theta}^{(k)})$}
+(8.5,-1) node[lbl] {\footnotesize$\log p(\mathbf{x};\boldsymbol{\theta}^{(k+1)})$}
+(-3.5,-3) node[lbl] {\footnotesize$\mathcal{L}(q^{(k)},\mathbf{x},\boldsymbol{\theta}^{(k)})$}
+(-3.5,-1) node[lbl] {\footnotesize $D_{\text{KL}}(q^{(k)},\mathbf{x}, \boldsymbol{\theta}^{(k)})$}
+(4.8,-2.8) node[lbl] {\footnotesize$\mathcal{L}(q^{(k)},\mathbf{x},\boldsymbol{\theta}^{(k+1)})$}
+(4.8,1.5) node[lbl] {\footnotesize $D_{\text{KL}}(q^{(k)},\mathbf{x}, \boldsymbol{\theta}^{(k+1)})$};
+\draw[line width=1pt]  (-4,-4) -- (8,-4);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-.5) -- (8,-.5);
+\draw[dashed,draw=xkcdOceanBlue,line width=1pt] (-4,.5) -- (8,.5);
+\draw[dashed,draw=xkcdCoral,line width=1pt] (-4,-1.5) -- (8,-1.5);
+\draw[draw=xkcdOceanBlue,line width=1pt] (-4,2) -- (8,2);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-4) -- (-2,-1.5);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-1.5) -- (-2,-.5);
+\draw[<->,>=stealth',shorten >=1pt] (3,-4) -- (3,.5);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-4) -- (-.5,-.5);
+\draw[<->,>=stealth',shorten >=1pt] (3,.5) -- (3,2);
+\draw[<->,>=stealth',shorten >=1pt] (7,-4) -- (7,2);
+\end{tikzpicture}
+\caption{New log-likelihood decomposition}\label{fig33}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.7, latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=blue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(0.8,-3) node[lbl] {\footnotesize$\log p(\mathbf{x};\boldsymbol{\theta}^{(k)})$}
+(8.5,-1) node[lbl] {\footnotesize$\log p(\mathbf{x};\boldsymbol{\theta}^{(k+1)})$}
+(-3.5,-3) node[lbl] {\footnotesize$\mathcal{L}(q^{(k)},\mathbf{x},\boldsymbol{\theta}^{(k)})$}
+(-3.5,-1) node[lbl] {\footnotesize $D_{\text{KL}}(q^{(k)},\mathbf{x}, \boldsymbol{\theta}^{(k)})$}
+(4.95,-2.8) node[lbl] {\footnotesize$\mathcal{L}(q^{(k+1)},\mathbf{x},\boldsymbol{\theta}^{(k+1)})$}
+(4.95,1.5) node[lbl] {\footnotesize $D_{\text{KL}}(q^{(k+1)},\mathbf{x}, \boldsymbol{\theta}^{(k+1)})$};
+\draw[line width=1pt]  (-4,-4) -- (8,-4);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-.5) -- (8,-.5);
+\draw[dashed,draw=xkcdOceanBlue,line width=1pt] (-4,1) -- (8,1);
+\draw[dashed,draw=xkcdCoral,line width=1pt] (-4,-1.5) -- (8,-1.5);
+\draw[draw=xkcdOceanBlue,line width=1pt] (-4,2) -- (8,2);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-4) -- (-2,-1.5);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-1.5) -- (-2,-.5);
+\draw[<->,>=stealth',shorten >=1pt] (3,-4) -- (3,1);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-4) -- (-.5,-.5);
+\draw[<->,>=stealth',shorten >=1pt] (3,1) -- (3,2);
+\draw[<->,>=stealth',shorten >=1pt] (7,-4) -- (7,2);
+\end{tikzpicture}
+\caption{After new E-step}\label{fig34}
+\end{center}
+\end{figure}
+
+\subsection*{Mean Field Variational EM: Coordinate Ascent Optimization}
+
+When we adopt the mean field assumption that the variational distribution factorizes as $q(\mathbf{z}) = \prod_{j=1}^m q_j(\mathbf{z}_j)$, the optimization problem in the E-step takes on a particularly elegant structure that admits an efficient iterative solution. Our goal is to find the factorized distribution that maximizes the ELBO $\mathcal{L}(q, \mathbf{x}, \boldsymbol{\theta})$. Rather than optimizing all factors simultaneously, we employ a coordinate ascent strategy: we optimize each factor $q_j$ individually while holding the others fixed, cycling through the factors until convergence.
+
+To develop the update equations for this coordinate ascent procedure, we must analyze how the ELBO depends on a single factor $q_j$ when all other factors are fixed. Let us introduce some notation to facilitate this analysis. Define $\mathbf{z}_{\neg j}$ as the collection of all latent variable components except $\mathbf{z}_j$:
+\begin{myequation}
+\mathbf{z}_{\neg j} = (\mathbf{z}_1, \ldots, \mathbf{z}_{j-1}, \mathbf{z}_{j+1}, \ldots, \mathbf{z}_m)
+\end{myequation}
+
+Similarly, define $q_{\neg j}(\mathbf{z}_{\neg j})$ as the product of all factors except the $j$-th:
+\begin{myequation}
+q_{\neg j}(\mathbf{z}_{\neg j}) = \prod_{i \neq j} q_i(\mathbf{z}_i)
+\end{myequation}
+
+Let $\mathcal{Z}$ denote the domain of the complete latent variable $\mathbf{z}$, $\mathcal{Z}_j$ the domain of $\mathbf{z}_j$, and $\mathcal{Z}_{\neg j}$ the domain of $\mathbf{z}_{\neg j}$.
+
+The key insight is that we can express the ELBO as a functional of a single factor $q_j$ by integrating out all other factors. Through algebraic manipulation (which we omit for brevity but which involves repeatedly applying the definition of expectation and the factorization structure), one can show:
+\begin{myequation}
+\begin{aligned}
+\mathcal{L}(q, \mathbf{x}, \boldsymbol{\theta}^{(k)}) &= \mathbb{E}_{q(\mathbf{z})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})] - \mathbb{E}_{q(\mathbf{z})} [\log q(\mathbf{z})] \\
+&= \int_{\mathcal{Z}_j} q_j(\mathbf{z}_j) \left( \int_{\mathcal{Z}_{\neg j}} q_{\neg j}(\mathbf{z}_{\neg j}) \log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)}) \, d\mathbf{z}_{\neg j} \right) d\mathbf{z}_j \\
+&\quad - \int_{\mathcal{Z}_j} q_j(\mathbf{z}_j) \log q_j(\mathbf{z}_j) \, d\mathbf{z}_j + c_j
+\end{aligned}
+\end{myequation}
+
+where $c_j$ is a constant with respect to $q_j(\mathbf{z}_j)$ (it depends on the other factors but not on $q_j$).
+
+The term inside the first integral:
+\begin{myequation}
+\int_{\mathcal{Z}_{\neg j}} q_{\neg j}(\mathbf{z}_{\neg j}) \log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)}) \, d\mathbf{z}_{\neg j}
+\end{myequation}
+
+is the expectation of the log joint likelihood with respect to all factors except $q_j$. This can be written more compactly as:
+\begin{myequation}
+\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})]
+\end{myequation}
+
+Since all factors except $\mathbf{z}_j$ have been marginalized out, this expectation is a function of $\mathbf{z}_j$ alone.
+
+Now, define an auxiliary distribution $\tilde{p}(\mathbf{x}, \mathbf{z}_j; \boldsymbol{\theta}^{(k)})$ as the normalized exponential of this expectation:
+\begin{myequation}
+\tilde{p}(\mathbf{x}, \mathbf{z}_j; \boldsymbol{\theta}^{(k)}) = \frac{\exp\left(\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})]\right)}{\int_{\mathcal{Z}_j} \exp\left(\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})]\right) d\mathbf{z}_j}
+\end{myequation}
+
+The normalization constant ensures that $\tilde{p}$ integrates to one over $\mathcal{Z}_j$. By construction, we have:
+\begin{myequation}
+\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})] = \log \tilde{p}(\mathbf{x}, \mathbf{z}_j; \boldsymbol{\theta}^{(k)}) + C
+\end{myequation}
+
+where $C = \log \int_{\mathcal{Z}_j} \exp\left(\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})]\right) d\mathbf{z}_j$ is a normalizing constant.
+
+Substituting this into our expression for the ELBO viewed as a functional of $q_j$:
+\begin{myequation}
+\begin{aligned}
+\mathcal{L}(q_j, \mathbf{x}, \boldsymbol{\theta}^{(k)}) &= \int_{\mathcal{Z}_j} q_j(\mathbf{z}_j) (\log \tilde{p}(\mathbf{x}, \mathbf{z}_j; \boldsymbol{\theta}^{(k)}) + C) \, d\mathbf{z}_j \\
+&\quad - \int_{\mathcal{Z}_j} q_j(\mathbf{z}_j) \log q_j(\mathbf{z}_j) \, d\mathbf{z}_j + c_j \\
+&= -D_{\text{KL}}(q_j(\mathbf{z}_j) \| \tilde{p}(\mathbf{x}, \mathbf{z}_j; \boldsymbol{\theta}^{(k)})) + c_j + C
+\end{aligned}
+\end{myequation}
+
+This reveals a beautiful structure: maximizing the ELBO with respect to $q_j$ (with all other factors fixed) is equivalent to minimizing the KL divergence between $q_j$ and the auxiliary distribution $\tilde{p}$. The KL divergence is minimized, achieving a value of zero, when $q_j$ equals $\tilde{p}$. Thus, the optimal update for factor $j$ is:
+\begin{myequation}
+q_j(\mathbf{z}_j) = \tilde{p}(\mathbf{x}, \mathbf{z}_j; \boldsymbol{\theta}^{(k)}) = \frac{\exp\left(\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})]\right)}{\int_{\mathcal{Z}_j} \exp\left(\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})]\right) d\mathbf{z}_j}
+\end{myequation}
+
+This can be simplified using a useful decomposition of the joint distribution. Since:
+\begin{myequation}
+\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)}) = \log p(\mathbf{z}_j | \mathbf{z}_{\neg j}, \mathbf{x}; \boldsymbol{\theta}^{(k)}) + \log p(\mathbf{z}_{\neg j}, \mathbf{x}; \boldsymbol{\theta}^{(k)})
+\end{myequation}
+
+taking the expectation with respect to $q_{\neg j}$ yields:
+\begin{myequation}
+\mathbb{E}_{q_{\neg j}} [\log p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta}^{(k)})] = \mathbb{E}_{q_{\neg j}} [\log p(\mathbf{z}_j | \mathbf{z}_{\neg j}, \mathbf{x}; \boldsymbol{\theta}^{(k)})] + \mathbb{E}_{q_{\neg j}} [\log p(\mathbf{z}_{\neg j}, \mathbf{x}; \boldsymbol{\theta}^{(k)})]
+\end{myequation}
+
+The second term does not depend on $\mathbf{z}_j$ and therefore contributes only to the normalization constant. Thus, we can write the optimal factor as:
+\begin{myequation}
+q_j(\mathbf{z}_j) = \frac{\exp\left(\mathbb{E}_{q_{\neg j}} [\log p(\mathbf{z}_j | \mathbf{z}_{\neg j}, \mathbf{x}; \boldsymbol{\theta}^{(k)})]\right)}{\int_{\mathcal{Z}_j} \exp\left(\mathbb{E}_{q_{\neg j}} [\log p(\mathbf{z}_j | \mathbf{z}_{\neg j}, \mathbf{x}; \boldsymbol{\theta}^{(k)})]\right) d\mathbf{z}_j}
+\end{myequation}
+
+This form is often more convenient computationally because it involves the conditional distribution $p(\mathbf{z}_j | \mathbf{z}_{\neg j}, \mathbf{x})$ rather than the full joint.
+
+These observations lead directly to the Coordinate Ascent Variational Inference (CAVI) algorithm, one of the most widely used algorithms for variational inference in mean field models. CAVI is applied within each E-step of variational EM and iteratively optimizes each factor while keeping the others fixed. The algorithm cycles through the factors, updating each one according to the formula above, and continues until the ELBO converges. CAVI performs coordinate ascent on the ELBO, climbing toward a local optimum with respect to the factorized variational distribution $q(\mathbf{z}) = \prod_{j=1}^m q_j(\mathbf{z}_j)$ for the given observation $\mathbf{x}$ and parameter value $\boldsymbol{\theta}^{(k)}$.
+
+\begin{algorithm}[t]
+\KwIn{A model $p(\mathbf{x}, \mathbf{z})$, an observation $\mathbf{x}$}
+\KwOut{A variational density $q(\mathbf{z}) = \prod_{j=1}^{m}q_j(\mathbf{z}_j)$}
+\textbf{Initialize:} Variational factors $q_j(\mathbf{z}_j)$ \\
+\While{the ELBO has not converged} {
+  \For{$j \in \{1, \ldots, m\}$} {
+    Set $q_j(\mathbf{z}_j) \propto \exp \{\mathbb{E}_{q_{\neg j}(\mathbf{z}_{\neg j})}[\log p(\mathbf{z}_{j} | \mathbf{z}_{\neg j}, \mathbf{x};\boldsymbol{\theta})]\}$\\
+  }
+  Compute $\text{ELBO}(q) = \mathbb{E}_{q(\mathbf{z})}[\log p(\mathbf{x}, \mathbf{z};\boldsymbol{\theta})] - \mathbb{E}_{q(\mathbf{z})}[\log q(\mathbf{z})]$
+}
+\Return{$q(\mathbf{z})$}
+\caption{CAVI}%
+\label{alg:cavi}
+\end{algorithm}
+
+\section*{Variational Autoencoders: Amortized Inference and Deep Learning}
+
+The variational EM framework we have developed provides a principled approach to learning latent variable models with intractable posteriors. However, a practical limitation emerges when we apply this framework to large datasets: computing a separate variational distribution $q_i(\mathbf{z}_i)$ for each observation $\mathbf{x}_i$ in the dataset can be computationally expensive. Each E-step requires optimizing the parameters of $q_i$ individually for every data point, and when datasets contain millions of observations, this becomes prohibitive.
+
+The key insight that leads to Variational Autoencoders (VAEs) is the concept of amortization. Rather than optimizing a different variational distribution for each data point, we introduce a single conditional distribution $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ parameterized by a global parameter vector $\boldsymbol{\phi}$ that applies to all observations. The variational parameters $\boldsymbol{\phi}$ specify how to map any observation $\mathbf{x}$ to a distribution over latent variables $\mathbf{z}$, amortizing the cost of inference across the entire dataset. Instead of optimizing millions of separate distributions, we optimize a single mapping that generalizes across observations.
+
+This amortized variational inference framework can be understood through a careful examination of the ELBO. Starting from the fundamental decomposition of the marginal log-likelihood, we have:
+\begin{myequation}
+\log p(\mathbf{x}; \boldsymbol{\theta}) = \int_{\mathcal{Z}} q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \log \frac{p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})}{q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} \, d\mathbf{z} - \int_{\mathcal{Z}} q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \log \frac{p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta})}{q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} \, d\mathbf{z}
+\end{myequation}
+
+The second term is the negative KL divergence between the variational posterior and the true posterior, which is always non-positive. Rearranging:
+\begin{myequation}
+\log p(\mathbf{x}; \boldsymbol{\theta}) + \int_{\mathcal{Z}} q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \log \frac{p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta})}{q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} \, d\mathbf{z} = \int_{\mathcal{Z}} q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \log \frac{p(\mathbf{x}, \mathbf{z}; \boldsymbol{\theta})}{q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} \, d\mathbf{z}
+\end{myequation}
+
+Expanding the right-hand side using $p(\mathbf{x}, \mathbf{z}) = p(\mathbf{x}|\mathbf{z})p(\mathbf{z})$:
+\begin{myequation}
+\begin{aligned}
+&\int_{\mathcal{Z}} q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \log \frac{p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta}) p(\mathbf{z}; \boldsymbol{\theta})}{q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} \, d\mathbf{z} \\
+&= \int_{\mathcal{Z}} q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \log p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta}) \, d\mathbf{z} + \int_{\mathcal{Z}} q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \log \frac{p(\mathbf{z}; \boldsymbol{\theta})}{q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} \, d\mathbf{z}
+\end{aligned}
+\end{myequation}
+
+This yields the fundamental decomposition:
+\begin{myequation}
+\log p(\mathbf{x}; \boldsymbol{\theta}) - D_{\text{KL}}(q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \| p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta})) = \mathbb{E}_{\mathbf{z} \sim q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} [\log p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta})] - D_{\text{KL}}(q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \| p(\mathbf{z}; \boldsymbol{\theta}))
+\end{myequation}
+
+Our objective is to maximize the log-likelihood $\log p(\mathbf{x}; \boldsymbol{\theta})$ while simultaneously ensuring that the variational posterior $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ approximates the true posterior $p(\mathbf{z}|\mathbf{x}; \boldsymbol{\theta})$ as closely as possible. Maximizing the left-hand side is equivalent to maximizing the right-hand side, which can be viewed as an objective function that we seek to optimize jointly with respect to both the model parameters $\boldsymbol{\theta}$ and the variational parameters $\boldsymbol{\phi}$.
+
+The right-hand side consists of two interpretable terms. The first term, $\mathbb{E}_{\mathbf{z} \sim q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} [\log p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta})]$, is the expected log-likelihood of the observation under the generative model. This term encourages the model to reconstruct the observation accurately: given a latent code $\mathbf{z}$ sampled from the variational posterior, the observation $\mathbf{x}$ should have high probability under the conditional distribution $p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta})$. We can interpret this as a reconstruction term that measures how well the model can decode latent representations back into observations.
+
+The second term, $-D_{\text{KL}}(q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \| p(\mathbf{z}; \boldsymbol{\theta}))$, is the negative KL divergence between the variational posterior and the prior. This term acts as a regularizer that encourages the variational posterior for each observation to remain close to the prior distribution. By preventing the variational posteriors from becoming too specialized or deviating too far from the prior, this regularization promotes generalization and enables the model to generate new samples. If all variational posteriors $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ are similar to the prior $p(\mathbf{z}; \boldsymbol{\theta})$, then we can safely generate new observations by sampling $\hat{\mathbf{z}}$ from the prior and decoding it through $p(\mathbf{x}|\hat{\mathbf{z}}; \boldsymbol{\theta})$, confident that the resulting samples will be statistically similar to the training data.
+
+To make this objective computationally tractable, we approximate the expectation using Monte Carlo sampling. In principle, we would draw $m$ samples $\hat{\mathbf{z}}_1, \ldots, \hat{\mathbf{z}}_m$ from $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ and approximate:
+\begin{myequation}
+\mathbb{E}_{\mathbf{z} \sim q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} [\log p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta})] \approx \frac{1}{m} \sum_{i=1}^m \log p(\mathbf{x}|\hat{\mathbf{z}}_i; \boldsymbol{\theta}), \quad \text{where } \hat{\mathbf{z}}_i \sim q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})
+\end{myequation}
+
+In practice, using a single sample ($m=1$) often provides a sufficiently accurate gradient estimate for stochastic optimization, leading to the simplified objective:
+\begin{myequation}
+\log p(\mathbf{x}|\hat{\mathbf{z}}; \boldsymbol{\theta}) - D_{\text{KL}}(q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) \| p(\mathbf{z}; \boldsymbol{\theta}))
+\end{myequation}
+
+where $\hat{\mathbf{z}}$ is sampled from $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$.
+
+The complete inference process in a VAE can be conceptualized as an encoding-decoding pipeline. Given an observation $\mathbf{x}$, we first encode it into the latent space by sampling a latent variable value $\hat{\mathbf{z}}$ from the variational posterior $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$. This encoding captures the salient features or compressed representation of the observation. We then decode this latent representation by sampling a reconstruction $\hat{\mathbf{x}}$ from the conditional likelihood $p(\mathbf{x}|\hat{\mathbf{z}}; \boldsymbol{\theta})$. The training objective encourages the parameters $\boldsymbol{\phi}$ and $\boldsymbol{\theta}$ to make the probability that $\hat{\mathbf{x}}$ equals $\mathbf{x}$ as high as possible, while also maintaining simple, not overly specialized variational posteriors.
+
+The second requirement—that variational posteriors remain close to the prior—has an important consequence for generation. By ensuring that all $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ are similar to $p(\mathbf{z}; \boldsymbol{\theta})$, we can generate new, realistic observations without requiring access to training data. We simply sample $\hat{\mathbf{z}}$ from the prior $p(\mathbf{z}; \boldsymbol{\theta})$ and then sample $\hat{\mathbf{x}}$ from $p(\mathbf{x}|\hat{\mathbf{z}}; \boldsymbol{\theta})$. The resulting samples will be statistically indistinguishable from the training distribution, enabling the VAE to function as a generative model.
+
+\subsection*{Deep Latent Variable Models}
+
+The power of Variational Autoencoders is greatly amplified when combined with deep neural networks, giving rise to Deep Latent Variable Models (DLVMs). In a DLVM, the distributions involved in the generative model and the variational posterior are defined to be of specific parametric forms, with their parameters computed by deep neural networks. This flexible parameterization allows the model to learn complex, nonlinear relationships between observations and latent variables.
+
+Consider first the decoder or generative model $p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta})$. The form of this distribution depends on the nature of the observation space. If the observations are discrete, taking values from a finite set, we might use a categorical distribution. For instance, if the observation space consists of $K$ discrete categories, we could define $p(x|\mathbf{z}; \boldsymbol{\theta}) = \text{Categorical}(x; \boldsymbol{\pi})$, where $\boldsymbol{\pi} = (\pi_1, \ldots, \pi_K)$ is a vector of probabilities summing to one. The key innovation is that rather than treating $\boldsymbol{\pi}$ as free parameters to be optimized directly, we define $\boldsymbol{\pi}$ as the output of a neural network: $\boldsymbol{\pi} = \mathcal{D}_{\boldsymbol{\theta}}(\mathbf{z})$, where $\mathcal{D}_{\boldsymbol{\theta}}$ is a deep neural network (the decoder) parameterized by $\boldsymbol{\theta}$. The neural network takes as input a latent code $\mathbf{z}$ and produces as output the parameters of the conditional distribution over observations.
+
+This architecture is illustrated in Figure~\ref{f:dlvm1} for a simple case where the latent space is low-dimensional (say $\mathbf{z} \in \mathbb{R}^3$) and the observation is categorical with $K=5$ categories. The decoder network $\mathcal{D}_{\boldsymbol{\theta}}$ maps latent codes to probability vectors, typically using a softmax output layer to ensure the probabilities sum to one.
+
+\begin{figure}
+\begin{center}
+\pgfmathdeclarefunction{gauss}{2}{\pgfmathparse{1/(#2*sqrt(2*pi))*exp(-((x-#1)^2)/(2*#2^2))}%
+}
+\resizebox{0.5\textwidth}{!}{%
+\begin{tikzpicture}[
+    shorten >=1pt, shorten <=1pt, >=stealth',
+    neuron/.style={circle, draw, minimum size=4ex, thick, fill=#1, opacity=0.7},
+    legend/.style={font=\large\bfseries},
+  ]
+
+ % decoder
+  \begin{scope}[xshift=7cm, yshift=4cm]
+    \drawNodes{decoder}{{{,,}, {,,,}, {,,,,}}}{xkcdFadedBlue}
+    \denselyConnectNodes{decoder}{{3, 4, 5}}
+  \end{scope}
+\node [label=$\mathbf{N}_{\boldsymbol{\theta}}$, fit=(decoder-1-1) (decoder-3-1)(decoder-3-5), draw, fill=xkcdFadedBlue, opacity=0.2] (decoder) {};
+ \node[right=2 of decoder-3-3](x) {$x$};
+  \coordinate[ right=.6 of decoder-3-3.east] (q);
+  \draw[->, draw=xkcdCobalt, very thick] (q) -- (x.west);
+   \node[ above right =0.1 of q] {sampling};
+
+% sample
+  \begin{scope}[xshift=6cm]
+  %\foreach \idx in {1,...,1} {
+      \coordinate[neuron, yshift=2 cm, fill=xkcdLipstick, fill opacity=0.7] (sample-1);
+   % }
+     \coordinate[ left=2 of sample-1.west] (p);
+      \coordinate[ left=.2 of sample-1.west] (p1);
+      %\draw[->, draw=xkcdCobalt, very thick] (p) -- (p1);
+      %\node[ above right=0.1 of p] {sampling};
+  \end{scope}
+  \node [label=$\mathbf{z}$, fit=(sample-1) (sample-1), draw, fill=xkcdLipstick, opacity=0.2] (sample) {};
+  
+  % sample, decoder connections
+ % \foreach \a in {1}
+  \foreach \b in {1,2,3} {
+      \draw[->] (sample-1) -- (decoder-1-\b);
+    }
+ %output labels
+  \foreach \idx in {1,...,5} {
+      \node[right=0.05 of decoder-3-\idx] {$p_\idx$};
+  }
+  \node[ above right=0.3 of decoder-3-1] {$\boldsymbol{\pi}$};
+\end{tikzpicture}
+    }%
+\end{center}
+\caption{Categorical DLVM with  $x\in\{1,\ldots,5\}$}\label{f:dlvm1}
+\end{figure}
+
+If we additionally specify a prior distribution $p(\mathbf{z}; \boldsymbol{\theta})$—for instance, a standard multivariate Gaussian $p(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \mathbf{0}, \mathbf{I})$—we obtain a complete generative model that can produce new observations. The generation process (illustrated in Figure~\ref{f:dlvm2}) proceeds in two steps: first, we sample a latent code $\hat{\mathbf{z}}$ from the prior $p(\mathbf{z})$, and second, we sample an observation $\hat{x}$ from the conditional likelihood $p(x|\hat{\mathbf{z}}; \boldsymbol{\theta}) = \text{Categorical}(x; \mathcal{D}_{\boldsymbol{\theta}}(\hat{\mathbf{z}}))$. By repeatedly sampling from this process, we can generate synthetic data from the learned model.
+
+\begin{figure}[ht]
+\begin{center}
+\pgfmathdeclarefunction{gauss}{2}{\pgfmathparse{1/(#2*sqrt(2*pi))*exp(-((x-#1)^2)/(2*#2^2))}%
+}
+\resizebox{0.7\textwidth}{!}{%
+\begin{tikzpicture}[
+    shorten >=1pt, shorten <=1pt, >=stealth',
+    neuron/.style={circle, draw, minimum size=4ex, thick, fill=#1, opacity=0.7},
+    legend/.style={font=\large\bfseries},
+  ]
+
+\begin{scope}[xshift=0.5cm, yshift=0cm]
+  \begin{axis}[no markers, domain=-2:2, samples=200,
+axis x line=center,
+axis y line=center,
+xlabel = $$, ylabel = $$,
+xmin=-3,
+  xmax=3,
+  ymin=-.2,
+  ymax=.6,
+height=5cm, width=5cm,
+xtick=\empty, ytick=\empty,
+enlargelimits=false, clip=false, axis on top,
+grid = major, ylabel style={above left},xlabel style={below right}]
+\node[] at (axis cs: -3,.4){$\mathcal{N}(\mathbf{z};[0,0,0],\mathbf{I})$};
+\addplot [draw=xkcdBlack!50, domain=-2.9:2.9, width=10, style=very thick] {gauss(0,1)} node[above,pos=.3] {} ;%\closedcycle;
+\end{axis}
+  \end{scope}
+  
+ % decoder
+  \begin{scope}[xshift=7cm, yshift=4cm]
+    \drawNodes{decoder}{{{,,}, {,,,}, {,,,,}}}{xkcdFadedBlue}
+    \denselyConnectNodes{decoder}{{3, 4, 5}}
+  \end{scope}
+\node [label=$\mathbf{N}_{\boldsymbol{\theta}}$, fit=(decoder-1-1) (decoder-3-1)(decoder-3-5), draw, fill=xkcdFadedBlue, opacity=0.2] (decoder) {};
+ \node[right=2 of decoder-3-3](x) {$x$};
+  \coordinate[ right=.6 of decoder-3-3.east] (q);
+  \draw[->, draw=xkcdCobalt, very thick] (q) -- (x.west);
+   \node[ above right =0.1 of q] {sampling};
+
+% sample
+  \begin{scope}[xshift=6cm]
+  \foreach \idx in {1,...,3} {
+      \coordinate[neuron, yshift=\idx cm, fill=xkcdLipstick, fill opacity=0.7] (sample-\idx);
+    }
+     \coordinate[ left=2 of sample-2.west] (p);
+      \coordinate[ left=.2 of sample-2.west] (p1);
+      \draw[->, draw=xkcdCobalt, very thick] (p) -- (p1);
+      \node[ above right=0.1 of p] {sampling};
+  \end{scope}
+  \node [label=$\mathbf{z}$, fit=(sample-1) (sample-3), draw, fill=xkcdLipstick, opacity=0.2] (sample) {};
+  
+  % sample, decoder connections
+  \foreach \a in {1,2,3}
+  \foreach \b in {1,2,3} {
+      \draw[->] (sample-\a) -- (decoder-1-\b);
+    }
+ %output labels
+  \foreach \idx in {1,...,5} {
+      \node[right=0.05 of decoder-3-\idx] {$p_\idx$};
+  }
+  \node[ above right=0.3 of decoder-3-1] {$\boldsymbol{\pi}$};
+\end{tikzpicture}
+    }%
+\end{center}
+\caption{Sampling new values in a Gaussian-categorical DLVM with $\mathbf{z}\in\mathbb{R}^3$ and $x\in\{1,\ldots,5\}$}\label{f:dlvm2}
+\end{figure}
+
+Symmetrically, the encoder or variational posterior $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ is also parameterized by a neural network. The specific form depends on the structure of the latent space. If the latent space is continuous, such as $\mathbf{z} \in \mathbb{R}^k$, a natural choice is a multivariate Gaussian distribution. We define $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) = \mathcal{N}(\mathbf{z}; \boldsymbol{\mu}(\mathbf{x}), \boldsymbol{\Sigma}(\mathbf{x}))$, where the mean $\boldsymbol{\mu}(\mathbf{x})$ and covariance $\boldsymbol{\Sigma}(\mathbf{x})$ are functions of the observation computed by an encoder network $\mathcal{E}_{\boldsymbol{\phi}}$. For computational simplicity, the covariance is typically assumed to be diagonal: $\boldsymbol{\Sigma}(\mathbf{x}) = \text{diag}(\sigma_1^2(\mathbf{x}), \ldots, \sigma_k^2(\mathbf{x}))$, and the encoder network outputs both the mean vector and the diagonal variance vector.
+
+The complete architecture, combining encoder and decoder networks, is shown in Figure~\ref{f:vae} and is known as a Variational Autoencoder. The encoder network $\mathcal{E}_{\boldsymbol{\phi}}$ takes an observation as input and produces parameters for the variational posterior (mean and variance for a Gaussian). A latent code is then sampled from this posterior. The decoder network $\mathcal{D}_{\boldsymbol{\theta}}$ takes the latent code as input and produces parameters for the conditional likelihood (for instance, probabilities for a categorical distribution or mean and variance for a Gaussian). Finally, a reconstruction is sampled from this likelihood. The entire pipeline implements the encoding-decoding process described earlier, with the neural networks providing flexible, learnable mappings at each stage.
+
+\begin{figure}[ht]
+\begin{center}
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[
+    shorten >=1pt, shorten <=1pt, >=stealth',
+    neuron/.style={circle, draw, minimum size=4ex, thick, fill=#1, opacity=0.7},
+    legend/.style={font=\large\bfseries},
+  ]
+  % encoder
+  \drawNodes{encoder}{{{,,,,}, {,,,}, {,,}}}{xkcdTeal}
+  \denselyConnectNodes{encoder}{{5, 4, 3}}
+  \node [label=Encoder $\mathcal{E}_{\boldsymbol{\phi}}$, fit=(encoder-1-1) (encoder-1-5)(encoder-3-3), draw, fill=xkcdTeal, opacity=0.2] (encoder) {};
+  % decoder
+  \begin{scope}[xshift=12.5cm]
+    \drawNodes{decoder}{{{,}, {,,}, {,,,,}}}{xkcdFadedBlue}
+    \denselyConnectNodes{decoder}{{2, 3, 5}}
+  \end{scope}
+   \node [label=Decoder $\mathcal{D}_{\boldsymbol{\theta}}$, fit=(decoder-1-1) (decoder-3-1)(decoder-3-5), draw, fill=xkcdFadedBlue, opacity=0.2] (decoder) {};
+  % mu, sigma, sample nodes
+  \foreach \idx in {1,...,3} {
+      \coordinate[neuron, right=2 of encoder-3-2, yshift=\idx cm,, fill=xkcdBuff, fill opacity=0.7] (mu-\idx);
+      \coordinate[neuron, right=2 of encoder-3-2, yshift=-\idx cm, fill=xkcdDustyOrange, fill opacity=0.7] (sigma-\idx);
+      \coordinate[neuron, right=5.5 of encoder-3-2, yshift=\idx cm-2cm, fill=xkcdLipstick, fill opacity=0.7] (sample-\idx);
+    }
+  % mu, sigma, sample boxes
+  \node [label=$\mu$, fit=(mu-1) (mu-3), draw, fill=xkcdBuff, opacity=0.2] (mu) {};
+  \node [label=$\sigma$, fit=(sigma-1) (sigma-3), draw, fill=xkcdDustyOrange, opacity=0.2] (sigma) {};
+  \node [label=latent, fit=(sample-1) (sample-3), draw, fill=xkcdLipstick, opacity=0.2] (sample) {};
+  % mu, sigma, sample connections
+   \coordinate[ left=1 of sample.west] (p);
+  \draw[->, draw=xkcdCobalt, very thick] (mu.east) -- (p);
+  \draw[->, draw=xkcdCobalt, very thick] (sigma.east) -- (p);
+  \draw[->, draw=xkcdCobalt, very thick] (p) -- (sample.west);
+  \node[above=1 of p] {sampling};
+  % encoder, mu, sigma connections
+  \foreach \a in {1,2,3}
+  \foreach \b in {1,2,3} {
+      \draw[->] (encoder-3-\a) -- (mu-\b);
+      \draw[->] (encoder-3-\a) -- (sigma-\b);
+    }
+  % sample, decoder connections
+  \foreach \a in {1,2,3}
+  \foreach \b in {1,2} {
+      \draw[->] (sample-\a) -- (decoder-1-\b);
+    }
+ % input + output labels
+  \foreach \idx in {1,...,5} {
+      \node[left=0.05 of encoder-1-\idx] {$x_\idx$};
+      \node[right=0.05 of decoder-3-\idx] {$\hat x_\idx$};
+  }
+  \node[left=0.6 of encoder-1-3] {input};
+  %\node[right=0.6 of decoder-3-3] {output};
+  \node[right=2 of decoder-3-3](x) {$x$};
+  \coordinate[ right=.6 of decoder-3-3.east] (q);
+  \draw[->, draw=xkcdCobalt, very thick] (q) -- (x.west);
+   \node[ above right =0.1 of q] {sampling};
+\end{tikzpicture}
+    }%
+\end{center}
+\caption{Variational encoder as DLVM}\label{f:vae}
+\end{figure}
+
+\section*{Inference in VAE: Backpropagation and the Reparameterization Trick}
+
+Training a Variational Autoencoder requires optimizing the ELBO with respect to both the encoder parameters $\boldsymbol{\phi}$ and the decoder parameters $\boldsymbol{\theta}$. Like all deep neural networks, VAEs are trained using backpropagation: we compute gradients of the loss function (negative ELBO) with respect to all parameters by applying the chain rule in the backward direction, starting from the output layer and propagating back through the network to the input layer. Given the complexity of modern neural network architectures and loss functions, these gradients are typically computed numerically using automatic differentiation, a technique that evaluates derivatives by systematically applying differentiation rules to the computational graph defined by the forward pass.
+
+However, a critical challenge arises in VAEs due to the presence of a stochastic sampling operation in the computational pipeline. Recall that the ELBO contains an expectation term $\mathbb{E}_{\mathbf{z} \sim q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})} [\log p(\mathbf{x}|\mathbf{z}; \boldsymbol{\theta})]$ which we approximate by sampling $\hat{\mathbf{z}}$ from the encoder distribution $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$. This sampling step is stochastic: different forward passes produce different samples, even for the same input and parameters. Standard backpropagation cannot propagate gradients through stochastic nodes because the relationship between the input (the parameters $\boldsymbol{\phi}$) and the output (the sample $\hat{\mathbf{z}}$) is not deterministic. If we naively attempted to backpropagate through the sampling operation, we would obtain biased or undefined gradients.
+
+The reparameterization trick resolves this difficulty through an elegant reformulation of the sampling process. Instead of sampling $\mathbf{z}$ directly from $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$, we express the random variable $\mathbf{z}$ as the output of a deterministic transformation applied to an auxiliary random variable that does not depend on the parameters. Formally, we write:
+\begin{myequation}
+\mathbf{z} = \mathcal{T}_{\boldsymbol{\phi}}(\mathbf{x}, \boldsymbol{\varepsilon})
+\end{myequation}
+
+where $\boldsymbol{\varepsilon}$ is sampled from a fixed, parameter-free distribution (such as a standard Gaussian), and $\mathcal{T}_{\boldsymbol{\phi}}$ is a deterministic function parameterized by $\boldsymbol{\phi}$ that transforms $\boldsymbol{\varepsilon}$ into a sample from $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$.
+
+The beauty of this reformulation is that the stochasticity has been moved outside the parameterized computation. The random choice of $\boldsymbol{\varepsilon}$ is made independently of $\boldsymbol{\phi}$ and can be treated as a constant during backpropagation. The dependence on $\boldsymbol{\phi}$ enters only through the deterministic transformation $\mathcal{T}_{\boldsymbol{\phi}}$, through which gradients can flow freely. This makes the entire computational graph differentiable and enables standard backpropagation to compute gradients with respect to both $\boldsymbol{\phi}$ and $\boldsymbol{\theta}$.
+
+For the common case where $q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi})$ is a multivariate Gaussian with diagonal covariance, the reparameterization is particularly simple. If:
+\begin{myequation}
+q(\mathbf{z}|\mathbf{x}; \boldsymbol{\phi}) = \mathcal{N}(\mathbf{z}; \boldsymbol{\mu}, \boldsymbol{\sigma}^2 \mathbf{I})
+\end{myequation}
+
+where $\boldsymbol{\mu} = \boldsymbol{\mu}(\mathbf{x}; \boldsymbol{\phi})$ and $\boldsymbol{\sigma}^2 = \boldsymbol{\sigma}^2(\mathbf{x}; \boldsymbol{\phi})$ are outputs of the encoder network, we can sample $\hat{\mathbf{z}}$ using:
+\begin{myequation}
+\hat{\mathbf{z}} = \boldsymbol{\mu} + \boldsymbol{\sigma} \odot \boldsymbol{\varepsilon}, \quad \text{where } \boldsymbol{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})
+\end{myequation}
+
+Here $\odot$ denotes element-wise multiplication. The random variable $\boldsymbol{\varepsilon}$ is sampled from a standard Gaussian, which has no parameters. The transformation $\mathcal{T}_{\boldsymbol{\phi}}(\mathbf{x}, \boldsymbol{\varepsilon}) = \boldsymbol{\mu}(\mathbf{x}; \boldsymbol{\phi}) + \boldsymbol{\sigma}(\mathbf{x}; \boldsymbol{\phi}) \odot \boldsymbol{\varepsilon}$ is deterministic and differentiable with respect to $\boldsymbol{\phi}$ (through $\boldsymbol{\mu}$ and $\boldsymbol{\sigma}$), allowing gradients to flow from the loss back through the encoder.
+
+Figure~\ref{f:17.11} illustrates how the reparameterization trick restructures the computational graph. In the original formulation, the sampling operation is part of the main computational path and blocks gradient flow. After reparameterization, the stochastic choice of $\boldsymbol{\varepsilon}$ becomes a side operation that feeds into the deterministic transformation, and the main computational path through $\boldsymbol{\mu}$ and $\boldsymbol{\sigma}$ is fully differentiable. This seemingly simple change makes the difference between a model that cannot be trained with gradient descent and one that can be efficiently optimized using standard deep learning tools.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=.85\linewidth]{VAEReparam.pdf}
+\caption{Reparametrization trick makes sampling a side unparameterized step with respect to the main computation pipeline}\label{f:17.11}
+\end{center}
+\end{figure}
+
+The reparameterization trick is not limited to Gaussian distributions. For many other distributions commonly used in latent variable models—including continuous distributions like Gamma or Beta, and certain discrete distributions through continuous relaxations—analogous reparameterization schemes exist. The key requirement is that samples from the target distribution can be expressed as deterministic transformations of samples from a simple, parameter-free base distribution. When such reparameterizations are available, variational autoencoders can be trained efficiently using stochastic gradient descent, combining the representational power of deep neural networks with the principled probabilistic framework of variational inference. This synthesis has proven enormously successful, enabling VAEs to learn rich generative models of images, text, audio, and many other complex data types.
+
+%\end{document}

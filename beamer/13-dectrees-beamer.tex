@@ -1,0 +1,1040 @@
+%!TEX program = xelatex
+%!TEX root = ../all_beamer.tex
+
+%% Decision Trees – Beamer Presentation
+%% Based on notes by Giorgio Gambosi, University of Rome "Tor Vergata"
+%% Style modelled on ml-mlp-beamer.tex
+
+%\input{header-beamer.tex}
+%
+%%% ── Packages ────────────────────────────────────────────────────────────────
+%\usepackage{amsmath,amssymb,bm}
+%\usepackage{booktabs}
+%\usepackage{graphicx}
+%\usepackage{xcolor}
+%\usepackage{xkcdcolors}
+%\usepackage{tikz}
+%\usepackage{subcaption}
+
+%% ── Math shorthands ─────────────────────────────────────────────────────────
+%\newcommand{\SW}{\mathbf{S}_W}
+%\newcommand{\SB}{\mathbf{S}_B}
+%\newcommand{\ST}{\mathbf{S}_T}
+%\newcommand{\Smat}{\mathbf{S}}
+%\newcommand{\GX}{G_{\mathbf{X}}}
+
+%% ── Metadata ────────────────────────────────────────────────────────────────
+\title[Decision Trees]{Decision Trees}
+%\subtitle{Course of Machine Learning}
+%\author{Giorgio Gambosi}
+%\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+%\date{A.Y. 2025--2026}
+
+%% ════════════════════════════════════════════════════════════════════════════
+%\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Introduction to Decision Trees}
+
+\begin{frame}{What Is a Decision Tree?}
+  \framesubtitle{A supervised model based on recursive partitioning}
+  \begin{itemize}
+    \item A \alert{decision tree} is a supervised learning model for classification or regression.
+    \item Core idea: build a sequence of \emph{if--then} decisions that progressively refine
+          knowledge about the output.
+    \item Starting from the full dataset, the tree \alert{repeatedly partitions} the instance space
+          into smaller, more homogeneous regions.
+    \item Formally: a \alert{recursive partition} of the feature space, where each internal decision
+          reduces ambiguity and each terminal region provides a final prediction.
+  \end{itemize}
+  \begin{block}{Key appeal}
+    Decision trees combine \alert{predictive power} with \alert{interpretability}: each internal
+    node corresponds to a human-readable test on one input feature, and a prediction can be
+    explained by tracing the path from root to leaf.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Why Decision Trees?}
+  \begin{itemize}
+    \item Unlike many machine learning models, a decision tree does \alert{not hide its logic}
+          inside a large collection of numerical parameters.
+    \item Its reasoning is laid out openly as a \alert{tree of conditions} that any practitioner
+          can inspect, question, and communicate to a non-technical audience.
+    \item Transparency is a decisive practical advantage in domains such as:
+      \begin{itemize}
+        \item Medicine (clinical decision support).
+        \item Law (rule-based decisions).
+        \item Finance (credit scoring, fraud detection).
+      \end{itemize}
+    \item In such settings, the \alert{rationale} behind a prediction often matters as much as
+          the prediction itself.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Structure and Components}
+
+\begin{frame}{Tree Structure: Nodes and Edges}
+  \framesubtitle{Rooted hierarchical structure}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Root node}
+        Sits at the top; represents the \alert{entire training set} before any partition.
+        Starting point from which all decisions flow.
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Internal nodes}
+        Each implements a \alert{decision rule} based on a feature. Routes an instance to
+        one of its children depending on the test outcome.
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Leaf nodes (terminal nodes)}
+        Represent regions where \alert{no further splitting} is performed. A final
+        prediction is issued here: a class label, class distribution, or numerical value.
+      \end{block}
+      \vspace{0.4em}
+      \begin{alertblock}{Traversal}
+        Instances travel from root to leaf; at each node only the \alert{current rule} matters —
+        no memory of the path so far.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Univariate Splits and Interpretability}
+  \begin{itemize}
+    \item Each internal node is typically associated with a partition induced by a
+          \alert{single attribute} (univariate splitting).
+    \item This constraint is not mathematically necessary, but it plays a crucial role in
+          making the model \alert{interpretable}.
+    \item Example: \texttt{petal length $\leq$ 2.45} is immediately understandable;
+          a combination of features would require further explanation.
+    \item As the tree grows deeper, each path from root to leaf accumulates a
+          \alert{conjunction of simple conditions}.
+  \end{itemize}
+  \begin{block}{Leaf as a region}
+    A leaf corresponds to the set of all instances satisfying \alert{every condition}
+    along the path from the root to that leaf simultaneously — a clearly delineated
+    subregion of the feature space.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Predictions at the Leaves}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Classification}
+        A leaf may store:
+        \begin{itemize}
+          \item A single \alert{class label} (deterministic prediction).
+          \item The \alert{empirical class distribution} observed in that region during training
+                (calibrated probability estimates).
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Regression}
+        A leaf stores a \alert{numerical summary} of target values in that region, most
+        commonly their \alert{mean}, returned as the predicted output for any new instance
+        landing in the leaf.
+      \end{block}
+  \end{columns}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item The \alert{depth} of the tree and the \alert{number of leaves} reflect the complexity
+          of the learned function.
+    \item Shallow tree: coarser partition, simpler decision boundary.
+    \item Deep tree: finer distinctions, but higher risk of \alert{overfitting}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Divide-and-Conquer Problem Solving}
+  \begin{itemize}
+    \item The tree structure encodes \alert{divide-and-conquer} naturally.
+    \item The root node faces the hardest problem: predicting the output for the entire,
+          presumably heterogeneous, dataset.
+    \item By choosing an informative splitting criterion, it divides this hard problem into
+          \alert{two (or more) easier sub-problems}, each involving a more homogeneous subset.
+    \item Each child node applies the same logic recursively, further reducing heterogeneity.
+    \item Recursion terminates when subsets become \alert{sufficiently pure} or a stopping
+          criterion is met.
+  \end{itemize}
+  \begin{alertblock}{Complexity vs.\ generalization}
+    A shallow tree imposes a coarser partition; a deep tree can capture finer distinctions
+    at the risk of \alert{overfitting} to the training data.
+  \end{alertblock}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{A Visual Example: The Iris Dataset}
+
+\begin{frame}{The Iris Dataset}
+  \framesubtitle{Three species, four features — a classical benchmark}
+  \begin{center}
+    \includegraphics[width=.65\linewidth]{figures/iris.png}
+  \end{center}
+  \begin{itemize}
+    \item Contains measurements of petal and sepal dimensions for flowers of three species.
+    \item Three species form visible clusters in feature space, with some overlap.
+    \item A small number of well-chosen splits may already achieve good separation.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{After the First Split: Tree}
+  \framesubtitle{Initial decision tree with first split}
+  \begin{center}
+    \includegraphics[width=.55\linewidth]{figures/dec_tree_0.png}
+  \end{center}
+  \begin{itemize}
+    \item A single axis-aligned cut divides instances into \alert{two groups}.
+    \item One resulting region may already be pure enough to constitute a leaf.
+    \item The other still contains a mixture of classes and must be split further.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{After the First Split: Feature Space}
+  \framesubtitle{Corresponding partition of the feature space}
+  \begin{center}
+    \includegraphics[width=.8\linewidth]{figures/dec_tree_regions_0.png}
+  \end{center}
+  \begin{itemize}
+    \item The partition consists of just \alert{two half-planes} separated by a single decision boundary.
+    \item Each path root$\to$leaf corresponds to exactly one region in the feature space.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{After the Second Split: Tree}
+  \framesubtitle{Decision tree after second split}
+  \begin{center}
+    \includegraphics[width=.55\linewidth]{figures/dec_tree_1.png}
+  \end{center}
+  \begin{itemize}
+    \item The second split refines the partition within the impure region identified at the previous step.
+    \item The tree has grown one level deeper in the branch that required further discrimination.
+    \item At each step, the algorithm selects the split that \alert{maximally reduces impurity}
+          (e.g., Gini index or information gain).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{After the Second Split: Feature Space}
+  \framesubtitle{Updated feature space partition}
+  \begin{center}
+    \includegraphics[width=.8\linewidth]{figures/dec_tree_regions_1.png}
+  \end{center}
+  \begin{itemize}
+    \item The feature space is now divided into \alert{three regions}.
+    \item Every new split introduces a new axis-aligned boundary within the current node's region.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Final Decision Tree}
+  \framesubtitle{Final decision tree after all splits}
+  \begin{center}
+    \includegraphics[width=.65\linewidth]{figures/dec_tree.png}
+  \end{center}
+  \begin{itemize}
+    \item Each leaf is assigned the class label most common among its training instances.
+    \item The boundaries between regions are \alert{rectilinear} — a direct consequence of univariate,
+          axis-aligned splits.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Final Partition of the Feature Space}
+  \framesubtitle{Final partition of the feature space}
+  \begin{center}
+    \includegraphics[width=.8\linewidth]{figures/dec_tree_regions.png}
+  \end{center}
+  \begin{itemize}
+    \item \alert{Axis-aligned rectangular regions} distinguish decision trees from linear classifiers
+          or SVMs, whose boundaries are oblique hyperplanes.
+    \item Every path root$\to$leaf $\Leftrightarrow$ exactly one rectangular cell; the two
+          representations are \alert{dual to each other}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Classification and Construction}
+
+\begin{frame}{Classification: Top-Down Traversal}
+  \framesubtitle{Predicting a new instance}
+  \begin{itemize}
+    \item Let $\mathbf{z} = (z_1, \ldots, z_d)^T$ be a new input instance with $d$ features.
+    \item Prediction begins at the \alert{root node}, representing the full feature space.
+    \item At each internal node, the model evaluates the node's decision rule and selects the
+          outgoing branch corresponding to the outcome.
+    \item The instance carries \alert{no memory} of the path already traveled: only the current
+          node's rule matters.
+  \end{itemize}
+  \begin{block}{Threshold test (continuous feature)}
+    Suppose the node is associated with feature $x_i$ and threshold $\theta_i$:
+    \[
+      \text{if } z_i \leq \theta_i \ \to \ \text{go left;} \qquad
+      \text{if } z_i > \theta_i \ \to \ \text{go right.}
+    \]
+    Each such test is geometrically a \alert{cut along an axis-aligned hyperplane}.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Classification: Output and Efficiency}
+  \begin{itemize}
+    \item Traversal continues, node by node, until a \alert{leaf} is reached.
+    \item At the leaf, the tree returns:
+      \begin{itemize}
+        \item A \alert{class label} (deterministic prediction), or
+        \item A \alert{probability distribution} over classes (from which the most probable class
+              can be selected).
+      \end{itemize}
+  \end{itemize}
+  \begin{block}{Computational complexity of inference}
+    Because the traversal inspects exactly one node per level of the tree, the time required
+    to produce a prediction is \alert{$O(h)$} where $h$ is the height of the tree.
+  \end{block}
+  \begin{itemize}
+    \item Inference is \alert{extremely efficient}: even a large, complex tree requires only a small
+          number of simple comparisons.
+    \item Contrast with nearest-neighbor classifiers, whose prediction cost \alert{grows with $n$}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Construction: Greedy Top-Down Algorithm}
+  \begin{itemize}
+    \item Tree construction proceeds \alert{recursively}, starting at the root.
+    \item The most common approach: \alert{greedy and top-down}.
+      \begin{itemize}
+        \item At each node, choose the locally best split according to some criterion.
+        \item Apply it immediately, without reconsidering earlier choices.
+        \item Continue independently on each resulting child subset.
+      \end{itemize}
+    \item The greedy strategy does not search for the \alert{globally optimal tree}
+          (computationally intractable in general).
+    \item Instead, it builds a reasonable tree efficiently by making \alert{locally good decisions}.
+  \end{itemize}
+  \begin{alertblock}{Two key questions at every node}
+    \textbf{How to partition?} Which feature and threshold yield the most useful separation?\\
+    \textbf{When to stop?} When should a region be committed to a prediction rather than split further?
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Construction: Recursive Procedure}
+  \begin{enumerate}
+    \item Start with the \alert{entire training set} at the root.
+    \item For each node associated with subset $S$:
+      \begin{itemize}
+        \item Decide whether $S$ should become a \alert{leaf} or be split further.
+        \item If splitting: select the feature and split rule that best improves purity; partition
+              $S$ into child subsets; recurse on each child.
+        \item If terminal: assign prediction information — class label, class distribution, or
+              numerical value.
+      \end{itemize}
+  \end{enumerate}
+  \vspace{0.4em}
+  \begin{block}{Stopping criteria (early stopping)}
+    Common conditions for declaring a node a leaf:
+    \begin{itemize}
+      \item All instances at the node have the same class label (pure node).
+      \item The number of instances falls below a minimum threshold.
+      \item Maximum depth has been reached.
+      \item No split achieves a sufficiently large impurity reduction.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Impurity Measures and Split Selection}
+
+\begin{frame}{The Notion of Impurity}
+  \begin{itemize}
+    \item Selection of the best split is guided by the notion of \alert{impurity}.
+    \item A node is ``good'' when labels of instances in it are mostly the same
+          (\alert{high homogeneity}).
+    \item A node is ``bad'' when it contains a mixture of different classes
+          (\alert{high heterogeneity}).
+    \item Impurity measures formalize this: they assign a real number to a class distribution,
+          \alert{small for concentrated (pure) distributions} and \alert{large for uniform ones}.
+  \end{itemize}
+  \begin{block}{Goal}
+    Find the partition that \alert{reduces impurity the most}: move from a more heterogeneous
+    parent node to more homogeneous children.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Formal Definition of Impurity Measures}
+  \begin{itemize}
+    \item Consider a node with instances from $k$ classes; let $p = (p_1, \ldots, p_k)$ be the
+          empirical class distribution ($p_i$ = fraction of class $i$).
+    \item An impurity measure is a function $\phi: p \mapsto \mathbb{R}$.
+  \end{itemize}
+  \begin{block}{Required properties}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{ll}
+      \textbf{Non-negativity} & $\phi(p) \geq 0$ for all $p$. \\
+      \textbf{Minimum at purity} & $\phi(p) = 0$ if $\exists\, i: p_i = 1$. \\
+      \textbf{Maximum at balance} & $\phi(p)$ maximal when $p_i = 1/k\ \forall i$. \\
+      \textbf{Symmetry} & $\phi(p) = \phi(p')$ for any permutation $p'$ of $p$. \\
+      \textbf{Smoothness} & $\phi$ is differentiable on the interior of the simplex.
+    \end{tabular}
+  \end{block}
+  \begin{itemize}
+    \item Intuition: $\phi$ measures how hard it is to \alert{correctly guess the class label}
+          of a randomly drawn instance from the node.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Goodness of Split}
+  \begin{itemize}
+    \item Given a labeled set $S$ with class-probability vector $p_S$, and a split function
+          $f: S \to \{1, \ldots, r\}$ producing disjoint subsets:
+    \[
+      s_i = \{x \in S \mid f(x) = i\}, \qquad S = s_1 \cup \cdots \cup s_r.
+    \]
+    \item Compare the impurity of the parent with the \alert{expected impurity after the split}:
+  \end{itemize}
+  \begin{block}{Goodness of split}
+    \[
+      \Delta_\phi(S, f) = \phi(p_S) - \sum_{i=1}^{r} \frac{|s_i|}{|S|}\,\phi(p_{s_i}).
+    \]
+    A \alert{larger} $\Delta_\phi$ means the children are, on average, substantially purer than
+    the parent. The algorithm selects the split achieving the \alert{highest goodness of split}.
+  \end{block}
+  \begin{itemize}
+    \item The weighting by $|s_i|/|S|$ ensures that \alert{large child nodes} contribute more than
+          small ones to the expected post-split impurity.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Practical Split Functions: Discrete Features}
+  \begin{itemize}
+    \item Practical trees restrict attention to splits based on a \alert{single feature},
+          for interpretability and computational feasibility.
+  \end{itemize}
+  \begin{block}{Discrete (categorical) feature}
+    \begin{itemize}
+      \item \textbf{Multiway split}: one branch per distinct value of the feature.
+      \item \textbf{Binary split}: group the values into two sets.
+      \item Binary version preferred for high-cardinality features: multiway splits
+            produce many small, statistically unreliable children.
+    \end{itemize}
+  \end{block}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item For small cardinality, the best binary partition can be found by exhaustive enumeration.
+    \item The goal is always the same: maximize $\Delta_\phi$ over all candidate split functions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Practical Split Functions: Continuous Features}
+  \begin{block}{Continuous feature — threshold split}
+    For a continuous feature $x_i$ and threshold $\theta$:
+    \[
+      x_i \leq \theta \quad \text{vs} \quad x_i > \theta.
+    \]
+    Candidate thresholds are typically chosen from the \alert{set of observed feature values}.
+  \end{block}
+  \vspace{0.4em}
+  \begin{block}{Efficient threshold search}
+    \begin{enumerate}
+      \item Sort training instances by the feature value: $O(n \log n)$.
+      \item Consider all midpoints between consecutive distinct values as candidates.
+      \item Evaluate $\Delta_\phi$ at each candidate.
+      \item Select the threshold achieving the highest goodness of split.
+    \end{enumerate}
+    Total cost for a single feature: $O(n \log n)$.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Entropy as an Impurity Measure}
+  \begin{itemize}
+    \item A theoretically well-motivated impurity measure from \alert{information theory}: entropy.
+    \item Entropy quantifies the \alert{uncertainty} present in a probability distribution.
+    \item When applied to the class distribution at a node, it captures how unpredictable the
+          class label of an instance reaching that node is.
+  \end{itemize}
+  \begin{block}{Definition}
+    For a set $S$ of instances from $k$ classes, with $S_i$ the subset of class $i$:
+    \[
+      H_S = -\sum_{i=1}^{k} \frac{|S_i|}{|S|} \log_2 \frac{|S_i|}{|S|}.
+    \]
+    The base-2 logarithm gives entropy the unit of \alert{bits}: $H_S$ equals the expected number
+    of binary questions needed (under an optimal strategy) to identify the class of a
+    randomly chosen instance.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Entropy: Extreme Values and Interpretation}
+  \begin{itemize}
+    \item \textbf{Pure node} (all instances of class $i$): $|S_i|/|S| = 1$, $|S_j|/|S| = 0$
+          for $j \neq i$.
+          \[
+            H_S = 0. \quad \text{No uncertainty, no information needed.}
+          \]
+    \item \textbf{Maximally mixed node} ($k$ classes equally represented: $|S_i|/|S| = 1/k$):
+          \[
+            H_S = \log_2 k. \quad \text{Maximum uncertainty.}
+          \]
+    \item The upper bound grows with $k$: more classes means more potential uncertainty.
+  \end{itemize}
+  \begin{alertblock}{Convention}
+    By convention, $0 \log_2 0 = 0$, so entropy is well defined even for empty classes.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Information Gain}
+  \begin{itemize}
+    \item When entropy is used as the impurity function $\phi$, the goodness-of-split criterion
+          $\Delta_\phi(S, f)$ specializes to \alert{information gain}.
+    \item For a split function $f$ that partitions $S$ into subsets $s_1, \ldots, s_r$:
+  \end{itemize}
+  \begin{block}{Information Gain}
+    \[
+      IG(S, f) = H_S - \sum_{j=1}^{r} \frac{|s_j|}{|S|}\, H_{s_j}.
+    \]
+    Information gain measures the \alert{reduction in entropy} — the reduction in uncertainty about
+    the class label — achieved by applying split $f$ to set $S$.
+  \end{block}
+  \begin{itemize}
+    \item Information gain is the criterion used by the classic \alert{ID3} algorithm.
+    \item A known bias: raw information gain favors features with \alert{many distinct values}
+          (high cardinality), which may not be truly informative.
+    \item \alert{Gain ratio} (used by C4.5) corrects for this bias by normalizing $IG$ by the
+          entropy of the split itself.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Gini Impurity}
+  \begin{itemize}
+    \item Another widely used impurity measure: the \alert{Gini index} (or Gini impurity).
+    \item Preferred by the CART framework as the default splitting criterion.
+  \end{itemize}
+  \begin{block}{Definition}
+    For a set $S$ with empirical class distribution $(p_1, \ldots, p_k)$:
+    \[
+      \text{Gini}(S) = 1 - \sum_{i=1}^{k} p_i^2.
+    \]
+    Interpretation: the probability that a randomly chosen instance is \alert{misclassified}
+    if its label is randomly drawn from the empirical distribution.
+  \end{block}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Gini = 0}
+        All instances of one class: $p_i = 1$ for some $i$.
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Gini maximal}
+        All classes equally represented: $\text{Gini} = 1 - 1/k$.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Comparing Impurity Measures}
+  \renewcommand{\arraystretch}{1.5}
+  \begin{center}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Measure} & \textbf{Formula} & \textbf{Used by} \\
+    \midrule
+    Entropy & $-\sum_i p_i \log_2 p_i$ & ID3, C4.5 \\
+    Gain Ratio & $IG(S,f)\,/\,H_f(S)$ & C4.5 \\
+    Gini index & $1 - \sum_i p_i^2$ & CART \\
+    Variance & $\frac{1}{|S|}\sum(y_i - \bar y)^2$ & Regression trees \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item Entropy and Gini are \alert{qualitatively similar}: both are symmetric, zero at purity,
+          maximal at balance, and smooth on the simplex interior.
+    \item In practice, the choice of impurity measure rarely has a large effect on the
+          final tree quality; the \alert{stopping and pruning} strategy matters more.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Pruning: Motivation and Overview}
+
+\begin{frame}{The Overfitting Problem}
+  \begin{itemize}
+    \item Trees can become very expressive by growing deep and creating fine-grained partitions.
+    \item This expressiveness comes with a high risk of \alert{overfitting}.
+    \item A decision tree allowed to grow without restraint will eventually create \alert{one leaf
+          per training instance}: zero training error, but nothing transferable to new data.
+    \item Unlike models with continuous parameters (where regularization is smooth), a
+          decision tree's complexity emerges from \alert{discrete splitting decisions}.
+  \end{itemize}
+  \begin{alertblock}{The bias--variance trade-off in trees}
+    Managing bias and variance is both \alert{essential} and \alert{genuinely difficult} in
+    decision tree models: complexity is controlled by discrete choices rather than by tuning
+    a continuous regularization parameter.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Two Extreme Strategies}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Early stopping}
+        Enforce strict stopping criteria during growth.
+        \begin{itemize}
+          \item Small, shallow, interpretable trees.
+          \item Statistically stable across samples.
+          \item \alert{High bias}: may miss deeper patterns.
+          \item ``Horizon effect'': a locally poor split might unlock highly informative
+                splits further down.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{alertblock}{Late stopping}
+        Loose stopping criteria; tree keeps splitting.
+        \begin{itemize}
+          \item Training error approaches zero.
+          \item Learned distinctions often reflect \alert{noise}.
+          \item High variance: sensitive to small fluctuations.
+          \item Large, uninterpretable trees.
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Pruning: Grow First, Simplify Later}
+  \begin{itemize}
+    \item Pruning addresses the dilemma with a pragmatic \alert{``grow first, simplify later''} philosophy.
+    \item Rather than guessing the correct stopping time during growth, \alert{intentionally grow a
+          large tree} that can capture all potentially useful regularities.
+    \item Then \alert{systematically remove} branches that do not contribute to generalization.
+  \end{itemize}
+  \begin{block}{Two phases}
+    \textbf{Growing phase}: expand the tree using loose stopping criteria, favoring coverage
+    and flexibility.\\[0.3em]
+    \textbf{Pruning phase}: delete subtrees that appear to model noise rather than robust
+    structure, retaining only parts that improve expected performance on unseen data.
+  \end{block}
+  \begin{itemize}
+    \item Generalization can be estimated via: a held-out \alert{validation set}, a
+          \alert{statistical correction} to training error, or a \alert{regularization term}
+          penalizing model complexity.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Pruning Methods}
+
+\begin{frame}{Reduced Error Pruning (REP)}
+  \framesubtitle{Conceptually the simplest pruning method}
+  \begin{itemize}
+    \item Data partitioned into three sets: \alert{training set}, \alert{pruning set} (validation),
+          and optional test set.
+    \item All pruning decisions are made by directly measuring their effect on accuracy on
+          the held-out \alert{pruning set}.
+  \end{itemize}
+  \begin{block}{Algorithm (bottom-up)}
+    At each internal node, ask: what if this node were replaced by a leaf predicting the
+    majority class among training instances that reached it?\\
+    $\to$ Evaluate both the original subtree and the candidate leaf on the pruning set.\\
+    $\to$ Replace the subtree with the leaf if doing so \alert{does not decrease accuracy} on
+    the pruning set.\\
+    $\to$ Repeat until no further pruning improves or maintains accuracy.
+  \end{block}
+\end{frame}
+
+\begin{frame}{REP: Properties and Limitations}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Strengths}
+        \begin{itemize}
+          \item \alert{Exact}: directly optimizes validation accuracy.
+          \item \alert{Efficient}: a single bottom-up pass suffices.
+          \item Produces small trees that generalize well when the pruning set is large.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{alertblock}{Limitation}
+        \begin{itemize}
+          \item Depends on the \alert{size of the pruning set}.
+          \item Scarce data: allocating data to pruning leaves too little for growing.
+          \item Small pruning set: noisy validation accuracy estimates.
+          \item Most attractive when \alert{large amounts of data} are available.
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Cost Complexity Pruning (CCP) — CART Framework}
+  \framesubtitle{Penalized error criterion balancing accuracy against tree size}
+  \begin{itemize}
+    \item CCP (also called \alert{weakest-link pruning}) is the strategy used in CART.
+    \item Instead of a separate validation set, employs a \alert{penalized error criterion}.
+    \item Generates an entire sequence of progressively simpler trees.
+  \end{itemize}
+  \begin{block}{Cost-complexity measure}
+    For any subtree $T$ of the fully grown tree $T_{\max}$:
+    \[
+      R_\alpha(T) = R(T) + \alpha\,|\tilde{T}|,
+    \]
+    where $R(T)$ is the resubstitution error, $|\tilde{T}|$ is the number of leaf nodes, and
+    $\alpha \geq 0$ is the \alert{complexity parameter} (penalty per leaf).
+  \end{block}
+  \begin{itemize}
+    \item $\alpha = 0$: no penalty $\Rightarrow$ $T_{\max}$ is optimal.
+    \item $\alpha$ large: smaller trees preferred (each leaf must justify itself by reducing error by at
+          least $\alpha$).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{CCP: The Nested Sequence of Optimal Trees}
+  \begin{itemize}
+    \item For a given $\alpha$, the optimal subtree $T(\alpha)$ is the smallest subtree of
+          $T_{\max}$ that minimizes $R_\alpha$.
+    \item A fundamental result: optimal subtrees form a finite \alert{nested sequence}:
+    \[
+      T_{\max} = T_0 \supset T_1 \supset T_2 \supset \cdots \supset T_m = \{t_1\}.
+    \]
+    \item Computed by repeatedly identifying and collapsing the \alert{weakest link}: the internal
+          node $t$ whose removal produces the smallest increase in resubstitution error per leaf removed.
+    \item For each internal node $t$, the \alert{effective complexity parameter}:
+    \[
+      \alpha(t) = \frac{R(t) - R(T_t)}{|\tilde{T}_t| - 1},
+    \]
+    where $T_t$ is the subtree rooted at $t$ and $|\tilde{T}_t|$ its number of leaves.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{CCP: Model Selection via Cross-Validation}
+  \begin{itemize}
+    \item CCP \alert{avoids specifying $\alpha$ in advance}: the algorithm generates all candidate
+          trees in the nested sequence.
+    \item \alert{Cross-validation} is then used to select the best value of $\alpha$ (and hence the
+          best tree in the sequence).
+    \item This makes CCP both \alert{theoretically principled} and \alert{practically flexible}.
+  \end{itemize}
+  \begin{block}{CART design choices}
+    CART builds \alert{binary trees}: every internal node has exactly two children, produced by a
+    binary split on a single feature. This:
+    \begin{itemize}
+      \item Simplifies tree structure and pruning algorithm.
+      \item Facilitates unified handling of categorical and continuous features.
+      \item For categorical features with $m$ values: considers all $2^{m-1}-1$ binary partitions.
+    \end{itemize}
+  \end{block}
+  \begin{itemize}
+    \item CCP with cross-validation is the \alert{default strategy in scikit-learn}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Pessimistic Error Pruning (PEP) — C4.5 Framework}
+  \framesubtitle{Estimating generalization from training data alone}
+  \begin{itemize}
+    \item PEP is the pruning strategy used in the \alert{C4.5} algorithm (extension of ID3).
+    \item Unlike REP, PEP \alert{does not require a separate validation set}: estimates generalization
+          error directly from training data using a \alert{statistical upper confidence bound}.
+    \item Particularly attractive in settings where available data are \alert{limited}.
+  \end{itemize}
+  \begin{block}{Motivation}
+    The resubstitution error of a leaf is \alert{optimistically biased}: a leaf with zero training
+    errors does not necessarily generalize perfectly — it may have seen too few instances for its
+    error rate to be estimated reliably.
+  \end{block}
+\end{frame}
+
+\begin{frame}{PEP: Pessimistic Estimate}
+  \begin{itemize}
+    \item Suppose a leaf contains $n$ instances and misclassifies $e$ of them.
+    \item Rather than using $e/n$, C4.5 treats the observed error rate as a binomial proportion
+          and computes an \alert{upper confidence bound} $\bar{e}(n,e)$ at a user-specified
+          confidence level (typically $25\%$ — deliberately conservative to encourage pruning).
+    \item Estimated error of the leaf: $n \cdot \bar{e}(n, e)$.
+    \item For any subtree rooted at an internal node: sum of pessimistic errors of all its leaves.
+  \end{itemize}
+  \begin{block}{Pruning rule (top-down)}
+    Replace a subtree by a leaf if the \alert{estimated error of the leaf} does not exceed the
+    sum of estimated errors of the subtree's leaves.\\
+    Upper confidence bounds penalize \alert{small leaf sizes}: a leaf with few instances has a
+    wide confidence interval, discouraging very fine-grained splits supported by little data.
+  \end{block}
+\end{frame}
+
+\begin{frame}{C4.5: Additional Design Features}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Splitting}
+        \begin{itemize}
+          \item \alert{Multiway splits} for categorical features (one branch per value).
+          \item \alert{Gain ratio} as splitting criterion, correcting the bias of raw information
+                gain toward high-cardinality features.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Missing values}
+        \alert{Fractional instance mechanism}: when a training instance has a missing value for
+        the splitting feature, it is distributed fractionally among all branches in proportion
+        to the fraction of known instances following each branch.
+      \end{block}
+  \end{columns}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item \alert{C5.0} (commercial successor): introduced boosting integration and more efficient
+          memory use, retaining the same fundamental pruning philosophy.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Minimum Error Pruning (MEP)}
+  \framesubtitle{A Bayesian perspective on pruning}
+  \begin{itemize}
+    \item MEP estimates error through a \alert{prior distribution} over class probabilities rather
+          than through confidence bounds or a validation set.
+  \end{itemize}
+  \begin{block}{m-estimate (Laplace-corrected estimate)}
+    For a node with $n$ instances, $n_c$ in the majority class, smoothing parameter $m$,
+    and prior $p_c = 1/k$:
+    \[
+      \hat{p}_c = \frac{n_c + m \cdot p_c}{n + m}.
+    \]
+    Expected error rate: $1 - \hat{p}_c$.
+    \begin{itemize}
+      \item Small $n$: estimate pulled toward the prior $1/k$ (high uncertainty).
+      \item Large $n$: approaches the empirical error rate $1 - n_c/n$.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{MEP: Procedure, Strengths, and Limitations}
+  \begin{block}{Pruning rule (bottom-up)}
+    Replace a subtree by a leaf if the \alert{expected error of the leaf} is no greater than
+    the average expected error of the subtree (weighted by instances reaching each leaf).\\
+    $\Rightarrow$ Prunes subtrees supported by too few instances to reliably improve upon
+    the prior estimate.
+  \end{block}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Strengths}
+        \begin{itemize}
+          \item No dedicated validation set required.
+          \item No complex statistical bounds.
+          \item Efficient: single bottom-up pass.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{alertblock}{Limitation}
+        Sensitivity to the choice of smoothing constant $m$: different values lead to
+        substantially different pruning levels; \alert{no universally agreed method} for
+        choosing $m$ automatically.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Error-Based Pruning (EBP)}
+  \begin{itemize}
+    \item EBP is conceptually related to PEP but applies the confidence-bound correction
+          \alert{subtree by subtree} rather than leaf by leaf.
+    \item The estimated error of a subtree is computed by \alert{aggregating} the confidence-bound-corrected
+          errors of its individual leaves.
+    \item This is compared against the confidence-bound-corrected error of the corresponding leaf
+          that would result from pruning.
+    \item The subtree is pruned if the leaf's estimated error is \alert{not substantially worse}
+          than the subtree's.
+  \end{itemize}
+  \begin{block}{Comparison with PEP}
+    EBP accounts more carefully for error at the \alert{subtree level}, rather than approximating the
+    subtree error as a simple sum of leaf errors. In practice, EBP tends to produce trees of
+    \alert{intermediate size} between REP and PEP.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Minimum Description Length (MDL) Pruning}
+  \framesubtitle{An information-theoretic perspective}
+  \begin{itemize}
+    \item The \alert{MDL principle}: the best model minimizes the total number of bits needed to
+          describe both the model and the data given the model.
+    \item For decision trees: trade-off between the \alert{description cost of the tree} (grows
+          with nodes) and the \alert{description cost of the training labels given the tree}
+          (decreases as the tree fits data better).
+  \end{itemize}
+  \begin{block}{MDL score}
+    \[
+      MDL(T, S) = L(T) + L(S \mid T),
+    \]
+    where $L(T)$ is the code length to describe the tree structure and split rules, and
+    $L(S \mid T)$ is the code length to describe the training labels given the tree.\\
+    $\Rightarrow$ Prune if doing so \alert{reduces the total MDL score}.
+  \end{block}
+\end{frame}
+
+\begin{frame}{MDL Pruning: Theoretical Appeal and Practical Status}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Theoretical appeal}
+        \begin{itemize}
+          \item Coherent framework grounded in \alert{information theory}.
+          \item No arbitrary confidence parameter.
+          \item Pruning as \alert{model selection}: the simplest model that still explains the data.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{alertblock}{Practical limitations}
+        \begin{itemize}
+          \item Requires careful specification of \alert{coding schemes}.
+          \item Different coding choices can lead to different pruning decisions.
+          \item Less commonly used in off-the-shelf implementations than REP or CCP.
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item MDL pruning remains an important conceptual tool for understanding pruning as
+          \alert{principled model selection}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Comparison and Practical Guidelines}
+
+\begin{frame}{Pruning Methods: A Practical Comparison}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{center}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Method} & \textbf{Data required} & \textbf{Key parameter} \\
+    \midrule
+    REP  & Validation set & (none) \\
+    CCP (CART) & Cross-validation & $\alpha$ (auto via CV) \\
+    PEP (C4.5) & Training only & Confidence level \\
+    EBP  & Training only & Confidence level \\
+    MEP  & Training only & Smoothing $m$ \\
+    MDL  & Training only & Coding scheme \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Major Implementations: Structural Differences}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{CART}
+        \begin{itemize}
+          \item \alert{Binary trees} only.
+          \item Unified regression and classification.
+          \item \alert{Gini impurity} as default.
+          \item Cost-sensitive via weighted misclassification costs.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{ID3}
+        \begin{itemize}
+          \item Raw \alert{information gain}.
+          \item Does not handle continuous features or missing values natively.
+          \item Historical ancestor of C4.5.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{C4.5}
+        \begin{itemize}
+          \item \alert{Multiway splits} for categorical features.
+          \item \alert{Gain ratio} to correct high-cardinality bias.
+          \item Fractional instance propagation for \alert{missing values}.
+          \item PEP pruning; no validation set needed.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Modern (LightGBM, XGBoost)}
+        \begin{itemize}
+          \item Leaf-wise growth strategies.
+          \item Histogram-based split finding.
+          \item Explicit regularization in splitting criterion.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Practical Guidelines for Pruning Strategy}
+  \begin{itemize}
+    \item An \alert{unpruned tree almost always overfits}; a reasonably pruned tree typically
+          achieves substantially better generalization regardless of the specific method used.
+  \end{itemize}
+  \begin{block}{Guidelines by setting}
+    \begin{tabular}{ll}
+      \toprule
+      \textbf{Setting} & \textbf{Recommended approach} \\
+      \midrule
+      Large data & REP or CCP with cross-validation \\
+      Scarce data & PEP or MEP (no validation set needed) \\
+      Theoretical interpretability & MDL pruning \\
+      Decision tree in an ensemble & Limit maximum depth directly \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \begin{itemize}
+    \item When the decision tree is used within an \alert{ensemble} (random forests, gradient
+          boosting), the ensemble provides its own variance reduction — aggressive pruning at the
+          individual tree level is often \alert{unnecessary}.
+  \end{itemize}
+\end{frame}
+
+%% ════════════════════════════════════════════════════════════════════════════
+\section{Summary}
+
+\begin{frame}{Summary: Key Concepts}
+  \renewcommand{\arraystretch}{1.5}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Concept} & \textbf{Definition / Formula} \\
+    \midrule
+    Impurity (general) & $\phi(p) \geq 0$, zero at purity, max at balance \\
+    Goodness of split & $\Delta_\phi(S,f) = \phi(p_S) - \sum_i \frac{|s_i|}{|S|}\phi(p_{s_i})$ \\
+    Entropy & $H_S = -\sum_i \frac{|S_i|}{|S|}\log_2\frac{|S_i|}{|S|}$ \\
+    Information gain & $IG(S,f) = H_S - \sum_j \frac{|s_j|}{|S|}H_{s_j}$ \\
+    Gini index & $\text{Gini}(S) = 1 - \sum_i p_i^2$ \\
+    CCP penalty & $R_\alpha(T) = R(T) + \alpha|\tilde{T}|$ \\
+    Weakest link & $\alpha(t) = (R(t)-R(T_t))/(|\tilde{T}_t|-1)$ \\
+    m-estimate (MEP) & $\hat{p}_c = (n_c + m/k)/(n+m)$ \\
+    MDL score & $MDL(T,S) = L(T) + L(S|T)$ \\
+    Inference cost & $O(h)$, $h$ = height of the tree \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Summary: Methods at a Glance}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Tree Structure}
+        \begin{itemize}
+          \item Root, internal nodes, leaves.
+          \item Univariate splits $\Rightarrow$ axis-aligned boundaries.
+          \item Leaves: class label, distribution, or mean.
+          \item Depth $\leftrightarrow$ complexity.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Impurity \& Splitting}
+        \begin{itemize}
+          \item Entropy (ID3, C4.5) / Gain ratio (C4.5).
+          \item Gini (CART).
+          \item Threshold search: $O(n\log n)$ per feature.
+          \item Best split = max $\Delta_\phi$.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Pruning}
+        \begin{itemize}
+          \item REP: exact, needs validation set.
+          \item CCP: nested sequence + CV (scikit-learn default).
+          \item PEP/EBP: training-only, C4.5.
+          \item MEP: Bayesian, smoothing $m$.
+          \item MDL: information-theoretic.
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Practical notes}
+        \begin{itemize}
+          \item Always apply some pruning.
+          \item In ensembles: limit depth instead.
+          \item Interpretability $\propto$ shallowness.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+%\end{document}

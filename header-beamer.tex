@@ -1,0 +1,262 @@
+% !TEX root = all_beamer.tex
+% ==============================================================================
+% HEADER LATEX PER PRESENTAZIONI BEAMER
+% Corso di Machine Learning - Giorgio Gambosi
+% Università di Roma "Tor Vergata"
+% ==============================================================================
+
+% ------------------------------------------------------------------------------
+% CLASSE DOCUMENTO E METADATI
+% ------------------------------------------------------------------------------
+\documentclass[aspectratio=169, 10pt]{beamer}
+
+\subtitle{Course of Machine Learning}
+\author{Giorgio Gambosi}
+\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+\date{A.Y. 2025--2026}
+
+% ------------------------------------------------------------------------------
+% PACCHETTI MATEMATICI
+% ------------------------------------------------------------------------------
+\usepackage{amsmath, amssymb, amsfonts, mathtools, amsthm}
+\usepackage{bm}              % Simboli matematici in grassetto
+\usepackage{upgreek}         % Lettere greche dritte
+\usepackage{derivative}      % Gestione semplificata delle derivate
+
+% ------------------------------------------------------------------------------
+% PACCHETTI GRAFICI E VISUALIZZAZIONE
+% ------------------------------------------------------------------------------
+\usepackage{graphicx}        % Inclusione immagini
+\usepackage{xcolor}          % Gestione colori
+\usepackage{xkcdcolors}      % Colori aggiuntivi stile xkcd
+\usepackage{microtype}       % Miglioramenti tipografici
+
+% ------------------------------------------------------------------------------
+% PACCHETTI PER TABELLE
+% ------------------------------------------------------------------------------
+\usepackage{booktabs}        % Tabelle professionali
+\usepackage{array}           % Estensioni per tabelle
+\usepackage{multirow}        % Celle multi-riga
+\usepackage{multicol}        % Layout multi-colonna
+
+% ------------------------------------------------------------------------------
+% TIKZ E PGFPLOTS
+% ------------------------------------------------------------------------------
+\usepackage{tikz}
+\usepackage{tikz-network}
+\usepackage[customcolors]{hf-tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween}
+
+% Librerie TikZ
+\usetikzlibrary{arrows, arrows.meta, decorations.pathmorphing, decorations.pathreplacing}
+\usetikzlibrary{decorations.markings, snakes, positioning, backgrounds, fit, shadows}
+\usetikzlibrary{automata, patterns, calc, intersections, through, shapes}
+\usetikzlibrary{shapes.geometric, shapes.arrows, scopes, chains, matrix}
+
+% ------------------------------------------------------------------------------
+% ALTRI PACCHETTI
+% ------------------------------------------------------------------------------
+\usepackage[skins]{tcolorbox}  % Box colorati
+\usepackage{subcaption}         % Sottocaption per figure
+\usepackage{listings}           % Inclusione codice sorgente
+
+% ------------------------------------------------------------------------------
+% TEMA E STILE BEAMER
+% ------------------------------------------------------------------------------
+\usetheme{Madrid}
+\usecolortheme{whale}
+\useinnertheme{rounded}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}  % Rimuove simboli di navigazione
+
+% ------------------------------------------------------------------------------
+% DEFINIZIONE COLORI PERSONALIZZATI
+% ------------------------------------------------------------------------------
+% Colori principali del tema
+\definecolor{MainBlue}{RGB}{31,56,100}      % Blu principale (header, titoli)
+\definecolor{AccentBlue}{RGB}{70,130,180}   % Blu accento (blocchi)
+\definecolor{AlertRed}{RGB}{160,30,30}      % Rosso per alert
+\definecolor{ExGreen}{RGB}{30,120,60}       % Verde per esempi
+\definecolor{BlockBg}{RGB}{220,232,246}     % Sfondo blocchi
+\definecolor{torgray}{RGB}{220,225,235}     % Grigio Tor Vergata
+
+% Colori alternativi (Tor Vergata style)
+\definecolor{TvDark}{RGB}{30,50,80}         % Blu scuro header
+\definecolor{TvMid}{RGB}{70,100,140}        % Blu medio blocchi
+\definecolor{TvLight}{RGB}{210,220,235}     % Blu chiaro sfondi
+\definecolor{TvAlert}{RGB}{160,30,30}       % Rosso alert
+\definecolor{TvGreen}{RGB}{20,100,50}       % Verde esempi
+
+% Colori supplementari
+\definecolor{torred}{RGB}{153,0,0}
+\definecolor{torcyan}{RGB}{0,112,192}
+\definecolor{cerise}{HTML}{DA3A62}
+\definecolor{teal}{HTML}{029386}
+\definecolor{slateblue}{HTML}{5B5EA6}
+\definecolor{orange}{HTML}{F97306}
+
+% Colori per nodi TikZ
+\definecolor{nodeblue}{RGB}{101,140,196}    % xkcd Faded Blue
+
+% ------------------------------------------------------------------------------
+% CONFIGURAZIONE COLORI BEAMER
+% ------------------------------------------------------------------------------
+\setbeamercolor{frametitle}{bg=MainBlue, fg=white}
+\setbeamercolor{title}{bg=MainBlue, fg=white}
+\setbeamercolor{structure}{fg=MainBlue}
+
+% Blocchi standard
+\setbeamercolor{block title}{bg=AccentBlue, fg=white}
+\setbeamercolor{block body}{bg=BlockBg}
+
+% Blocchi alert
+\setbeamercolor{block title alerted}{bg=AlertRed, fg=white}
+\setbeamercolor{block body alerted}{bg=red!8}
+
+% Blocchi esempio
+\setbeamercolor{block title example}{bg=ExGreen, fg=white}
+\setbeamercolor{block body example}{bg=green!7}
+
+% ------------------------------------------------------------------------------
+% CONFIGURAZIONE FONT BEAMER
+% ------------------------------------------------------------------------------
+\setbeamerfont{frametitle}{size=\normalsize,series=\bfseries}
+\setbeamerfont{block title}{size=\small,series=\bfseries}
+
+% ------------------------------------------------------------------------------
+% STILI TIKZ PERSONALIZZATI
+% ------------------------------------------------------------------------------
+\tikzset{
+  >=latex,  % Frecce stile LaTeX di default
+  % Nodi per reti neurali
+  node/.style={thick,circle,draw=myblue,minimum size=22,inner sep=0.5,outer sep=0.6},
+  node in/.style={node,green!20!black,draw=mygreen!30!black,fill=mygreen!25},
+  node hidden/.style={node,blue!20!black,draw=myblue!30!black,fill=myblue!20},
+  node convol/.style={node,orange!20!black,draw=myorange!30!black,fill=myorange!20},
+  node out/.style={node,red!20!black,draw=myred!30!black,fill=myred!20},
+  % Connessioni
+  connect/.style={thick,mydarkblue},
+  connect arrow/.style={-{Latex[length=4,width=3.5]},thick,mydarkblue,shorten <=0.5,shorten >=1},
+  % Stili numerati per facile mappatura
+  node 1/.style={node in},
+  node 2/.style={node hidden},
+  node 3/.style={node out}
+}
+
+% ------------------------------------------------------------------------------
+% AMBIENTI TEOREMI
+% ------------------------------------------------------------------------------
+\setbeamertemplate{theorems}[numbered]
+\newtheorem{mytheorem}{Theorem}
+\newtheorem{mydefinition}{Definition}
+
+% ------------------------------------------------------------------------------
+% CONFIGURAZIONE LISTINGS (CODICE)
+% ------------------------------------------------------------------------------
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\tiny,
+  keywordstyle=\color{MainBlue}\bfseries,
+  commentstyle=\color{gray},
+  frame=single,
+  breaklines=true,
+}
+
+% ==============================================================================
+% MACRO MATEMATICHE PERSONALIZZATE
+% ==============================================================================
+
+% ------------------------------------------------------------------------------
+% SPAZI CALLIGRAFICI (Calligraphic spaces)
+% ------------------------------------------------------------------------------
+\providecommand{\calX}{\mathcal{X}}         % Spazio input
+\providecommand{\calY}{\mathcal{Y}}         % Spazio output
+\providecommand{\calH}{\mathcal{H}}         % Spazio ipotesi
+\providecommand{\calT}{\mathcal{T}}         % Training set
+\providecommand{\calA}{\mathcal{A}}         % Algoritmo
+\providecommand{\calR}{\mathcal{R}}         % Rischio
+\providecommand{\calF}{\mathcal{F}}         % Famiglia di funzioni
+\providecommand{\calL}{\mathcal{L}}         % Loss function
+
+% Alias per compatibilità
+\providecommand{\Rr}{\mathcal{R}}
+\providecommand{\Tr}{\mathcal{T}}
+\providecommand{\Hr}{\mathcal{H}}
+
+% ------------------------------------------------------------------------------
+% RISCHIO E PROBABILITÀ
+% ------------------------------------------------------------------------------
+\providecommand{\barR}{\overline{\mathcal{R}}}  % Rischio empirico
+\providecommand{\EmpR}{\overline{\mathcal{R}}}  % Rischio empirico (alias)
+\providecommand{\Rbar}{\overline{\mathcal{R}}}  % Rischio empirico (alias)
+\providecommand{\pM}{p_M}                       % Probabilità modello
+\providecommand{\pC}{p_C}                       % Probabilità corretta
+\providecommand{\Prob}[2]{\mathbb{P}_{#1}\!\left[#2\right]}  % Probabilità
+
+% ------------------------------------------------------------------------------
+% FUNZIONI INDICATRICI
+% ------------------------------------------------------------------------------
+\providecommand{\indicator}[1]{\mathbf{1}\!\left[#1\right]}  % Funzione indicatrice
+\providecommand{\ind}[1]{\mathbf{1}[#1]}                      % Versione breve
+
+% ------------------------------------------------------------------------------
+% OPERATORI MATEMATICI
+% ------------------------------------------------------------------------------
+\providecommand{\argmax}{\operatorname*{arg\,max}}  % Argomento del massimo
+\providecommand{\argmin}{\operatorname*{arg\,min}}  % Argomento del minimo
+\providecommand{\vcd}[1]{\operatorname{VCdim}(#1)} % VC dimension
+\providecommand{\defeq}{\stackrel{\text{def}}{=}}  % Definito come
+
+% ------------------------------------------------------------------------------
+% VETTORI E MATRICI (Bold Math)
+% ------------------------------------------------------------------------------
+% Vettori minuscoli
+\providecommand{\bx}{\mathbf{x}}            % Vettore x
+\providecommand{\bz}{\mathbf{z}}            % Vettore z
+\providecommand{\bw}{\mathbf{w}}            % Vettore peso
+\providecommand{\btt}{\mathbf{t}}           % Vettore target
+\providecommand{\wvec}{\mathbf{w}}          % Vettore peso (alias)
+\providecommand{\bth}{\boldsymbol{\theta}}  % Parametro theta
+
+% Matrici maiuscole
+\providecommand{\bX}{\mathbf{X}}            % Matrice dati
+\providecommand{\bZ}{\mathbf{Z}}            % Matrice Z
+\providecommand{\Xmat}{\mathbf{X}}          % Matrice dati (alias)
+\providecommand{\Hmat}{\mathbf{H}}          % Matrice H
+\providecommand{\Smat}{\mathbf{S}}          % Matrice scatter generica
+\providecommand{\bS}{\mathbf{S}}            % Matrice scatter
+\providecommand{\Ii}{\mathbf{I}}            % Matrice identità
+\providecommand{\bZero}{\mathbf{0}}         % Vettore zero
+\providecommand{\bPsi}{\boldsymbol{\Psi}}   % Matrice Psi
+
+% Medie (overline)
+\providecommand{\ox}{\overline{\mathbf{x}}} % Media vettore x
+\providecommand{\ow}{\overline{\mathbf{w}}} % Media vettore w
+\providecommand{\oX}{\overline{\mathbf{X}}} % Media matrice X
+
+% Matrici scatter specifiche (analisi discriminante)
+\providecommand{\SW}{\mathbf{S}_W}          % Within-class scatter
+\providecommand{\SB}{\mathbf{S}_B}          % Between-class scatter
+\providecommand{\ST}{\mathbf{S}_T}          % Total scatter
+\providecommand{\GX}{G_{\mathbf{X}}}        % Matrice Gram
+
+% ------------------------------------------------------------------------------
+% COMANDI DI FORMATTAZIONE TESTO
+% ------------------------------------------------------------------------------
+\providecommand{\term}[1]{\textbf{\color{accent}#1}}        % Termine importante
+\providecommand{\halert}[1]{{\color{AlertRed}\textbf{#1}}}  % Alert rosso
+\providecommand{\mlalert}[1]{{\color{AccentBlue}\textbf{#1}}}  % Alert blu
+\providecommand{\mlemph}[1]{{\color{MainBlue}\textit{#1}}}  % Enfasi blu
+
+% ==============================================================================
+% FINE HEADER
+% ==============================================================================
+
+\newcommand{\blankpage}{
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+}

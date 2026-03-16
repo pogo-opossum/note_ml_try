@@ -1,0 +1,438 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Expectation maximization}
+\section*{The EM Algorithm}
+
+We now specialize the general iterative framework developed in the previous section to the case in which the posterior distribution $p(\z|\ox;\Vtheta)$ is tractable -- that is, when it can be computed explicitly for any observation $\ox$ and any parameter value $\Vtheta$. As established earlier, this is precisely the situation in which the first step of the iterative procedure can be carried out exactly, setting $\func{q^{(k)}}(\z) = p(\z|\ox;\prm{\Vtheta^{(k)}})$ without any approximation. The resulting algorithm is the classical \alert{Expectation-Maximization} (EM) algorithm, one of the most widely used and elegant tools in statistical learning.
+
+It is worth noting that even when Hypothesis 2 holds -- so that the marginal likelihood $p(\ox;\Vtheta)$ is also tractable and gradient-based maximization of the log-likelihood is feasible -- the EM algorithm retains several practical advantages over direct gradient methods.\footnote{Observe that in this case the gradient of the log-likelihood can also be evaluated, and a local maximum $\prm{\Vtheta^*}$ can be computed, making the distribution $p(\z|\ox;\prm{\Vtheta^*})$ computable too. However, the EM algorithm introduced here has several advantages with respect to gradient methods, such as for example not making use of a step-size hyperparameter $\eta$, thus avoiding the consequent tuning problem.} In particular, it does not require specifying a step-size hyperparameter, which eliminates a significant source of sensitivity and tuning difficulty that plagues gradient ascent methods.
+
+\paragraph{The core idea.} The fundamental challenge in maximizing the log-likelihood of the observed data is that the latent variable $\z$ is unknown: we would like to maximize $\log p(\ox,\lz;\Vtheta)$ jointly over $\Vtheta$ and $\lz$, but since $\lz$ is never observed, this is not directly feasible. The EM algorithm resolves this by replacing the unobservable joint log-likelihood with its expectation under the posterior distribution of $\z$ given the current observation and parameter estimate. This expectation -- the $Q$ function -- serves as a tractable surrogate that can be maximized over $\Vtheta$ at each iteration.
+
+More concretely, each iteration of the EM algorithm consists of two steps. Given a current parameter estimate $\prm{\Vtheta^{(k)}}$, the algorithm first sets:
+\begin{myequation}
+  \func{q^{(k)}}(\z)=p(\z|\ox;\prm{\Vtheta^{(k)}})
+\end{myequation}
+and then computes the updated parameter estimate as:
+\begin{myequation}
+\prm{\Vtheta^{(k+1)}}=\argmax{\vrt}{Q(p(\z|\ox;\prm{\Vtheta^{(k)}}), \ox, \vrt)}=\argmax{\vrt}{\ev{p(\z|\ox;\prm{\Vtheta^{(k)}})}{\log p(\ox,\dz;\vrt)}}
+\end{myequation}
+The two steps are conventionally referred to as the \alert{E-step} and the \alert{M-step}, and together they define one complete iteration of the algorithm.
+
+\paragraph{E-step: Expectation.} Given the current parameter estimate $\prm{\Vtheta^{(k)}}$, compute the expected value of the complete-data log-likelihood $\log p(\ox,\z;\vrt)$ with respect to the posterior distribution $p(\z|\ox;\prm{\Vtheta^{(k)}})$ of the latent variable. This yields a function of $\vrt$ alone:
+\begin{myequation}
+  \mathcal{Q}(\vrt; \prm{\Vtheta^{(k)}}, \ox) \defeq \ev{p(\z|\ox;\prm{\Vtheta^{(k)}})}{\log p(\ox,\dz;\vrt)}
+\end{myequation}
+The E-step is conceptually the simpler of the two: it requires only that the posterior $p(\z|\ox;\prm{\Vtheta^{(k)}})$ be computable, which is the tractability assumption we are operating under, and that the resulting expectation can be evaluated in closed form or estimated efficiently.
+
+\paragraph{M-step: Maximization.} Maximize the function $\mathcal{Q}(\vrt; \prm{\Vtheta^{(k)}}, \ox)$ with respect to $\vrt$, obtaining the new parameter estimate:
+\begin{myequation}
+  \prm{\Vtheta^{(k+1)}}=\argmax{\vrt}{\,\mathcal{Q}(\vrt; \prm{\Vtheta^{(k)}}, \ox)}=\argmax{\vrt}{\ev{p(\z|\ox;\prm{\Vtheta^{(k)}})}{\log p(\ox,\dz;\vrt)}}
+\end{myequation}
+The M-step is tractable by Hypothesis 1: since the complete-data log-likelihood $\log p(\ox,\z;\vrt)$ can be evaluated and maximized over $\vrt$ for any fixed $\z$, and the expectation is taken under a known distribution, the surrogate objective $\mathcal{Q}$ inherits this tractability. The new estimate $\prm{\Vtheta^{(k+1)}}$ then defines a new posterior distribution $p(\z|\ox;\prm{\Vtheta^{(k+1)}})$ and a new surrogate objective $\mathcal{Q}(\vrt;\prm{\Vtheta^{(k+1)}},\ox)$ for the next iteration.
+
+Starting from any initial parameter value $\prm{\Vtheta^{(1)}}$, the algorithm iterates the E-step and M-step in alternation, generating a sequence of parameter estimates $\prm{\Vtheta^{(1)}}, \prm{\Vtheta^{(2)}}, \ldots$ We now show that this sequence has a fundamental and desirable property: it monotonically increases -- or at least does not decrease -- the observed-data log-likelihood $\log p(\ox;\prm{\Vtheta^{(k)}})$ at every step.
+
+\paragraph{Monotone improvement of the log-likelihood.} As established earlier, the ELBO decomposition holds for any distribution $q$ and any parameter value $\prt$:
+\begin{myequation}
+\log p(\ox;\prt) = \mL(q,\ox,\prt) + \mK(q,\ox,\prt)
+\end{myequation}
+This relationship is visualized in Figure~\ref{fig11}, where for a given $\prt$ the gap from the baseline to the upper (red) line represents the log-likelihood $\log p(\ox;\prt)$, which is independent of $q$. The gap to the dashed line represents $\mL(q,\ox,\prt)$, which depends on the choice of $q$ and always lies between the baseline and the log-likelihood. The remaining gap between the dashed and red lines is $\mK(q,\ox,\prt) \geq 0$.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.8,latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=xkcdOceanBlue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(2.6,-2.8) node[lbl] {\footnotesize $\log p(\ox;\prt)$}
+(-2,-1.5) node[lbl] {\footnotesize $\mK(q,\ox, \prt)$}
+(-2,-3) node[lbl] {\footnotesize $\mL(q,\ox, \prt)$};
+\draw[line width=1pt]  (-4,-4) -- (4,-4);
+\draw[dashed, draw=xkcdCoral,line width=1pt] (-4,-2) -- (4,-2);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-1) -- (4,-1);
+\draw[<->,>=stealth',shorten >=1pt] (-1,-4) -- (-1,-2);
+\draw[<->,>=stealth',shorten >=1pt] (-1,-2) -- (-1,-1);
+\draw[<->,>=stealth',shorten >=1pt] (1.5,-4) -- (1.5,-1);
+\end{tikzpicture}
+\caption{Visualization of the log-likelihood decomposition. For a given $\prt$, the total gap from the baseline (black line) to the upper red line is $\log p(\ox;\prt)$, independent of $q$. The gap to the dashed line is $\mL(q,\ox,\prt)$, which depends on $q$ and is always a lower bound on the log-likelihood. The remaining gap between the dashed and solid red lines is $\mK(q,\ox,\prt) \geq 0$.}\label{fig11}
+\end{center}
+\end{figure}
+
+The key property of the EM algorithm is that at each iteration, the E-step sets $q(\z) = p(\z|\ox;\prm{\Vtheta^{(k)}})$, which by definition satisfies:
+\begin{myequation}
+\mK(p(\dz|\ox;\prm{\Vtheta^{(k)}}),\ox, \prm{\Vtheta^{(k)}})=\dkl{p(\z|\ox;\prm{\Vtheta^{(k)}})}{p(\z|\ox;\prm{\Vtheta^{(k)}})}=0
+\end{myequation}
+That is, the gap between the ELBO and the log-likelihood vanishes entirely at the current parameter value: the ELBO touches the log-likelihood from below, and the two are equal at $\prm{\Vtheta^{(k)}}$. This is the crucial difference from the general iterative framework discussed previously, where the gap at the current parameters could be nonzero and could grow after the M-step, potentially causing the log-likelihood to decrease.
+
+Because the gap is zero at $\prm{\Vtheta^{(k)}}$, the M-step now operates on a surrogate that agrees with the true log-likelihood at the starting point. Any increase in the ELBO achieved by the M-step therefore translates directly into an increase in the log-likelihood. More formally, we have:
+\begin{myalign}
+\log p(\ox;\prm{\Vtheta^{(k+1)}}) &\geq \mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k+1)}}) \\
+&\geq \mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k)}}) \\
+&= \log p(\ox;\prm{\Vtheta^{(k)}})
+\end{myalign}
+where the first inequality is the ELBO bound at $\prm{\Vtheta^{(k+1)}}$, the second follows from the fact that $\prm{\Vtheta^{(k+1)}}$ maximizes the ELBO, and the equality follows from the vanishing gap established by the E-step. The observed-data log-likelihood therefore increases monotonically at every iteration of the EM algorithm -- a guarantee that the general iterative procedure does not provide, and that makes EM particularly reliable as an optimization method.
+
+
+We now describe the E-step and M-step of the EM algorithm in detail, tracing the geometric and algebraic consequences of each step carefully. Together, they form a single iteration of the algorithm, and the analysis below will establish that each iteration is guaranteed to increase -- or at least not decrease -- the observed-data log-likelihood.
+
+\subsection*{E-step}
+
+At the beginning of iteration $k$, we have a current parameter estimate $\prm{\Vtheta^{(k)}}$. The E-step sets the auxiliary distribution to the exact posterior of the latent variable under the current parameters:
+\begin{myequation}
+\func{q^{(k)}}(\z)=p(\z|\ox ;\prm{\Vtheta^{(k)}})
+\end{myequation}
+As established in the previous section, this choice is optimal in the sense that it minimizes the KL gap $\mK$ at the current parameter value. More precisely, it makes the gap exactly zero:
+\begin{myalign}
+ \mK(\func{q^{(k)}}, \ox, \prm{\Vtheta^{(k)}})&=0\\
+\log p(\ox;\prm{\Vtheta^{(k)}})&=\mL(\func{q^{(k)}}, \ox, \prm{\Vtheta^{(k)}})=\mL(p(\dz|\ox ;\prm{\Vtheta^{(k)}}), \ox, \prm{\Vtheta^{(k)}})
+\end{myalign}
+In other words, after the E-step, the ELBO coincides exactly with the log-likelihood at the current parameters: the lower bound is tight and the gap has been closed entirely. This situation is depicted in Figure~\ref{fig2}, where the two horizontal lines -- representing the baseline and the log-likelihood -- collapse onto each other at the current parameter value, with no gap remaining between them.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.7, latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=blue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(2.8,-1.5) node[lbl] {\small$\log p(\ox;\prm{\Vtheta^{(k)}})$}
+(-4,-1.5) node[lbl] {\footnotesize$\mL(p(\dz|\ox ;\prm{\Vtheta^{(k)}}),\vlx,\prm{\Vtheta^{(k)}})$};
+\draw[line width=1pt]  (-4,-3) -- (4,-3);
+\draw[draw=xkcdCoral,line width=1pt] (-4,0) -- (4,0);
+\draw[<->,>=stealth',shorten >=1pt] (-1.8,-3) -- (-1.8,0);
+\draw[<->,>=stealth',shorten >=1pt] (1.4,-3) -- (1.4,0);
+\end{tikzpicture}
+\caption{After the E-step: the ELBO $\mL(p(\dz|\ox;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k)}})$ equals the log-likelihood $\log p(\ox;\prm{\Vtheta^{(k)}})$, since the KL gap has been reduced to zero by setting $q = p(\z|\ox;\prm{\Vtheta^{(k)}})$.}\label{fig2}
+\end{center}
+\end{figure}
+
+The significance of this step cannot be overstated. By making the bound exact at the current parameters, the E-step ensures that any subsequent improvement in the ELBO -- which the M-step will now pursue -- translates directly and without loss into an improvement in the true log-likelihood.
+
+\subsection*{M-step}
+
+With $\func{q^{(k)}}(\z) = p(\z|\ox;\prm{\Vtheta^{(k)}})$ fixed from the E-step, the M-step maximizes the ELBO with respect to $\vrt$. Recall that the ELBO decomposition holds for any distribution $q$ and any parameter value -- in particular, it holds for $q = \func{q^{(k)}}$ and any $\vrt$:
+\begin{myalign}
+\log p(\ox ;\vrt)
+&=\mL(p(\dz|\ox ;\prm{\Vtheta^{(k)}}), \ox,\vrt)+\mK(p(\dz|\ox ;{\prm{\Vtheta^{(k)}}}), \ox ,\vrt)
+\end{myalign}
+Since $\mK \geq 0$, the ELBO provides a lower bound on $\log p(\ox;\vrt)$ for every value of $\vrt$:
+\begin{myequation}
+\log p(\ox ;\vrt)\geq\mL(p(\dz|\ox ;{\prm{\Vtheta^{(k)}}}), \ox, \vrt)
+\end{myequation}
+The M-step maximizes this lower bound over $\vrt$. To do so, we recall that the ELBO can be decomposed as:
+\begin{myalign}
+  \mL(p(\dz|\vlx ;\prm{\Vtheta^{(k)}}), \vlx, \vrt)&=\ev{p(\z|\vlx ;\prm{\Vtheta^{(k)}})}{\log p(\vlx ,\dz;\vrt)}+\entr{}{p(\dz|\vlx ;\prm{\Vtheta^{(k)}})}
+\end{myalign}
+The second term is the entropy of $p(\z|\vlx;\prm{\Vtheta^{(k)}})$, which does not depend on $\vrt$ and is therefore a constant with respect to the optimization. Maximizing the ELBO over $\vrt$ is therefore equivalent to maximizing the expected complete-data log-likelihood:
+\begin{myequation}
+ \mathcal{Q}(\vrt; {\prm{\Vtheta^{(k)}}}, \vlx)=\ev{p(\z|\vlx ;\prm{\Vtheta^{(k)}})}{\log p(\vlx ,\dz;\vrt)}
+\end{myequation}
+The new parameter estimate is defined as:
+\begin{myequation}
+\prm{\Vtheta^{(k+1)}}=\argmax{\vrt}{ \mathcal{Q}(\vrt; \prm{\Vtheta^{(k)}},\ox)}
+\end{myequation}
+By definition of the argmax, $\prm{\Vtheta^{(k+1)}}$ achieves the maximum value of $\mL(p(\dz|\ox;\prm{\Vtheta^{(k)}}),\ox,\vrt)$ over all $\vrt$, and in particular it is at least as good as any other value, including $\prm{\Vtheta^{(k)}}$ itself:
+\begin{myequation}
+{\mL{(p(\dz|\ox ;\prm{\Vtheta^{(k)}}),\ox,{\prm{\Vtheta^{(k+1)}}}})} \geq {\mL{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,\Vtheta)}}
+\end{myequation}
+for all possible $\Vtheta$. This is illustrated in Figure~\ref{fig310}, where the ELBO evaluated at $\prm{\Vtheta^{(k+1)}}$ (the dashed blue line) lies strictly above its value at $\prm{\Vtheta^{(k)}}$ (the red line).
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.7, latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=blue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(0.8,-3) node[lbl] {\footnotesize$\log p(\ox;\prm{\Vtheta^{(k)}})$}
+(-4.3,-3) node[lbl] {\footnotesize${\mL(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k)}})}$}
+(5.5,-2.5) node[lbl] {\footnotesize${\mL{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}$};
+\draw[line width=1pt]  (-4,-4) -- (4,-4);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-1) -- (4,-1);
+\draw[dashed,draw=xkcdOceanBlue,line width=1pt] (-4,.5) -- (4,.5);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-4) -- (-2,-1);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-4) -- (-.5,-1);
+\draw[<->,>=stealth',shorten >=1pt] (3,-4) -- (3,.5);
+\end{tikzpicture}
+\caption{After the M-step: the ELBO at $\prm{\Vtheta^{(k+1)}}$ (dashed blue line) is strictly greater than the ELBO at $\prm{\Vtheta^{(k)}}$ (red line), which by the E-step equals $\log p(\ox;\prm{\Vtheta^{(k)}})$.}\label{fig310}
+\end{center}
+\end{figure}
+
+\subsection*{Monotone Improvement of the Log-Likelihood}
+
+We are now in a position to prove rigorously that each EM iteration increases the observed-data log-likelihood. Taking the inequality established above as a particular case applied to $\Vtheta = \prm{\Vtheta^{(k)}}$:
+\begin{myequation}
+{\mL{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}\geq {\mL{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,{\prm{\Vtheta^{(k)}}})}}{=}\log p(\ox;{\prm{\Vtheta^{(k)}}})
+\end{myequation}
+where the final equality follows from the E-step, which made the ELBO exact at $\prm{\Vtheta^{(k)}}$. This shows that the ELBO at the new parameters is at least as large as the log-likelihood at the old parameters.
+
+To understand what this implies for the new log-likelihood, we use the ELBO decomposition again, this time at the new parameter value $\prm{\Vtheta^{(k+1)}}$ with $q$ still fixed at $\func{q^{(k)}} = p(\z|\ox;\prm{\Vtheta^{(k)}})$. The situation is depicted in Figure~\ref{fig4}: the new log-likelihood $\log p(\ox;\prm{\Vtheta^{(k+1)}})$ lies strictly above the new ELBO value, because the distribution $\func{q^{(k)}}$ is generally no longer equal to the posterior $p(\z|\ox;\prm{\Vtheta^{(k+1)}})$ at the updated parameters. In fact, since $\prm{\Vtheta^{(k+1)}} \neq \prm{\Vtheta^{(k)}}$ in general, we have $p(\z|\ox;\prm{\Vtheta^{(k)}}) \neq p(\z|\ox;\prm{\Vtheta^{(k+1)}})$, which implies $\dkl{p(\z|\ox;\prm{\Vtheta^{(k)}})}{p(\z|\ox;\prm{\Vtheta^{(k+1)}})} > 0$ and consequently:
+\begin{myequation}
+\log p(\ox;\prm{\Vtheta^{(k+1)}})>{\mL{(p(\dz|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}
+\end{myequation}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.7, latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=blue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(0.8,-3) node[lbl] {\footnotesize$\log p(\ox;\prm{\Vtheta^{(k)}})$}
+(-4.2,-3) node[lbl] {\footnotesize${\mL{(p(\dz|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k)}}}})$}
+(5.4,-1.8) node[lbl] {\footnotesize${\mL{(p(\dz|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}$}
+(5.4,1.2) node[lbl] {\footnotesize${\mK{(p(\dz|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}$}
+(9.5,-.2) node[lbl] {\footnotesize$\log p(\ox;\prm{\Vtheta^{(k+1)}})$};
+\draw[line width=1pt]  (-4,-4) -- (10,-4);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-1) -- (10,-1);
+\draw[dashed,draw=xkcdOceanBlue,line width=1pt] (-4,.5) -- (10,.5);
+\draw[draw=xkcdOceanBlue,line width=1pt] (-4,2) -- (10,2);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-4) -- (-2,-1);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-4) -- (-.5,-1);
+\draw[<->,>=stealth',shorten >=1pt] (3,-4) -- (3,.5);
+\draw[<->,>=stealth',shorten >=1pt] (3,.5) -- (3,2);
+\draw[<->,>=stealth',shorten >=1pt] (8,-4) -- (8,2);
+\end{tikzpicture}
+\caption{Decomposition of the new log-likelihood at $\prm{\Vtheta^{(k+1)}}$ with $\func{q^{(k)}}(\z)=p(\z|\ox;\prm{\Vtheta^{(k)}})$ still fixed: the new log-likelihood (solid blue line) lies strictly above the new ELBO (dashed), with the gap being $\mK(p(\dz|\ox;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}}) > 0$.}\label{fig4}
+\end{center}
+\end{figure}
+
+Combining all the inequalities, we obtain the fundamental monotonicity result:
+\begin{myalign}
+\log p(\ox;\prm{\Vtheta^{(k+1)}})&={\mL{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}+{\mK{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}	\\
+&\geq {\mL{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k+1)}})}}\\
+&\geq {\mL{(p(\z|\ox ;\prm{\Vtheta^{(k)}}),\ox,{\prm{\Vtheta^{(k)}}})}}{=}\log p(\ox;\prm{\Vtheta^{(k)}})
+\end{myalign}
+The first inequality uses the non-negativity of the KL divergence. The second follows from the M-step maximization. The final equality is the key contribution of the E-step, which made the ELBO exact at the previous parameters. The conclusion is that $\log p(\ox;\prm{\Vtheta^{(k+1)}}) \geq \log p(\ox;\prm{\Vtheta^{(k)}})$: the log-likelihood is guaranteed not to decrease at any iteration of the EM algorithm.
+
+After the M-step, the next E-step will update the auxiliary distribution to $p(\z|\ox;\prm{\Vtheta^{(k+1)}})$, once again closing the gap and making the ELBO exact at the new parameters, as illustrated in Figure~\ref{fig8}. The cycle then repeats, with each pair of E and M steps ratcheting the log-likelihood upward until convergence to a stationary point.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=.7, latent/.style={circle,draw, fill=pale},visible/.style={circle,outer sep=0pt,draw, fill=blue!20},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=pale!30}, lbl/.style={circle}]
+\draw[line width=.5pt]
+(0.8,-3) node[lbl] {\footnotesize$\log p(\ox;\prm{\Vtheta^{(k)}})$}
+(-4.3,-3) node[lbl] {\footnotesize$\mL{(p(\dz|\ox ;\prm{\Vtheta^{(k)}}),\ox,\prm{\Vtheta^{(k)}})}$}
+(.2,-.2) node[lbl] {\footnotesize$\mL{(p(\dz|\ox ;\prm{\Vtheta^{(k+1)}}),\ox,\prm{\Vtheta^{(k+1)}})}$}
+(9.7,-.2) node[lbl] {\footnotesize$\log p(\ox;\prm{\Vtheta^{(k+1)}})$};
+\draw[line width=1pt]  (-4,-4) -- (10,-4);
+\draw[draw=xkcdCoral,line width=1pt] (-4,-1) -- (10,-1);
+\draw[draw=xkcdOceanBlue,line width=1pt] (-4,2) -- (10,2);
+\draw[<->,>=stealth',shorten >=1pt] (-2,-4) -- (-2,-1);
+\draw[<->,>=stealth',shorten >=1pt] (-.5,-4) -- (-.5,-1);
+\draw[<->,>=stealth',shorten >=1pt] (3,-4) -- (3,2);
+\draw[<->,>=stealth',shorten >=1pt] (8,-4) -- (8,2);
+\end{tikzpicture}
+\caption{After a new E-step with $\func{q^{(k+1)}}(\z)=p(\z|\ox;\prm{\Vtheta^{(k+1)}})$: the gap is closed again at the new parameters, and the ELBO equals the new log-likelihood $\log p(\ox;\prm{\Vtheta^{(k+1)}})$, which is strictly greater than $\log p(\ox;\prm{\Vtheta^{(k)}})$.}\label{fig8}
+\end{center}
+\end{figure}
+
+The analysis carried out for a single observation $\ox$ extends naturally and without essential modification to the case of a full dataset $\X = \{\vlxu,\ldots,\vlxn\}$. The structure of the EM algorithm remains exactly the same -- alternating E-steps and M-steps -- and the monotonicity guarantee carries over directly, since the dataset log-likelihood decomposes as a sum of independent per-observation terms, each of which is handled by the same argument. We describe the two steps for the dataset case below.
+
+\subsection*{E-step}
+
+As in the single-observation case, the E-step selects the auxiliary distribution that makes the ELBO exact at the current parameter estimate. With amortization, this is achieved by setting the conditional distribution $q(\z|\x)$ to the exact posterior under the current parameters:
+\begin{myequation}
+\func{q^{(k)}}(\z|\x)=p(\z|\x ;\prm{\Vtheta^{(k)}})
+\end{myequation}
+which, when evaluated at each individual observation $\vlxi$, gives:
+\begin{myequation}
+\func{q^{(k)}_i}(\z)=p(\z|\vlxi ;\prm{\Vtheta^{(k)}})
+\end{myequation}
+As before, this choice sets the KL gap $\mK(\func{q^{(k)}_i}, \vlxi, \prm{\Vtheta^{(k)}}) = 0$ for each $i$, so that the total ELBO over the dataset equals the total log-likelihood at the current parameters -- there is no gap, and the bound is tight.
+
+\subsection*{M-step}
+
+With the collection of posteriors $\{\func{q^{(k)}_i}\}$ fixed from the E-step, the M-step maximizes the total ELBO over $\vrt$. Recall that the ELBO decomposition holds for any $q$ and any $\Vtheta$, and in particular for the dataset:
+\begin{myequation}
+\log p(\X ;\vrt)=\sum_{i=1}^n\mL(q,\vlxi, \vrt)+\sum_{i=1}^n\mK(q,\vlxi ,\vrt)
+\end{myequation}
+Since the KL terms are non-negative, the usual lower bound on the dataset log-likelihood follows:
+\begin{myequation}
+\log p(\X ;\vrt)\geq\sum_{i=1}^n\mL(p(\dz|\vlxi ;{\prm{\Vtheta^{(k)}}}), \vlxi, \vrt)
+\end{myequation}
+To make the maximization explicit, we decompose each individual ELBO term as:
+\begin{myalign}
+  \mL(p(\dz|\vlx ;\prm{\Vtheta^{(k)}}), \vlx, \vrt)&=\ev{p(\z|\vlx ;\prm{\Vtheta^{(k)}})}{\log p(\vlx ,\dz;\vrt)}+\entr{}{p(\dz|\vlx ;\prm{\Vtheta^{(k)}})}
+\end{myalign}
+Summing over all observations, we obtain:
+\begin{myalign}
+  \sum_{i=1}^n\mL(p(\dz|\vlxi ;\prm{\Vtheta^{(k)}}), \vlxi, \vrt)&=\sum_{i=1}^n\ev{p(\z|\ox_i ;\prm{\Vtheta^{(k)}})}{\log p(\vlxi,\dz;\vrt)}+\sum_{i=1}^n\entr{}{p(\dz|\vlxi ;\prm{\Vtheta^{(k)}})}\\
+ &=\ev{p(\mathbf{Z}|\X ;\prm{\Vtheta^{(k)}})}{\log p(\X ,{\color{lightmath}\mathbf{Z}};\vrt)}+\sum_{i=1}^n\entr{}{p(\z|\vlxi ;\prm{\Vtheta^{(k)}})}
+\end{myalign}
+The second term on the right-hand side is the sum of the entropies of the individual posteriors, which depends only on $\prm{\Vtheta^{(k)}}$ and not on $\vrt$. It is therefore a constant with respect to the optimization and can be discarded. Maximizing the total ELBO over $\vrt$ is thus equivalent to maximizing the dataset-level surrogate objective:
+\begin{myequation}
+ \mathcal{Q}(\vrt; {\prm{\Vtheta^{(k)}}}, \X)=\ev{p(\mathbf{Z}|\X ;\prm{\Vtheta^{(k)}})}{\log p(\X ,{\color{lightmath}\mathbf{Z}};\vrt)}=\sum_{i=1}^n\ev{p(\z|\vlxi ;\prm{\Vtheta^{(k)}})}{\log p(\vlxi ,\dz;\vrt)}
+\end{myequation}
+This quantity is the expected complete-data log-likelihood of the entire dataset, where the expectation is taken jointly over the latent variables $\mathbf{Z} = (\lat{\z_1},\ldots,\lat{\z_n})$ distributed according to the factorized posterior $p(\mathbf{Z}|\X;\prm{\Vtheta^{(k)}}) = \prod_{i=1}^n p(\z|\vlxi;\prm{\Vtheta^{(k)}})$. The decomposition into a sum of per-observation expectations reflects the conditional independence of the latent variables given the observations and the parameters: each $\lat{\z_i}$ contributes independently to the total objective through the term $\ev{p(\z|\vlxi;\prm{\Vtheta^{(k)}})}{\log p(\vlxi,\z;\vrt)}$.
+
+The updated parameter estimate is then:
+\begin{myequation}
+\prm{\Vtheta^{(k+1)}} = \argmax{\vrt}{\,\mathcal{Q}(\vrt; \prm{\Vtheta^{(k)}}, \X)}
+\end{myequation}
+By exactly the same argument as in the single-observation case, this update guarantees that the total dataset log-likelihood $\log p(\X;\prm{\Vtheta^{(k+1)}}) \geq \log p(\X;\prm{\Vtheta^{(k)}})$, ensuring monotone improvement at every iteration.
+
+\section*{Mixture Models as Latent Variable Models}
+
+Discrete mixture models provide one of the most natural and illuminating applications of the EM algorithm. As we now show, a mixture model can be recast as a latent variable model in which the latent variable encodes the component membership of each observation, and the posterior distribution over this latent variable -- which turns out to be tractable -- plays the role of the soft assignment of data points to components. The EM algorithm then yields an elegant iterative procedure that alternates between computing these soft assignments and updating the component parameters.
+
+Recall that in a mixture model, the marginal distribution of an observation $\x$ is defined as\footnote{We remark that the symbol $q$ here refers to the component densities of the mixture, an entirely different object from the auxiliary distribution $q(\z)$ used in the ELBO discussion above.}
+\begin{myequation}
+p(\x;\Vpi,\VTheta)=\sum_{i=1}^K \pi_i\, q(\x;\Vtheta_i)
+\end{myequation}
+where $\Vpi = (\pi_1,\ldots,\pi_K)$ are the mixture weights satisfying $\sum_i \pi_i = 1$ and $\pi_i \geq 0$, and $\VTheta = (\Vtheta_1,\ldots,\Vtheta_K)$ are the parameters of the individual component densities. The latent variable interpretation of this model is obtained by introducing, for each observation $\vlxi$, a discrete scalar latent variable $\lat{z_i} \in \{1,\ldots,K\}$ that encodes which mixture component generated $\vlxi$. This variable is assumed to follow a categorical prior distribution $p(z) = \mathrm{Cat}(z;\Vpi)$, so that $\pi_k = p(z=k)$ is the prior probability of belonging to component $k$. We denote the full parameter set as $\Vpsi = \Vpi \cup \VTheta$.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[
+latent/.style={circle,draw,fill=latent!40!white},
+visible/.style={circle,outer sep=0pt,draw,fill=observed},
+param/.style={circle,draw, fill=param},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=box}, 
+lbl/.style={circle}]
+\draw[line width=.5pt]
+(2,1.5) node[param] (D) {$\Vpi$}
+(2,0) node[param] (B) {$\VTheta$}
+(0,.7) node[rounded corners,minimum height=3.1cm,minimum width=1.9cm,draw,fill=node!50] {}
+(0,1.5) node[latent] (A) {$\lat{z_i}$}
+(0,0) node[visible] (C) {$\vlxi$}
+(.7,-.6) node[lbl] {\footnotesize $n$}
+(2.2,.9) node[lbl] {\footnotesize $\lat{z_i}\sim Cat(z;\Vpi)$}
+(2.5,-.6) node[lbl] {\footnotesize $\vlxi\sim q(\x;\Vtheta_{\lzi})$};
+\draw[->,>=stealth',shorten >=1pt] (B) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (A) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (D) -- (A);
+\end{tikzpicture}
+\caption{Graphical model of a mixture: each observation $\vlxi$ is generated by first sampling a component index $\lat{z_i}$ from the categorical prior $\mathrm{Cat}(z;\Vpi)$, and then sampling $\vlxi$ from the selected component density $q(\x;\Vtheta_{\lzi})$.}\label{bngmm}
+\end{center}
+\end{figure}
+
+The graphical model in Figure~\ref{bngmm} makes the generative structure explicit. For each data point, a component index $\lat{z_i}$ is first drawn from the categorical prior, and then the observation $\vlxi$ is drawn from the corresponding component density. The joint distribution over observed and latent variables is therefore:
+\begin{myequation}
+p(\x,z;\Vpsi)=p(z;\Vpi)\,p(\x|z;\Vtheta)
+\end{myequation}
+Marginalizing out the discrete latent variable by summing over all possible component indices recovers the mixture distribution:
+\begin{myequation}
+p(\x;\Vpsi)=\sum_{i=1}^K p(z=i;\Vpi)\,p(\x|z=i;\VTheta)
+\end{myequation}
+This makes explicit the identifications $\pi_i = p(z=i;\Vpi)$ and $q(\x;\Vtheta_i) = p(\x|z=i;\VTheta)$: the mixture weights are the prior probabilities of the component indices, and the component densities are the conditional distributions of $\x$ given the component membership.
+
+A crucial feature of this model is that the posterior distribution $p(z|\x;\Vpsi)$ is tractable. Since the latent variable $z$ is discrete and takes only $K$ values, computing the posterior requires only evaluating $K$ terms and normalizing -- no intractable integral is involved. By Bayes' theorem, for $j = 1,\ldots,K$:
+\begin{myalign}
+	p(z=j|\x ;\Vpsi)&=\frac{p(\x |z=j;\Vpsi)\,p(z=j;\Vpsi)}{p(\x;\Vpsi)}=\frac{q(\x ;\Vtheta_j)\,\pi_j}{\sum_{r=1}^K q(\x ;\Vtheta_r)\,\pi_r}
+\end{myalign}
+This quantity has a natural interpretation: it is the probability that observation $\x$ was generated by component $j$, given the current parameter values. It is sometimes called the \emph{responsibility} of component $j$ for data point $\x$. The tractability of this posterior is precisely what allows the EM algorithm to be applied in its exact form -- Hypothesis 2 holds here, and the E-step can be carried out without any approximation.
+
+\subsection*{E-step for Mixture Models}
+
+At iteration $k$, the E-step computes the posterior probabilities $p(z|\vlxi;\prm{\Vpsi^{(k)}})$ for each observation $\vlxi$, $i=1,\ldots,n$. Each such posterior is fully characterized by its $K$ values, which we denote:
+\begin{myequation}
+ p(z=j|\vlxi ;\prm{\Vpsi^{(k)}}) \defeq \prm{\gamma_j^{(k)}}(\vlxi)
+\end{myequation}
+for $j=1,\ldots,K$. Explicitly, these responsibilities are given by:
+\begin{myalign}
+	\prm{\gamma_j^{(k)}}(\vlxi)&=\frac{q(\vlxi ;\prm{\Vtheta_j^{(k)}})\,\prm{\pi_j^{(k)}}}{\sum_{r=1}^K q(\vlxi ;\prm{\Vtheta_r^{(k)}})\,\prm{\pi_r^{(k)}}}
+\end{myalign}
+Each $\prm{\gamma_j^{(k)}}(\vlxi)$ measures, under the current parameter estimate, how strongly component $j$ is responsible for having generated observation $\vlxi$. Note that $\sum_{j=1}^K \prm{\gamma_j^{(k)}}(\vlxi) = 1$ for each $i$, so the responsibilities form a valid probability distribution over components for each data point.
+
+\subsection*{M-step for Mixture Models}
+
+With the responsibilities $\prm{\gamma_j^{(k)}}(\vlxi)$ computed in the E-step, the M-step maximizes the surrogate objective $\mathcal{Q}(\Vpsi;\prm{\Vpsi^{(k)}},\X)$ with respect to $\Vpsi$. Substituting the mixture model structure into the general expression for $\mathcal{Q}$, and using the factorization of the joint $p(\x,z;\Vpsi) = \pi_z\,q(\x;\Vtheta_z)$, we obtain:
+\begin{myalign}
+  \mathcal{Q}(\Vpsi;\prm{\Vpsi^{(k)}},\X) &=\sum_{i=1}^n\sum_{j=1}^K \log p(\vlxi,{\color{lightmath} z};\Vpsi)\,p(z=j|\vlxi;\prm{\Vpsi^{(k)}})\\
+  &=\sum_{i=1}^n \sum_{j=1}^K\prm{\gamma_j^{(k)}}(\vlxi)\log\left(\vr{\pi_{j}}\,q(\vlxi;\vr{\Vtheta_j})\right) \\
+  &=\sum_{i=1}^n \sum_{j=1}^K\prm{\gamma_j^{(k)}}(\vlxi)\log\pi_{j}+\sum_{i=1}^n \sum_{j=1}^K\prm{\gamma_j^{(k)}}(\vlxi)\log q(\vlxi;\vr{\Vtheta_{j}})
+\end{myalign}
+The objective separates into two additive terms, each depending on a different subset of the parameters. The first term involves only the mixture weights $\Vpi$, while the second involves only the component parameters $\VTheta$. This decoupling is a key structural property of mixture models that makes the M-step analytically tractable: the optimization over $\Vpi$ and over $\VTheta$ can be performed independently.
+
+Maximizing the first term over $\Vpi$ subject to the constraint $\sum_r \pi_r = 1$, which can be handled via a Lagrange multiplier, yields the updated mixture weights:
+\begin{myequation}
+\prm{\pi_r^{(k+1)}}=\frac{1}{n}\sum_{i=1}^n \prm{\gamma_r^{(k)}}(\vlxi)
+\end{myequation}
+This has an elegant interpretation: the new weight of component $r$ is simply the average responsibility of component $r$ across all data points. Components that are consistently assigned high responsibility accumulate larger weights, while components that are rarely responsible for any observation see their weights decrease.
+
+Maximizing the second term over the component parameters $\Vtheta_r$ for each $r$ requires setting the gradient with respect to $\vrtr$ to zero:
+\begin{myalign}
+\gradient{\vrtr}{\mathcal{Q}(\Vpsi;\prm{\Vpsi^{(k)}},\X)}&={\sum_{i=1}^n \frac{\prm{\gamma_r^{(k)}}(\vlxi)}{q(\vlxi;\vrtr)}\gradient{\vrtr}{q(\vlxi;\vrtr)}=0}
+\end{myalign}
+This condition takes the form of a weighted maximum likelihood problem for component $r$, where each data point $\vlxi$ contributes with weight $\prm{\gamma_r^{(k)}}(\vlxi)$. The solution therefore has the same form as standard maximum likelihood estimation for the distribution family $q(\x;\Vtheta_r)$, but with data points weighted by their responsibilities rather than uniformly. For common distribution families such as Gaussians, this weighted MLE problem admits a closed-form solution, making the M-step fully analytic.
+\subsection*{Gaussian Mixture Models}
+
+The most widely used instance of the mixture EM framework is the Gaussian Mixture Model (GMM), where each component density is a multivariate Gaussian. In this case, the parameters of component $r$ are its mean vector $\Vmu_r$ and covariance matrix $\VSigma_r$, so that $\Vtheta_r = \{\Vmu_r, \VSigma_r\}$, and the component density takes the form:
+\begin{myalign}
+q(\x;\Vmu_r,\VSigma_r)&\defeq \mathcal{N}(\x;\Vmu_r,\VSigma_r)=\frac{1}{{(2\pi)}^{d/2}} \frac{1}{{|\VSigma_r|}^{1/2}} \exp\left(-\frac{1}{2}{(\x-\Vmu_r)}^{T}\VSigma_r^{-1}(\x-\Vmu_r)\right)
+\end{myalign}
+The full parameter set is $\Vpsi = \{\Vpi, \VTheta\}$ where $\VTheta = \{(\Vmu_1,\VSigma_1),\ldots,(\Vmu_K,\VSigma_K)\}$. The EM algorithm for GMMs is particularly attractive because both the E-step and the M-step admit fully closed-form solutions, making each iteration computationally efficient.
+
+\paragraph{E-step.} Given the current parameter estimates $\prm{\Vpi^{(k)}}$ and $\prm{\VTheta^{(k)}}$, the responsibilities $\prm{\gamma_j^{(k)}}(\vlxi)$ are computed for each data point $\vlxi$ and each component $j$ by evaluating the posterior probability that component $j$ generated $\vlxi$:
+\begin{myalign}
+	\prm{\gamma_j^{(k)}}(\vlxi) &={\frac{\prm{\pi_j^{(k)}}\mathcal{N}(\vlxi;\prm{\Vmu_j^{(k)}},\prm{\VSigma_j^{(k)}})}{\sum_{r=1}^K\prm{\pi_r^{(k)}}\mathcal{N}(\vlxi;\prm{\Vmu_r^{(k)}},\prm{\VSigma_r^{(k)}})}}
+\end{myalign}
+The numerator is the prior probability of component $j$ multiplied by the likelihood of $\vlxi$ under that component's Gaussian density; the denominator normalizes over all components. The resulting responsibilities lie in $[0,1]$ and sum to one over $j$ for each $i$, forming a valid probability distribution over components for each data point.
+
+\paragraph{M-step.} With the responsibilities fixed from the E-step, the M-step updates all parameters by maximizing the surrogate objective $\mathcal{Q}$. As established in the general mixture EM derivation, the update for the mixture weights is:
+\begin{myequation}
+\prm{\pi_r^{(k+1)}}=\frac{1}{n}\sum_{i=1}^n\prm{\gamma_r^{(k)}}(\vlxi)
+\end{myequation}
+The new weight of component $r$ is the average responsibility of that component across the dataset -- a natural and interpretable update.
+
+For the mean $\Vmu_j$ of component $j$, the update is obtained by solving the weighted stationarity condition:
+\begin{myequation}
+\sum_{i=1}^n \frac{\prm{\gamma_j^{(k)}}(\vlxi)}{\mathcal{N}(\vlxi;\Vmu_j,\VSigma_j)}\gradient{\vr{\Vmu_j}}{\mathcal{N}(\vlxi;\vr{\Vmu_j},\VSigma_j)}=0
+\end{myequation}
+This is a weighted version of the standard MLE condition for the mean of a Gaussian, and its solution is the responsibility-weighted sample mean:
+\begin{myequation}
+\prm{\Vmu_j^{(k+1)}}=\frac{\sum_{i=1}^n\prm{\gamma_j^{(k)}}(\vlxi)\vlxi}{\sum_{i=1}^n\prm{\gamma_j^{(k)}}(\vlxi)}
+\end{myequation}
+Data points that are strongly assigned to component $j$ -- those with high $\prm{\gamma_j^{(k)}}(\vlxi)$ -- contribute more to the updated mean, while points with low responsibility have negligible influence. The denominator $\sum_{i=1}^n \prm{\gamma_j^{(k)}}(\vlxi)$ acts as an effective count for component $j$, measuring the total amount of data attributed to it.
+
+Similarly, the update for the covariance matrix $\VSigma_j$ follows from the weighted stationarity condition:
+\begin{myequation}
+\sum_{i=1}^n \frac{\prm{\gamma_j^{(k)}}(\vlxi)}{\mathcal{N}(\vlxi;\Vmu_j,\vr{\VSigma_j})}\gradient{\vr{\VSigma_j}}{\mathcal{N}(\vlxi;\Vmu_j,\vr{\VSigma_j})}=0
+\end{myequation}
+whose solution is the responsibility-weighted sample covariance:
+\begin{myalign}
+\VSigma_j&=\frac{1}{\sum_{i=1}^n\gamma_j(\vlxi)}\sum_{i=1}^n\gamma_j(\vlxi)(\vlxi-\Vmu_j){(\vlxi-\Vmu_j)}^T\\
+&=\frac{1}{\sum_{i=1}^n\gamma_j(\vlxi)}\sum_{i=1}^n\gamma_j(\vlxi)\vlxi\vlxi^T-\Vmu_j\Vmu_j^T
+\end{myalign}
+Substituting the updated mean $\prm{\Vmu_j^{(k+1)}}$ gives the closed-form update:
+\begin{myequation}
+\prm{\VSigma_j^{(k+1)}}=
+\frac{1}{\sum_{i=1}^n\prm{\gamma_j^{(k)}}(\vlxi)}\sum_{i=1}^n\prm{\gamma_j^{(k)}}(\vlxi)\vlxi\vlxi^T-\prm{\Vmu_j^{(k+1)}}{\prm{\Vmu_j^{(k+1)}}}^T
+\end{myequation}
+This update estimates the spread of the data around the updated component mean, weighted by the responsibilities. Components that are assigned data points spread over a wide region will develop large covariance matrices, while tightly clustered components will have small ones.
+
+The self-contained nature of the GMM EM updates is worth emphasizing. Knowledge of the current parameters $\prm{\pi_j^{(k)}}, \prm{\Vmu_j^{(k)}}, \prm{\VSigma_j^{(k)}}$ for $j=1,\ldots,K$ is sufficient to compute all responsibilities $\prm{\gamma_j^{(k)}}(\vlxi)$ in the E-step. These responsibilities in turn are sufficient to compute the updated parameters $\prm{\pi_j^{(k+1)}}$, $\prm{\Vmu_j^{(k+1)}}$, $\prm{\VSigma_j^{(k+1)}}$ in the M-step. Each iteration is therefore fully determined by the previous one, and the algorithm can be initialized from any reasonable starting point -- typically a random assignment of data points to components or a $k$-means solution.
+
+\subsection*{Mixtures of Poisson Distributions}
+
+The EM framework applies equally well when the component distributions belong to families other than the Gaussian. A natural choice for count data is the Poisson distribution, which models the probability of observing a non-negative integer $x$ as the number of events occurring in a fixed interval. In a mixture of $K$ Poisson distributions, both the observed variable $x$ and the latent component index $z$ are discrete, and the marginal distribution takes the form:
+\begin{myequation}
+p(x;\Vpi,\VLambda)=\sum_{i=1}^K \pi_i\, q(x;\lambda_i)
+\end{myequation}
+where $\VLambda = (\lambda_1,\ldots,\lambda_K)$ are the rate parameters of the individual Poisson components, each with density:
+\begin{myalign}
+q(x; \lambda_k) = \frac{e^{-\lambda_k} \lambda_k^{x}}{x!}
+\end{myalign}
+The rate $\lambda_k$ controls both the mean and variance of component $k$, since for a Poisson distribution these two moments are equal.
+
+\paragraph{E-step.} The responsibilities are computed by the same Bayes' theorem formula as before, now with Poisson likelihoods in place of Gaussian densities:
+\begin{myalign}\label{equation_gamma_multiPoissons}
+\prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}}) = \frac{\prm{\pi_j^{(k)}}\frac{e^{-\prm{\lambda_j^{(k)}}} {\prm{\lambda_j^{(k)}}}^{{\color{evidmath}{x_i}}}}{{\color{evidmath}{x_i}}!}}{\sum_{r=1}^K \prm{\pi_r^{(k)}}\frac{e^{-\prm{\lambda_r^{(k)}}} \prm{{\lambda_r^{(k)}}}^{{\color{evidmath}{x_i}}}}{{\color{evidmath}{x_i}}!}}
+\end{myalign}
+As in the Gaussian case, $\prm{\gamma_j^{(k)}}(x_i)$ measures the posterior probability that observation $x_i$ was generated by component $j$ under the current parameter estimates.
+
+\paragraph{M-step.} The mixture weight update is identical in form to the Gaussian case:
+\begin{myequation}
+\prm{\pi_j^{(k+1)}}=\frac{1}{n}\sum_{i=1}^n\prm{\gamma_j^{(k)}}(\vlxi)
+\end{myequation}
+For the rate parameters $\lambda_j$, the update is obtained by solving the weighted stationarity condition for the log-likelihood of the Poisson density. Since $\log q(x;\lambda_j) = -\lambda_j + x\log\lambda_j - \log x!$, setting the weighted gradient to zero gives:
+\begin{myalign}
+0&=\sum_{i=1}^n \prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}})\pdvr{\log q(x;\lambda_j)}{\lambda_j}\Big|_{x={\color{evidmath}{x_i}}}\\
+&=\sum_{i=1}^n\prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}})\pdvr{(-\lambda_j+x\log\lambda_j-\log x!)}{\lambda_j}\Big|_{x={\color{evidmath}{x_i}}}\\
+&=\sum_{i=1}^n\prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}})\left(-1+\frac{{\color{evidmath}{x_i}}}{\lambda_j}\right)\\
+&=-\sum_{i=1}^n\prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}})+\frac{1}{\lambda_j}\sum_{i=1}^n\prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}}){\color{evidmath}{x_i}}
+\end{myalign}
+Solving for $\lambda_j$ yields the closed-form update:
+\begin{myequation}
+\prm{\lambda_j^{(k+1)}}=\frac{\sum_{i=1}^n\prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}}){\color{evidmath}{x_i}}}{\sum_{i=1}^n\prm{\gamma_j^{(k)}}({\color{evidmath}{x_i}})}
+\end{myequation}
+This is the responsibility-weighted sample mean of the observations -- precisely the maximum likelihood estimate for the rate of a Poisson distribution, but computed with weighted data. Components assigned to observations with large counts will develop high rate parameters, while components responsible for small counts will have low rates. The structural similarity to the Gaussian mean update is not coincidental: it reflects the general principle that the M-step always reduces to a weighted MLE problem for the component distribution family, with responsibilities playing the role of observation weights.
+
+%\end{document}

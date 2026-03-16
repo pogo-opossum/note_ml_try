@@ -1,0 +1,510 @@
+%!TEX program = xelatex
+%!TEX root = ../all_short.tex
+
+\chapter{Linear regression: A Summary}
+
+\section*{Linear Models and Basis Function Expansion}
+
+\begin{itemize}
+    \item Linear models assume target prediction as linear combination of input features.
+    \item For $d$-dimensional input $\x = (x_1, \ldots, x_d)^T$, hypothesis function:
+    \begin{myequation}
+    h(\x; w_1, \ldots, w_d, b) = w_1x_1 + w_2x_2 + \ldots + w_dx_d + b
+    \end{myequation}
+    \item $b$ is the \alert{bias}, allowing non-zero prediction when all features are zero.
+    \item In vector form: $h(\x; \w, b) = \w^T\x + b$.
+    \item \textbf{Two types of linearity:}
+    \begin{itemize}
+        \item Linear in \textbf{features} $\x$ (flat hyperplane in input space).
+        \item Linear in \textbf{parameters} $\w$ and $b$ (convex objective functions).
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Feature Engineering and Basis Functions}
+
+\begin{itemize}
+    \item Map original input $\x \in \Real^d$ to higher-dimensional space using \alert{basis functions} $\{\phi_1, \ldots, \phi_m\}$:
+    \begin{myequation}
+    \Vphi(\x) = (\phi_1(\x), \ldots, \phi_m(\x))^T
+    \end{myequation}
+    \item Model becomes:
+    \begin{myequation}
+    h(\x; \w, b) = \sum_{j=1}^{m} w_j\phi_j(\x) + b
+    \end{myequation}
+    \item Still linear in parameters $\w$; only the "ingredients" change.
+\end{itemize}
+
+\subsubsection*{Common Types of Basis Functions}
+
+\begin{itemize}
+    \item \textbf{Polynomial (Global):} $\phi_j(x) = x^j$.
+    \item \textbf{Gaussian (Local):} $\phi_j(x) = \exp\left(-\frac{(x-\mu_j)^{2}}{2s^{2}}\right)$.
+    \item \textbf{Sigmoid (Local):} $\phi_j(x) = \sigma\left(\frac{x-\mu_j}{s}\right) = \frac{1}{1+e^{-\frac{x-\mu_j}{s}}}$.
+    \item \textbf{Hyperbolic Tangent (Local):} $\phi_j(x) = \tanh(x) = 2\sigma(x)-1$.
+\end{itemize}
+
+\subsection*{The Design Matrix}
+
+\begin{itemize}
+    \item Dataset of $n$ observations:
+    \begin{myequation}
+    \X = \matrighe{\x_1}{\x_n}
+    \end{myequation}
+    \item After applying basis functions, \alert{Design Matrix} $\VPhi$:
+    \begin{myequation}
+    \VPhi = \left(\begin{array}{cccc}
+    \phi_{1}(\x_{1}) & \phi_{2}(\x_{1}) & \cdots & \phi_{m}(\x_{1}) \\
+    \phi_{1}(\x_{2}) & \phi_{2}(\x_{2}) & \cdots & \phi_{m}(\x_{2}) \\
+    \vdots & \vdots & \ddots & \vdots \\
+    \phi_{1}(\x_{n}) & \phi_{2}(\x_{n}) & \cdots & \phi_{m}(\x_{n})
+    \end{array}\right)
+    \end{myequation}
+    \item All derivations apply equally to original $\X$ and transformed $\VPhi$.
+\end{itemize}
+
+\begin{myexample}
+\textbf{Polynomial Regression Example:}
+\begin{itemize}
+    \item Training set: $\{(x_1, t_1), \ldots, (x_n, t_n)\}$ with true relationship $t = \sin(2\pi x)$ corrupted by Gaussian noise $\varepsilon \sim \mathcal{N}(0, \sigma^2)$:
+    \begin{myequation}
+    t_i = \sin(2\pi x_i) + \varepsilon_i
+    \end{myequation}
+    \item Polynomial model of degree $m$:
+    \begin{myequation}
+    h(x; \w, b) = \sum_{j=1}^{m} w_j x^j + b
+    \end{myequation}
+    \item Critical choice of $m$: low $m$ $\Rightarrow$ underfitting; high $m$ $\Rightarrow$ overfitting.
+\end{itemize}
+\end{myexample}
+
+\subsubsection*{Mathematical Optimization: Convexity and Global Minima}
+
+\begin{itemize}
+    \item Quadratic loss leads to convex error function $E(\ow)$ (sum of convex functions).
+    \item Any local minimum is \textbf{global minimum}.
+    \item Setting gradient to zero yields linear system.
+    \item Partial derivatives:
+    \begin{myalign}
+    \frac{\partial E(\ow)}{\partial w_k} &= 2\sum_{i=1}^n\left(\sum_{j=1}^dw_jx_{ij}+b-t_i\right)x_{ik} \quad k=1,\ldots,d\\
+    \frac{\partial E(\ow)}{\partial b} &= 2\sum_{i=1}^n\left(\sum_{j=1}^dw_jx_{ij}+b-t_i\right)
+    \end{myalign}
+    \item In matrix form with \textbf{augmented design matrix}:
+    \begin{myequation}
+    \oX = \left(\begin{array}{cccc}
+    1 & x_{11} & \cdots & x_{1d} \\
+    1 & x_{21} & \cdots & x_{2d} \\
+    \vdots & \vdots & \ddots & \vdots \\
+    1 & x_{n1} & \cdots & x_{nd}
+    \end{array}\right)
+    \end{myequation}
+    \item \alert{Normal equations} (assuming $\oX^T\oX$ non-singular):
+    \begin{myequation}
+    \ow^*=(\oX^{T}\oX)^{-1}\oX^{T}\t
+    \end{myequation}
+\end{itemize}
+
+\subsection*{Numerical Optimization: Gradient Descent}
+
+\begin{itemize}
+    \item Iterative method for large datasets where matrix inversion is expensive.
+    \item Start with initial guess $\ow^{(0)}$.
+    \item Update in direction of \textbf{steepest descent} (negative gradient):
+    \begin{myequation}
+    \ow^{(s)}:=\ow^{(s-1)}-\eta\nabla E(\ow)\Big|_{\ow^{(s-1)}}
+    \end{myequation}
+    \item Component-wise with learning rate $\eta$:
+    \begin{myalign}
+    w_k^{(s)} &:= w_k^{(s-1)} - 2\eta \sum_{i=1}^nr_i(\ow^{(s-1)})x_{ik}\\
+    b^{(s)} &:= b^{(s-1)} - 2\eta \sum_{i=1}^nr_i(\ow^{(s-1)})
+    \end{myalign}
+    \item Matrix form:
+    \begin{myequation}
+    \ow^{(s)}:=\ow^{(s-1)}-2\eta \sum_{i=1}^nr_i(\ow^{(s-1)})\ox_i
+    \end{myequation}
+    \item Update proportional to residual $r_i$: perfect prediction $\Rightarrow$ no update.
+\end{itemize}
+
+\begin{myexample}
+\textbf{Model Selection for Polynomial Degree $M$:}
+\begin{itemize}
+    \item Increasing $M$ $\Rightarrow$ more degrees of freedom, better training fit, but risk of overfitting.
+    \item If $M+1 = n$, model can pass exactly through every point (zero training error) but overfits.
+    \item \textbf{Generalization evaluation:}
+    \begin{enumerate}
+        \item Generate training set $\mathcal{T}_{train}$ from $t = \sin(2\pi x) + \varepsilon$.
+        \item Generate separate test set $\mathcal{T}_{test}$ from same process.
+        \item For each $M$, fit $\w^*$ on $\mathcal{T}_{train}$, evaluate RMS error on $\mathcal{T}_{test}$:
+        \begin{myequation}
+        E_{RMS}(\w^*, \mathcal{T}_{test}) = \sqrt{\frac{1}{|\mathcal{T}_{test}|}\sum_{(x_i,t_i)\in\mathcal{T}_{test}}\left(\sum_{j=0}^Mw^*_jx_{i}^j-t_i\right)^2}
+        \end{myequation}
+    \end{enumerate}
+    \item \textbf{Error trends:}
+    \begin{itemize}
+        \item Training error decreases monotonically with $M$.
+        \item Test error decreases initially (capturing signal), then increases sharply (overfitting).
+    \end{itemize}
+\end{itemize}
+\end{myexample}
+
+\section*{Regularization in Linear Models}
+
+\begin{itemize}
+    \item Overfitting depends on interplay between model complexity and data quantity.
+    \item Larger training sets allow higher model complexity.
+    \item When data is limited, \alert{regularization} explicitly controls complexity.
+\end{itemize}
+
+\subsection*{Regularization: Controlling Complexity via the Cost Function}
+
+\begin{itemize}
+    \item Total objective:
+    \begin{myequation}
+    E_{total}(\ow) = E_D(\ow) + \lambda E_W(\ow)
+    \end{myequation}
+    \item $E_D(\ow)$: empirical risk (data fit term).
+    \item $E_W(\ow)$: \alert{regularization term} (penalizes extreme parameter values).
+    \item $\lambda$: \alert{regularization coefficient} controlling trade-off.
+    \begin{itemize}
+        \item Small $\lambda$ $\Rightarrow$ prioritize data fit (risk overfitting).
+        \item Large $\lambda$ $\Rightarrow$ prioritize small weights (risk underfitting).
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Ridge Regression: Quadratic Regularization}
+
+\begin{itemize}
+    \item For quadratic loss, common regularization:
+    \begin{myequation}
+    E_W(\ow) = \frac{1}{2}\ow^T\ow = \frac{1}{2}\sum_{i=1}^{m}w_i^2 + \frac{b^2}{2}
+    \end{myequation}
+    \item Total loss:
+    \begin{myequation}
+    E(\w) = \frac{1}{2}\sum_{i=1}^n r_i(\w)^2 + \frac{\lambda}{2}\w^T\w = \frac{1}{2}\boldsymbol{r}(\w)^{T}\boldsymbol{r}(\w) + \frac{\lambda}{2}\w^{T}\w
+    \end{myequation}
+    \item Residual vector: $\boldsymbol{r}(\ow) = \oX\ow - \t$.
+    \item \alert{Ridge regression} (Tikhonov regularization) closed-form solution:
+    \begin{myequation}
+    \ow = (\lambda\I + \oX^T\oX)^{-1}\oX^T\t
+    \end{myequation}
+    \item $\lambda\I$ strengthens diagonal, ensures well-conditioned matrix even with correlated features.
+\end{itemize}
+
+\subsection*{Generalized Regularization and Lasso}
+
+\begin{itemize}
+    \item General form with power $q$:
+    \begin{myequation}
+    E(\ow) = \frac{1}{2}\sum_{i=1}^n r_i(\ow)^2 + \frac{\lambda}{2}\sum_{j=1}^{d} |w_j|^q + \frac{|b|^q}{2}
+    \end{myequation}
+    \item $q=1$: \alert{Lasso} (Least Absolute Shrinkage and Selection Operator).
+    \item Lasso favors \textbf{sparse models} (many weights exactly zero).
+    \item Performs automatic feature selection.
+\end{itemize}
+
+\subsection*{Geometric Comparison: Ridge vs. Lasso Level Curves}
+
+\begin{itemize}
+    \item Minimization equivalent to constrained optimization: minimize $E_D(\ow)$ subject to $E_W(\ow) \leq \eta$, with $\eta \propto 1/\lambda$.
+    \item \textbf{Ridge ($q=2$):} Constraint $\sum w_j^2 \leq \eta$ defines a \alert{hypersphere} (circle in 2D). Smooth boundary $\Rightarrow$ weights shrink toward zero but rarely become exactly zero.
+    \item \textbf{Lasso ($q=1$):} Constraint $\sum |w_j| \leq \eta$ defines a \alert{hyperdiamond} (diamond in 2D). Sharp corners on axes $\Rightarrow$ elliptical error contours likely hit corners, setting other weights to exactly zero.
+    \item Lasso's "vertex-hitting" property produces sparse models.
+\end{itemize}
+
+\begin{myexample}
+\textbf{Ridge Regularization in Polynomial Regression:}
+\begin{itemize}
+    \item Objective:
+    \begin{myequation}
+    E(\ow) = \frac{1}{2}\sum_{i=1}^n r_i(\ow)^2 + \frac{\lambda}{2}||\ow||^2
+    \end{myequation}
+    \item Penalty term shrinks coefficients, preventing high-frequency oscillations.
+    \item \textbf{Effect of $\lambda$:}
+    \begin{itemize}
+        \item Small $\lambda$: negligible penalty $\Rightarrow$ low training error, high test error (overfitting).
+        \item Large $\lambda$: penalty dominates $\Rightarrow$ oversmoothed, high error on both sets (underfitting).
+        \item Intermediate $\lambda$: balanced $\Rightarrow$ minimal test error (best generalization).
+    \end{itemize}
+\end{itemize}
+
+\textbf{Multi-Dataset Analysis (Bias-Variance):}
+\begin{itemize}
+    \item $L=100$ training sets, each $n=25$, target $f(x)=\sin(2\pi x)$, $m=24$ Gaussian basis functions (prone to overfitting).
+    \item For each $\lambda$, fit $h^{(i)}(x)$ on each dataset.
+    \item \textbf{High $\lambda$ (high regularization):} Low variance (models similar), high bias (average poor fit).
+    \item \textbf{Low $\lambda$ (low regularization):} High variance (models very different), low bias (average close to true function).
+    \item \textbf{Intermediate $\lambda$:} Optimal bias-variance trade-off.
+    \item Total error = bias$^2$ + variance; optimal $\lambda$ at minimum of this sum.
+\end{itemize}
+\end{myexample}
+
+\subsection*{Probabilistic model for regression}
+
+\begin{itemize}
+    \item Assume joint distribution $p(\x, t) = p_M(\x)p_C(t|\x)$, with $p_M(\x)$ uniform.
+    \item Observed target $t$ normally distributed around prediction $h(\x; \ow)$ with variance $\sigma^2$ (precision $\beta = 1/\sigma^2$):
+    \begin{myequation}
+    p(t|\x; \ow, \beta) = \mathcal{N}(t | h(\x; \ow), \beta^{-1})
+    \end{myequation}
+    \item $h(\x; \ow)$ is the mean, $\beta$ is certainty (higher $\beta$ $\Rightarrow$ tighter clustering).
+\end{itemize}
+
+\subsection*{Maximum Likelihood Estimation (MLE)}
+
+\begin{itemize}
+    \item Likelihood (i.i.d. observations):
+    \begin{myequation}
+    L(\ow, \beta | \X, \t) = \prod_{i=1}^n \mathcal{N}(t_i | h(\x_i; \ow), \beta^{-1})
+    \end{myequation}
+    \item Log-likelihood:
+    \begin{myalign}
+    l(\ow, \beta | \X, \t) &= -\frac{\beta}{2} \sum_{i=1}^n r_i(\ow)^2 + \frac{n}{2} \log \beta + c
+    \end{myalign}
+    \item Maximizing wrt $\ow$ $\equiv$ minimizing sum of squared errors (Least Squares).
+    \item Maximizing wrt $\beta$:
+    \begin{myequation}
+    \beta_{ML}^{-1} = \frac{1}{n} \sum_{i=1}^n r_i(\ow)^2
+    \end{myequation}
+    \item Predictive distribution (point estimate):
+    \begin{myequation}
+    p(t | \x; \ow_{ML}, \beta_{ML}) = \mathcal{N}(t | h(\x; \ow_{ML}), \beta_{ML}^{-1})
+    \end{myequation}
+\end{itemize}
+
+\subsection*{The Bayesian Approach and Conjugate Priors}
+
+\begin{itemize}
+    \item Treat parameters $\ow$ as random variables with \alert{prior distribution}.
+    \item Zero-mean Gaussian prior with precision $\alpha$:
+    \begin{myequation}
+    p(\ow | \alpha) = \mathcal{N}(\ow; \Zero, \alpha^{-1}\I) = \left(\frac{\alpha}{2\pi}\right)^{\frac{m}{2}} e^{-\frac{\alpha}{2}\ow^T\ow}
+    \end{myequation}
+    \item Gaussian is \textbf{conjugate prior} for mean of Gaussian likelihood $\Rightarrow$ posterior also Gaussian.
+    \item For general prior $p(\ow) = \mathcal{N}(\ow; \Vbold{m}_0, \Sigma_0)$, posterior:
+    \begin{myalign}
+    \Sigma_p &= (\Sigma_0^{-1} + \beta \oX^T \oX)^{-1} \\
+    \Vbold{m}_p &= \Sigma_p (\Sigma_0^{-1} \Vbold{m}_0 + \beta \oX^T \t)
+    \end{myalign}
+    \item For zero-mean prior ($\Vbold{m}_0 = \Zero$, $\Sigma_0^{-1} = \alpha\I$):
+    \begin{myalign}
+    \Sigma_p &= (\alpha\I + \beta\oX^T \oX)^{-1} \\
+    \Vbold{m}_p &= \beta \Sigma_p \oX^T \t
+    \end{myalign}
+    \item Posterior mean $\Vbold{m}_p$ = Ridge Regression solution.
+    \item As $\alpha \to 0$, $\Vbold{m}_p \to \ow_{ML}$.
+\end{itemize}
+
+\subsection*{Sequential Bayesian Learning}
+
+\begin{itemize}
+    \item Posterior after observing dataset can serve as prior for next dataset.
+    \item For independent training sets $\mathcal{T}_{1}, \ldots, \mathcal{T}_{n}$:
+    \begin{myalign}
+    p(\ow| \mathcal{T}_{1}) &\propto p(\mathcal{T}_{1}|\ow)p(\ow) \\
+    p(\ow| \mathcal{T}_{1}, \ldots, \mathcal{T}_{k}) &\propto p(\mathcal{T}_{k}|\ow) p(\ow| \mathcal{T}_{1}, \ldots, \mathcal{T}_{k-1})
+    \end{myalign}
+    \item Enables online learning from data streams.
+    \item Posterior covariance update:
+    \begin{myequation}
+    \Sigma_{n+1}^{-1} = \Sigma_n^{-1} + \beta \ox_{n+1}\ox_{n+1}^T
+    \end{myequation}
+    \item Each observation adds positive semi-definite term $\Rightarrow$ precision increases, covariance decreases.
+    \item Using Sherman-Morrison formula:
+    \begin{myequation}
+    \Sigma_{n+1} = \Sigma_n - \frac{\Sigma_n \oX \oX^T \Sigma_n}{\beta^{-1} + \oX^T \Sigma_n \oX}
+    \end{myequation}
+    \item $\Delta \Sigma = \Sigma_n - \Sigma_{n+1}$ positive semi-definite $\Rightarrow$ uncertainty ellipsoid only shrinks.
+\end{itemize}
+
+\begin{myexample}
+\textbf{Sequential Bayesian Learning for Simple Linear Regression:}
+\begin{itemize}
+    \item Model: $h(x; b, w_{1}) = w_{1}x + b$, true parameters $a_0 = -0.3$, $a_1 = 0.5$, noise $\sigma=0.2$.
+    \item Prior: bivariate Gaussian centered at origin, $\VSigma = 0.04\I$.
+    \item \textbf{After 1 point:} Posterior elongated into stripe; sampled lines pass near first observation.
+    \item \textbf{After 2 points:} Posterior concentrated at intersection of constraints; lines pass near both points.
+    \item \textbf{After many points:} Posterior highly concentrated around true parameters; sampled lines nearly indistinguishable.
+    \item Visual evolution shows transition from high uncertainty (broad prior) to high certainty (sharp posterior).
+\end{itemize}
+\end{myexample}
+
+\subsubsection*{Maximum a Posteriori (MAP)}
+
+\begin{itemize}
+    \item MAP estimate = mode of posterior distribution.
+    \item Log-posterior (ignoring evidence constant):
+    \begin{myequation}
+    \log p(\ow|\X, \t; \alpha, \beta) = \log p(\t | \X, \ow; \beta) + \log p(\ow; \alpha) + \text{const}
+    \end{myequation}
+    \item Maximization equivalent to minimization:
+    \begin{myequation}
+    \ow_{MAP} = \argmin{\ow} \left( -\log p(\t|\X,\ow;\beta) - \log p(\ow; \alpha) \right)
+    \end{myequation}
+    \item For Gaussian likelihood and prior:
+    \begin{myalign}
+    \log p(\t|\X,\ow;\beta) &= \frac{n}{2} \log \frac{\beta}{2\pi} - \frac{\beta}{2} \sum_{i=1}^n r_i(\ow)^2 \\
+    \log p(\ow;\alpha) &= \frac{d+1}{2} \log \frac{\alpha}{2\pi} - \frac{\alpha}{2} \sum_{j=0}^d \overline{w}_j^2
+    \end{myalign}
+    \item Dropping constants, maximizing posterior $\equiv$ minimizing:
+    \begin{myequation}
+    \frac{\beta}{2} \sum_{i=1}^n r_i(\ow)^2 + \frac{\alpha}{2} \sum_{j=0}^d \overline{w}_j^2 \propto \frac{1}{2} \sum_{i=1}^n r_i(\w)^2 + \frac{\alpha}{2\beta} \sum_{j=0}^d \overline{w}_j^2
+    \end{myequation}
+    \item This is \alert{Ridge Regression} with $\lambda = \frac{\alpha}{\beta}$.
+    \item Regularization = consequence of Gaussian prior on parameters.
+    \item Predictive distribution with MAP:
+    \begin{myequation}
+    p(t|\x, \ow_{MAP}; \beta_{MAP}) = \mathcal{N}(t|h(\x;\ow_{MAP}),\beta_{MAP}^{-1})
+    \end{myequation}
+    \item $\beta_{MAP}$ equals $\beta_{ML}$ (noise variance estimate).
+\end{itemize}
+
+\subsection*{Approaches to prediction in linear regression}
+
+\subsubsection*{Classical (Frequentist)}
+\begin{itemize}
+    \item Point estimate $\ow_{LS}$ by minimizing quadratic cost (or maximizing likelihood under Gaussian noise).
+    \item Regularization can be added.
+    \item Prediction: $t=\ox^T\ow_{LS}=\x^T\w_{LS}+b_{LS}$.
+\end{itemize}
+
+\subsubsection*{Bayesian point estimation (MAP)}
+\begin{itemize}
+    \item Derive posterior $p(\ow|\X,\t; \alpha,\beta)$, compute mode $\ow_{MAP}$.
+    \item Equivalent to classical with $\lambda=\alpha/\beta$.
+    \item Prediction: Gaussian $\mathcal{N}(t|\ox^T\ow_{MAP}, \beta)$ with mean $\ox^{T}\ow_{MAP}$ and variance $\beta^{-1}$.
+    \item Distribution built from assumed noise, not directly from posterior.
+\end{itemize}
+
+\subsubsection*{Fully Bayesian}
+\begin{itemize}
+    \item Derive \alert{predictive distribution} $p(t|\x, \X, \t)$ by marginalizing over $\ow$:
+    \begin{myequation}
+    p(t|\x, \t,\X;\alpha,\beta)=\int p(t|\x, \ow;\beta)p(\ow|\t,\X;\alpha,\beta)d\ow
+    \end{myequation}
+    \item Convolution of two Gaussians yields Gaussian predictive distribution:
+    \begin{myequation}
+    p(t|\x, \X,\t;\alpha,\beta)=\mathcal{N}(t;m(\x), \sigma^2(\x))
+    \end{myequation}
+    \item Mean:
+    \begin{myequation}
+    m(\x)=\beta\ox^{T}\Sigma\oX^{T}\t
+    \end{myequation}
+    \item Variance:
+    \begin{myequation}
+    \sigma^{2}(\x)=\underbrace{\frac{1}{\beta}}_{\text{aleatoric (noise)}} + \underbrace{\ox^{T}\Sigma\ox}_{\text{epistemic (parameter uncertainty)}}
+    \end{myequation}
+    \item $\Sigma=(\alpha\I+\beta\oX^{T}\oX)^{-1}$.
+    \item Epistemic term shrinks near training points (where parameters well-constrained).
+    \item Variance larger in "data-void" regions.
+\end{itemize}
+
+\begin{myexample}
+\textbf{Evolution of Bayesian Predictive Distribution:}
+\begin{itemize}
+    \item Model: $m=9$ Gaussian basis functions (complex, prone to overfitting in frequentist setting).
+    \item Training sets of size $n=1,2,4,25$ from $f(x)=\sin(2\pi x)$ with noise.
+    \item \textbf{$n=1$:} Mean forced through single point, nearly flat elsewhere; variance very wide; sampled curves wildly different.
+    \item \textbf{$n=2$:} Mean connects two points; variance still large in gaps; sampled curves more aligned but still diverse.
+    \item \textbf{$n=4$:} S-shape emerges; variance "pinches" at training points, widens between them; sampled curves consistent in oscillation.
+    \item \textbf{$n=25$:} Mean excellent approximation; variance collapsed and nearly uniform; sampled curves almost indistinguishable.
+    \item Bayesian framework provides "margin of error" that naturally shrinks with more data.
+\end{itemize}
+\end{myexample}
+
+\subsection*{Fully Bayesian Regression and Hyperparameter Marginalization}
+
+\begin{itemize}
+    \item Ideally marginalize over hyperparameters $\alpha,\beta$ with hyperpriors:
+    \begin{myequation}
+    p(t|\x, \X, \t)=\int p(t|\x, \ow;\beta)p(\ow|\X, \t; \alpha,\beta)p(\alpha,\beta|\X, \t)\; d\ow\; d\alpha\; d\beta
+    \end{myequation}
+    \item Non-linear dependence of weight posterior on $\alpha,\beta$ makes integral analytically intractable.
+    \item Approximation methods needed.
+\end{itemize}
+
+\subsubsection*{Approximation Methods}
+\begin{description}
+    \item[Laplace Approximation:] Find mode of hyperparameter posterior, second-order Taylor expansion around mode $\Rightarrow$ Gaussian approximation.
+    \begin{myequation}
+    \ln f(\Vbold{z}) \approx \ln f(\Vbold{z}_0) - \frac{1}{2}(\Vbold{z} - \Vbold{z}_0)^T \Vbold{A} (\Vbold{z} - \Vbold{z}_0)
+    \end{myequation}
+    where $\Vbold{A}$ is Hessian of negative log-probability.
+    
+    \item[Variational Inference (VI):] Define simpler family $q(\ow, \alpha, \beta)$ (often with mean-field independence assumption), minimize KL divergence between $q$ and true posterior.
+    
+    \item[Markov Chain Monte Carlo (MCMC):] Draw samples $\{\ow^{(l)}, \alpha^{(l)}, \beta^{(l)}\}_{l=1}^L$ from posterior via Markov chain. Approximate predictive:
+    \begin{myequation}
+    p(t|\x, \X, \t) \approx \frac{1}{L} \sum_{l=1}^L p(t|\x, \ow^{(l)}, \beta^{(l)})
+    \end{myequation}
+    As $L \to \infty$, converges to true integral.
+\end{description}
+Choice depends on dataset size and required precision.
+
+\subsection*{The Evidence Framework (Empirical Bayes)}
+
+\begin{itemize}
+    \item Treat $\alpha, \beta$ as quantities to be inferred from data by maximizing \alert{marginal likelihood} (evidence):
+    \begin{myequation}
+    p(\t|\alpha, \beta) = \int p(\t|\ow, \beta)\, p(\ow|\alpha)\, d\ow
+    \end{myequation}
+    \item Averages over all possible $\ow$ weighted by prior $\Rightarrow$ evaluates model class, not just one fitted model.
+    \item For Gaussian likelihood and prior, integral analytic. Log-evidence:
+    \begin{myequation}
+    \log p(\t|\alpha, \beta)
+    = \frac{m}{2}\log \alpha
+    + \frac{n}{2}\log \beta
+    - E(\Vbold{m}_p)
+    - \frac{1}{2}\log |\Vbold{A}|
+    - \frac{n}{2}\log(2\pi)
+    \end{myequation}
+    where:
+    \begin{itemize}
+        \item $\Vbold{A} = \Sigma^{-1} = \alpha\I + \beta\oX^T\oX$ (Hessian, inverse posterior covariance).
+        \item $E(\Vbold{m}_p) = \frac{\beta}{2}\|\t - \oX\Vbold{m}_p\|^2 + \frac{\alpha}{2}\Vbold{m}_p^T\Vbold{m}_p$ (regularized error at posterior mean).
+    \end{itemize}
+    \item First two terms favor large $\alpha,\beta$; remaining terms penalize complexity/poor fit.
+    \item Maximizing log-evidence automatically balances data fit and model complexity.
+\end{itemize}
+
+\subsubsection*{Effective Number of Parameters $\gamma$}
+\begin{itemize}
+    \item Let $\eta_i$ be eigenvalues of $\beta\oX^T\oX$.
+    \item For each direction $i$, ratio $\lambda_i = \frac{\eta_i}{\alpha + \eta_i}$:
+    \begin{itemize}
+        \item $\eta_i \gg \alpha$: data dominates, $\lambda_i \approx 1$ (parameter determined by data).
+        \item $\eta_i \ll \alpha$: prior dominates, $\lambda_i \approx 0$ (parameter shrunk toward zero).
+    \end{itemize}
+    \item Effective number of parameters:
+    \begin{myequation}
+    \gamma = \sum_{i=1}^m \frac{\eta_i}{\alpha + \eta_i}
+    \end{myequation}
+    \item $\gamma \approx m$ $\Rightarrow$ data determines nearly all parameters.
+    \item $\gamma \ll m$ $\Rightarrow$ most parameters constrained by prior (effective degrees of freedom $\ll m$).
+    \item Spring analogy: each weight pulled by prior spring (stiffness $\alpha$) and data spring (stiffness $\eta_i$). $\gamma$ counts weights significantly pulled by data.
+\end{itemize}
+
+\subsubsection*{Estimation of Optimal $\alpha$ and $\beta$}
+\begin{itemize}
+    \item Setting derivatives of log-evidence to zero gives re-estimation formulas:
+    \begin{myalign}
+    \alpha &= \frac{\gamma}{\Vbold{m}_p^T\Vbold{m}_p} \\
+    \frac{1}{\beta} &= \frac{1}{n - \gamma} \sum_{i=1}^n (t_i - \Vbold{m}_p^T \ox_i)^2
+    \end{myalign}
+    \item Large posterior weights $\Rightarrow$ smaller $\alpha$ (weaker regularization).
+    \item Small posterior weights $\Rightarrow$ larger $\alpha$ (stronger regularization).
+    \item $\beta$ estimate corrected by effective degrees of freedom $n-\gamma$.
+    \item $\Vbold{m}_p$ and $\gamma$ depend on $\alpha,\beta$ $\Rightarrow$ solve iteratively:
+    \begin{enumerate}
+        \item Initialize $\alpha,\beta$.
+        \item Compute $\Vbold{m}_p$ and $\gamma$.
+        \item Update $\alpha,\beta$ using formulas.
+        \item Repeat until convergence.
+    \end{enumerate}
+    \item Converges quickly, provides automated complexity control.
+    \item If data noisy (small $\beta$), evidence maximized by increasing $\alpha$ (shrinkage).
+    \item If data clean, $\gamma \to m$, model uses full expressive power.
+    \item Relies only on training data $\Rightarrow$ no validation set or cross-validation needed.
+\end{itemize}
+
+%\clearpage
+%\pagestyle{empty}
+%\end{document}

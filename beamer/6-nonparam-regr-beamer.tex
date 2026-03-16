@@ -1,0 +1,981 @@
+%!TEX program = xelatex
+%!TEX root = ../all_beamer.tex
+
+% ============================================================
+%  Nonparametric Regression -- Beamer Presentation
+%  Style modelled on the SLT beamer (ml-slt-beamer.pdf)
+% ============================================================
+
+%\documentclass[aspectratio=169]{beamer}
+%
+%\usetheme{default}
+%\usecolortheme{default}
+%
+%% ---- Colours --------------------------------------------
+%\definecolor{HeaderBlue}{RGB}{35,55,85}
+%\definecolor{AlertRed}{RGB}{140,30,30}
+%\definecolor{AlertRed}{RGB}{240,220,220}
+%\definecolor{GreenBlock}{RGB}{40,110,60}
+%\definecolor{GreenLightBlock}{RGB}{210,235,215}
+%\definecolor{TitleGold}{RGB}{220,180,60}
+%
+%% ---- Beamer colours -------------------------------------
+%\setbeamercolor{frametitle}{bg=HeaderBlue,fg=white}
+%\setbeamercolor{title}{fg=white}
+%\setbeamercolor{author}{fg=white}
+%\setbeamercolor{date}{fg=white}
+%\setbeamercolor{institute}{fg=white}
+%\setbeamercolor{structure}{fg=HeaderBlue}
+%\setbeamercolor{section in head/foot}{bg=HeaderBlue,fg=white}
+%\setbeamercolor{footline}{bg=HeaderBlue,fg=white}
+%
+%% ---- Frame title ----------------------------------------
+%\setbeamertemplate{frametitle}{%
+%  \nointerlineskip
+%  \begin{beamercolorbox}[wd=\paperwidth,ht=2.4ex,dp=1.2ex,leftskip=0.5cm]{frametitle}%
+%    \usebeamerfont{frametitle}\insertframetitle
+%    \ifx\insertframesubtitle\empty\else
+%      \quad{\color{TitleGold}\small\textit{\insertframesubtitle}}%
+%    \fi
+%  \end{beamercolorbox}%
+%}
+%
+%% ---- Navigation bar -------------------------------------
+%\setbeamertemplate{headline}{%
+%  \begin{beamercolorbox}[wd=\paperwidth,ht=2.5ex,dp=1.125ex]{section in head/foot}%
+%    \insertsectionnavigationhorizontal{\paperwidth}{}{}%
+%  \end{beamercolorbox}%
+%}
+%
+%% ---- Footline -------------------------------------------
+%\setbeamertemplate{footline}{%
+%  \begin{beamercolorbox}[wd=\paperwidth,ht=2.25ex,dp=1ex,
+%      leftskip=0.5cm,rightskip=0.5cm]{footline}%
+%    \footnotesize
+%    Giorgio Gambosi (Tor Vergata)
+%    \hfill Nonparametric Regression \hfill
+%    A.Y.\ 2025--2026 \quad \insertframenumber/\inserttotalframenumber
+%  \end{beamercolorbox}%
+%}
+%
+%\setbeamertemplate{navigation symbols}{}
+%\setbeamertemplate{itemize items}[circle]
+%\setbeamertemplate{enumerate items}[circle]
+%
+%% ---- Fonts ----------------------------------------------
+%\usepackage[T1]{fontenc}
+%\usepackage[utf8]{inputenc}
+%\usefonttheme{professionalfonts}
+%\input{header-beamer.tex}
+% ---------- Packages ----------
+%\usepackage{amsmath, amssymb, mathtools}
+%\usepackage{booktabs}
+%\usepackage{tikz}
+%\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+%\usepackage{xcolor}
+%\usepackage{microtype}
+%\usepackage{graphicx}
+%% indicator function via amsmath
+%
+%% ---------- Macros ----------
+%
+%\newcommand{\calX}{\mathcal{X}}
+%\newcommand{\calY}{\mathcal{Y}}
+%\newcommand{\calH}{\mathcal{H}}
+%\newcommand{\calT}{\mathcal{T}}
+%\newcommand{\calA}{\mathcal{A}}
+%\newcommand{\calR}{\mathcal{R}}
+%\newcommand{\barR}{\overline{\mathcal{R}}}
+%\newcommand{\pM}{p_M}
+%\newcommand{\pC}{p_C}
+%\newcommand{\indicator}[1]{\mathbf{1}\!\left[#1\right]}
+%\newcommand{\argmax}{\operatorname*{arg\,max}}
+%\newcommand{\argmin}{\operatorname*{arg\,min}}
+
+% ---------- Title ----------
+\title[Nonparametric regression]{Nonparametric regression}
+%\subtitle{Course of Machine Learning}
+%\author{Giorgio Gambosi}
+%\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+%\date{A.Y. 2025–2026}
+
+% ---- Math -----------------------------------------------
+%\usepackage{amsmath,amsfonts,amssymb,mathtools}
+%\usepackage{bm}
+%\usepackage{upgreek}
+%
+%% ---- Graphics -------------------------------------------
+%\usepackage{graphicx}
+%
+%% ---- tcolorbox ------------------------------------------
+%\usepackage[skins]{tcolorbox}
+
+%\newtcolorbox{block}[1]{%
+%  enhanced, colback=BlockBg, colframe=MainBlue,
+%  fonttitle=\bfseries\small, title=#1,
+%  left=1pt, right=4pt, top=1pt, bottom=1pt}
+
+%\newtcolorbox{alertblock}[1]{%
+%  enhanced, colback=AlertRed, colframe=AlertRed,
+%  fonttitle=\bfseries\small, title=#1,
+%  left=4pt, right=4pt, top=2pt, bottom=2pt}
+
+%\newtcolorbox{greenblock}[1]{%
+%  enhanced, colback=GreenLightBlock, colframe=GreenBlock,
+%  fonttitle=\bfseries\small, title=#1,
+%  left=4pt, right=4pt, top=2pt, bottom=2pt}
+
+% ---- Math macros (names that avoid LaTeX conflicts) -----
+
+%\newcommand{\Ii}{\mathbf{I}}
+%\newcommand{\bZero}{\mathbf{0}}
+%\newcommand{\bX}{\mathbf{X}}
+%\newcommand{\bZ}{\mathbf{Z}}
+%\newcommand{\btt}{\mathbf{t}}
+%\newcommand{\bS}{\mathbf{S}}
+%\newcommand{\bx}{\mathbf{x}}
+%\newcommand{\bz}{\mathbf{z}}
+%\newcommand{\bw}{\mathbf{w}}
+%\newcommand{\ox}{\overline{\mathbf{x}}}
+%\newcommand{\ow}{\overline{\mathbf{w}}}
+%\newcommand{\oX}{\overline{\mathbf{X}}}
+%\newcommand{\bPsi}{\boldsymbol{\Psi}}
+%\newcommand{\halert}[1]{{\color{AlertRed}\textbf{#1}}}
+
+% ---- Title slide template --------------------------------
+%\setbeamertemplate{title page}{%
+%  \begin{beamercolorbox}[wd=\paperwidth,ht=\paperheight]{HeaderBlue}%
+%    \vspace{2cm}
+%    \begin{center}
+%      {\color{white}\Large\bfseries\inserttitle}\\[0.6em]
+%      {\color{TitleGold}\large\insertsubtitle}\\[1.8em]
+%      {\color{white}\normalsize\insertauthor}\\[0.4em]
+%      {\color{white}\small\insertinstitute}\\[1em]
+%      {\color{white}\small\insertdate}
+%    \end{center}
+%  \end{beamercolorbox}%
+%}
+%
+%\title{Nonparametric Regression}
+%\subtitle{Course of Machine Learning}
+%\author{Giorgio Gambosi}
+%\institute{Master's Degree in Computer Science\\[2pt]%
+%           University of Rome ``Tor Vergata''}
+%\date{A.Y.\ 2025--2026}
+
+% ============================================================
+%\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+% ============================================================
+\section{From Bayesian Regression to Kernel Methods}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Fully Bayesian Regression}{Recap}
+  \begin{block}{Bayesian prediction framework}
+    No single optimal parameter $\overline{\mathbf{w}}^*$ is identified.
+    The \halert{predictive distribution} $p(t|\bx)$ is derived directly:
+    \[
+      p(t|\bx,\bX,\btt,\alpha,\beta)=\mathcal{N}\!\left(t\mid m(\bx),\,\sigma^2(\bx)\right)
+    \]
+    with
+    \[
+      m(\bx)=\beta\,\ox^T\bS\,\oX^T\btt,\qquad
+      \sigma^2(\bx)=\tfrac{1}{\beta}+\ox^T\bS\,\ox
+    \]
+    and $\bS=(\alpha\Ii+\beta\oX^T\oX)^{-1}\in\Real^{(d+1)\times(d+1)}$.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Prediction is the expectation: $h(\bx)=m(\bx)$.
+    \item No explicit parameter optimisation -- sum over all possible models.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Prediction as a Weighted Sum of Targets}{Deriving the equivalent kernel}
+  \begin{itemize}
+    \item Since $\oX^T\btt=\sum_{i=1}^n\ox_i t_i$, the prediction becomes:
+      \[
+        h(\bx)=\beta\,\ox^T\bS\sum_{i=1}^n\ox_i t_i
+              =\sum_{i=1}^n\underbrace{\beta\,\ox^T\bS\ox_i}_{\kappa(\bx,\bx_i)}\,t_i
+      \]
+    \item Prediction is a \halert{weighted sum of all target values} $t_i$.
+    \item Weights depend on both $\bx_i$ (training) and $\bx$ (query).
+  \end{itemize}
+
+  \medskip
+  \begin{block}{Equivalent kernel}
+    \[
+      \kappa(\bx_1,\bx_2)=\beta\,\ox_1^T\bS\ox_2
+      \;\Longrightarrow\;
+      h(\bx)=\sum_{i=1}^n\kappa(\bx,\bx_i)\,t_i
+    \]
+    \begin{itemize}
+      \item $\kappa(\bx_1,\bx_2)$ measures the \emph{dependence} between targets at $\bx_1$ and $\bx_2$.
+      \item With basis functions $\Vphi$: $\kappa(\bx_1,\bx_2)=\beta\,\Vphi(\bx_1)^T\bS\,\Vphi(\bx_2)$.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Equivalent Kernel -- Localisation Property}{}
+  \begin{columns}
+    \column{0.50\textwidth}
+      \begin{itemize}
+        \item $\kappa(\bx,\bx_i)$ gives higher weight to training points $\bx_i$ \halert{near} $\bx$.
+        \item Natural localisation: distant points receive small weight.
+        \item Left: $\kappa(x,x_i)$ vs.\ $x$ for three values of $x_i$.
+        \item Right: surface plot on the $(x,x_i)$ plane.
+      \end{itemize}
+    \column{0.48\textwidth}
+      \begin{center}
+        \includegraphics[width=\linewidth]{figures/equivkernel.pdf}
+      \end{center}
+  \end{columns}
+  \smallskip
+  \begin{center}
+    \small\textit{Equivalent kernel for Gaussian basis functions, one input feature.}
+  \end{center}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Equivalent Kernel -- Different Basis Functions}{}
+  \begin{itemize}
+    \item The localisation property holds for \emph{any} choice of basis functions $\Vphi$.
+    \item Below: $\kappa(0,x)$ for polynomial (left) and Gaussian (right) basis functions.
+  \end{itemize}
+  \begin{center}
+    \begin{tabular}{ccc}
+      \includegraphics[width=0.38\linewidth]{figs/Figure3-11a.pdf} &
+      \hspace{3mm} &
+      \includegraphics[width=0.38\linewidth]{figs/Figure3-11b.pdf}
+    \end{tabular}
+  \end{center}
+  \begin{itemize}
+    \item Key insight: instead of designing $\Vphi$ first, define a \halert{localised kernel} directly
+          on $\Real^d\times\Real^d$ and use it for prediction.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Kernel Regression}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Kernel Regression}{Setup and goal}
+  \begin{block}{Objective}
+    Predict $t$ for any query $\bx$ by weighting training targets
+    according to their \halert{proximity} to $\bx$, controlled by a kernel function.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item A \halert{kernel function} $\kappa_h(\bx)$ returns non-negligible values only near $\bZero$.
+    \item $h$ is a bandwidth hyperparameter controlling the locality.
+    \item Regression target: approximate the conditional expectation
+      \[
+        \mathbb{E}[t\mid\bx]=
+        \frac{\displaystyle\int t\,p(\bx,t)\,dt}{\displaystyle\int p(\bx,t)\,dt}
+      \]
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{The Gaussian (RBF) Kernel}{}
+  \begin{block}{Most common kernel choice}
+    \[
+      g(\bx)=e^{-\dfrac{\|\bx\|^2}{2h^2}}
+    \]
+    Plotted below for $d=1$ and several values of $h$.
+  \end{block}
+
+  \begin{center}
+    \includegraphics[width=0.68\linewidth]{figures/gaussian_kernel.png}
+  \end{center}
+  \begin{itemize}
+    \item Larger $h$ $\Rightarrow$ wider kernel, more smoothing.
+    \item Smaller $h$ $\Rightarrow$ narrower kernel, more local prediction.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Nadaraya-Watson Estimator}{Derivation}
+  \begin{itemize}
+    \item Approximate the joint density:
+      $\displaystyle p(\bx,t)\approx\tfrac{1}{n}\sum_{i=1}^n\kappa_h(\bx-\bx_i)\kappa_h(t-t_i)$.
+    \item Assume $\kappa_h$ is non-negative, zero-mean, unit area (a density).
+    \item Then $\int\kappa_h(t-t_i)\,dt=1$ and $\int t\,\kappa_h(t-t_i)\,dt=t_i$.
+  \end{itemize}
+
+  \medskip
+  \begin{block}{Nadaraya-Watson estimator}
+    \[
+      h(\bx)=\frac{\displaystyle\sum_{i=1}^n\kappa_h(\bx-\bx_i)\,t_i}
+                  {\displaystyle\sum_{i=1}^n\kappa_h(\bx-\bx_i)}
+             =\sum_{i=1}^n w_i(\bx)\,t_i
+    \]
+    where $\displaystyle w_i(\bx)=\dfrac{\kappa_h(\bx-\bx_i)}{\sum_{j=1}^n\kappa_h(\bx-\bx_j)}$.
+  \end{block}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Nadaraya-Watson -- Properties and Extension}{}
+  \begin{itemize}
+    \item Prediction is a \halert{normalised linear combination} of all target values.
+    \item Weights $w_i(\bx)$ sum to $1$ for every $\bx$.
+    \item Nearby training points receive the highest weights.
+  \end{itemize}
+
+  \medskip
+  \begin{block}{Extension with basis functions $\Vphi$}
+    \[
+      h(\bx)=\sum_{i=1}^n w_i(\Vphi(\bx))\,t_i,\qquad
+      w_i(\bx)=\frac{\kappa_h(\Vphi(\bx)-\Vphi(\bx_i))}%
+                    {\sum_{j=1}^n\kappa_h(\Vphi(\bx)-\Vphi(\bx_j))}
+    \]
+  \end{block}
+
+  \medskip
+  \begin{alertblock}{Limitation}
+    Prediction is a weighted average of \emph{constants} (the $t_i$).
+    More expressiveness is obtained by fitting a local linear model instead.
+  \end{alertblock}
+\end{frame}
+
+% ============================================================
+\section{Locally Weighted Regression}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Locally Weighted Regression (LOESS)}{Motivation}
+  \begin{block}{Improvement over Nadaraya-Watson}
+    LOESS fits a \halert{local linear model} around each query point $\bx$,
+    replacing the simple weighted average of constants.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Minimise a \halert{locally weighted} loss function.
+    \item Weights $\psi_i(\bx)$ depend on the distance between $\bx$ and $\bx_i$.
+    \item Assuming basis functions $\Vphi$ and $\ox_i=\Vphi(\bx_i)$:
+  \end{itemize}
+
+  \[
+    L(\bx)=\sum_{i=1}^n\psi_i(\bx)\bigl(\ow^T\ox_i-t_i\bigr)^2,
+    \qquad
+    \psi_i(\bx)=\kappa_h(\bx-\bx_i)
+  \]
+
+  \begin{itemize}
+    \item A \emph{different} weighted model is fitted for each query $\bx$.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Locally Weighted Regression -- Solution}{}
+  \begin{block}{Weighted least squares closed-form solution}
+    The minimisation
+    \[
+      \ow^*(\bx)=\arg\min_{\bw}\sum_{i=1}^n\psi_i(\bx)\bigl(\ow^T\ox_i-t_i\bigr)^2
+    \]
+    has the solution
+    \[
+      \ow^*(\bx)=\bigl(\oX^T\bPsi(\bx)\oX\bigr)^{-1}\oX^T\bPsi(\bx)\,\btt
+    \]
+    where $\bPsi(\bx)$ is the $n\times n$ diagonal matrix with $\bPsi(\bx)_{ii}=\psi_i(\bx)$.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Prediction: $h(\bx)=\ow^*(\bx)^T\ox$.
+    \item A \halert{different linear model} is solved for each query point $\bx$.
+    \item More expressive than Nadaraya-Watson.
+    \item Higher computational cost: one linear system per prediction.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Local Logistic Regression}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Local Logistic Regression}{Extension to classification}
+  \begin{block}{Idea}
+    Apply the same local-weighting philosophy to \halert{classification}
+    via a logistic regression model.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Replace the squared loss with a \halert{weighted cross-entropy}:
+      \[
+        L(\bx)=\sum_{i=1}^n\kappa_h(\bx-\bx_i)
+               \bigl[t_i\log p_i-(1-t_i)\log(1-p_i)\bigr]
+      \]
+      with $p_i=\sigma(\ow^T\ox_i)$ (logistic sigmoid).
+    \item The loss is \emph{maximised} with respect to $\bw$.
+    \item Weights $\kappa_h(\bx-\bx_i)$ emphasise training points close to $\bx$.
+    \item Prediction: $h(\bx)=\sigma\bigl(\ow^*(\bx)^T\ox\bigr)$.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Gaussian Processes}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Gaussian Processes}{Motivation}
+  \begin{block}{Key idea}
+    Perform inference \emph{directly in the space of functions}
+    $f:\Real^d\to\Real$, using a \halert{Gaussian process} (GP)
+    as a prior distribution over functions.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item \textbf{Stochastic process}: collection of random variables
+          $\{f(\bx):\bx\in\chi\}$ -- the values taken by $f$ on domain $\chi$.
+    \item \textbf{Gaussian process}: a stochastic process such that for \emph{any} finite
+          subset $\bX=(\bx_1,\ldots,\bx_n)\subset\chi$, the values
+          $f(\bx_1),\ldots,f(\bx_n)$ have a \halert{joint multivariate Gaussian} distribution.
+    \item GPs generalise finite-dimensional multivariate Gaussians to \emph{infinite} dimensions.
+    \item Common case: $\chi=\Real^d$; finite domains also allowed.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Specifying a Gaussian Process}{}
+  A GP is fully specified by two functions defined on $\chi$:
+
+  \medskip
+  \begin{block}{Mean function $m:\chi\to\Real$}
+    $m(\bx_i)=\mathbb{E}[f(\bx_i)]$.
+    Mean vector: $\Vmu_{\bX}=(m(\bx_1),\ldots,m(\bx_n))^T$.
+    Often set to $\bZero$ without loss of generality.
+  \end{block}
+
+  \medskip
+  \begin{block}{Covariance (kernel) function $\kappa:\chi\times\chi\to\Real$}
+    Required to be a \halert{positive definite kernel}.
+    Covariance matrix: $\VSigma_{\bX}[i,j]=\kappa(\bx_i,\bx_j)$.
+    The kernel encodes assumptions about smoothness, length scale, etc.
+  \end{block}
+
+  \medskip
+  Notation: $f(\bx)\sim\mathcal{GP}(m(\bx),\,\kappa(\bx,\bx'))$.
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Positive Definite Kernels}{}
+  \begin{block}{Positive definiteness}
+    $\kappa$ is positive definite if, for any $n$ distinct points
+    $\bx_1,\ldots,\bx_n$ and constants $c_1,\ldots,c_n$ (not all zero):
+    \[
+      \sum_{i=1}^n\sum_{j=1}^n c_i c_j\,\kappa(\bx_i,\bx_j)>0
+    \]
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Equivalently: the \halert{Gram matrix} $G_{\bX}$ has all positive eigenvalues:
+      \[
+        G_{\bX}=\begin{pmatrix}
+          \kappa(\bx_1,\bx_1) & \cdots & \kappa(\bx_1,\bx_n)\\
+          \vdots & \ddots & \vdots\\
+          \kappa(\bx_n,\bx_1) & \cdots & \kappa(\bx_n,\bx_n)
+        \end{pmatrix}
+      \]
+    \item Large collection of valid kernels known; composable by standard rules.
+    \item Kernel shape determines the \emph{character} of sampled functions
+          (smoothness, range, periodicity, \ldots).
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Gaussian Process -- Formal Summary}{}
+  \begin{block}{GP distribution for any finite set}
+    Given $\mathcal{GP}(m,\kappa)$, for any finite $\bX=(\bx_1,\ldots,\bx_n)$:
+    \[
+      p(f(\bx_1),\ldots,f(\bx_n))=\mathcal{N}(f;\,\Vmu_{\bX},\,\VSigma_{\bX})
+    \]
+    where $\Vmu_{\bX}[i]=m(\bx_i)$ and $\VSigma_{\bX}[i,j]=\kappa(\bx_i,\bx_j)=G_{\bX}[i,j]$.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Any marginal of a GP distribution is Gaussian (by definition and marginalization).
+    \item Sampling: draw from $\mathcal{N}(\Vmu_{\bX},G_{\bX})$ to obtain function values at $\bX$.
+    \item The GP is a \halert{distribution over functions}: the kernel encodes their shape.
+    \item Different kernels produce different types of sampled functions.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Kernels and Prior Samples}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{The RBF (Gaussian) Kernel}{}
+  \begin{block}{Radial Basis Function kernel}
+    \[
+      \kappa(\bx_1,\bx_2)=\sigma^2\,e^{-\dfrac{\|\bx_1-\bx_2\|^2}{2\tau^2}}
+    \]
+    \begin{itemize}
+      \item Covariance is high when $\bx_1$ and $\bx_2$ are close.
+      \item $\tau$: length scale.  Larger $\tau$ $\Rightarrow$ smoother functions.
+      \item Most widely used kernel in GP practice.
+    \end{itemize}
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Sampled functions tend to be \halert{smooth}: nearby inputs yield similar outputs.
+    \item Degree of smoothness grows with $\tau$.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Prior Samples -- Large Length Scale $\tau$}{}
+  \begin{center}
+    \includegraphics[width=0.85\linewidth]{figures/rbf1.jpg}
+  \end{center}
+  \begin{itemize}
+    \item RBF kernel with \halert{larger $\tau$}: samples are very smooth.
+    \item Function values change slowly across the domain.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Prior Samples -- Small Length Scale $\tau$}{}
+  \begin{center}
+    \includegraphics[width=0.85\linewidth]{figures/rbf4.jpg}
+  \end{center}
+  \begin{itemize}
+    \item RBF kernel with \halert{smaller $\tau$}: samples oscillate more rapidly.
+    \item Correlation drops quickly with distance (strong locality).
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{GP Posterior -- No Noise}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{GP as a Bayesian Prior}{}
+  \begin{block}{Bayesian perspective}
+    The GP $\mathcal{GP}(m(\bx),\kappa(\bx,\bx'))$ is a \halert{prior} $p(f)$ over functions,
+    defined independently of any observed data.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Prior over function values at training points:
+      $p(f)=\mathcal{N}(f;\,\Vmu_{\bX},\,\VSigma_{\bX})$.
+    \item Observing $(\bx_i,t_i)$ updates the prior to a \halert{posterior}.
+    \item Two main settings:
+      \begin{enumerate}
+        \item Noise-free observations: $t_i=f(\bx_i)$ exactly.
+        \item Noisy observations: $t_i=f(\bx_i)+\varepsilon$.
+      \end{enumerate}
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Prior Samples Before Observations}{}
+  \begin{center}
+    \includegraphics[width=0.83\linewidth]{figures/gp_no_noise.png}
+  \end{center}
+  \begin{itemize}
+    \item \textcolor{red}{Red}: unknown target function $f(x)$ to be approximated.
+    \item \textcolor{blue}{Blue}: functions sampled from the GP prior $p(f)$ (no data observed yet).
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Joint Distribution of Training and Test Values}{No noise}
+  \begin{itemize}
+    \item Assume exact observations: $t_i=f(\bx_i)$.
+    \item Training: $\bX=(\bx_1,\ldots,\bx_m)$, $\btt=(t_1,\ldots,t_m)^T$.
+    \item Test points: $\bZ=(\bz_1,\ldots,\bz_r)$.
+  \end{itemize}
+
+  \medskip
+  \begin{block}{Joint distribution (no noise)}
+    $(f(\bX),f(\bZ))$ is an $(m+r)$-dimensional Gaussian with:
+    \[
+      \VSigma_{(\bX,\bZ)}=
+      \begin{pmatrix}G_{\bX} & G_{\bZ,\bX}^T \\ G_{\bZ,\bX} & G_{\bZ}\end{pmatrix},
+      \qquad
+      G_{\bZ,\bX}[i,j]=\kappa(\bz_i,\bx_j)
+    \]
+  \end{block}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Gaussian Conditional Distributions}{Useful property for GP inference}
+  \begin{block}{Conditionals of a multivariate Gaussian}
+    Let $\bx=(\bx_A,\bx_B)^T\sim\mathcal{N}(\Vmu,\VSigma)$ with
+    $\Vmu=(\Vmu_A,\Vmu_B)^T$ and
+    $\VSigma=\bigl(\begin{smallmatrix}\VSigma_A & \VSigma_{AB}\\\VSigma_{AB}^T & \VSigma_B\end{smallmatrix}\bigr)$.
+    The conditional $p(\bx_A|\bx_B)$ is Gaussian with:
+    \begin{align*}
+      \Vmu_{A|B} &= \Vmu_A + \VSigma_{AB}\VSigma_B^{-1}(\bx_B-\Vmu_B)\\
+      \VSigma_{A|B} &= \VSigma_A - \VSigma_{AB}\VSigma_B^{-1}\VSigma_{AB}^T
+    \end{align*}
+    (symmetrically for $p(\bx_B|\bx_A)$).
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Both marginals and conditionals of a multivariate Gaussian are Gaussian.
+    \item Setting $\bx_A=f(\bZ)$, $\bx_B=f(\bX)$ gives the GP predictive distribution.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Posterior Predictive Distribution -- No Noise}{}
+  \begin{block}{Predictive distribution (no noise)}
+    $p(f(\bZ)\mid\bZ,\bX,f(\bX))=\mathcal{N}(\Vmu_{pr},\,\VSigma_{pr})$ with
+    \begin{align*}
+      \Vmu_{pr} &= \Vmu_{\bZ}+G_{\bZ,\bX}\,G_{\bX}^{-1}(\btt-\Vmu_{\bX})\\
+      \VSigma_{pr} &= G_{\bZ}-G_{\bZ,\bX}\,G_{\bX}^{-1}\,G_{\bZ,\bX}^T
+    \end{align*}
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Under zero-mean prior ($\Vmu_{\bX}=\Vmu_{\bZ}=\bZero$):
+      $\Vmu_{pr}=G_{\bZ,\bX}\,G_{\bX}^{-1}\btt$.
+    \item Non-zero means are incorporated as a final post-correction step.
+    \item The posterior is a \halert{Gaussian}: uncertainty decreases near observed points.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Posterior Samples -- No Noise}{}
+  \begin{center}
+    \includegraphics[width=0.72\linewidth]{figures/gp_post_sample_no_noise.png}
+  \end{center}
+  \begin{itemize}
+    \item \textcolor{red}{Red}: unknown function $f$; values at 5 training points observed.
+    \item \textcolor{blue}{Blue}: samples from the posterior $\mathcal{N}(\Vmu_{pr},\VSigma_{pr})$.
+    \item All sampled functions pass \halert{exactly} through the 5 observed points.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Single-Point Prediction -- No Noise}{}
+  For a single test point $\bz$:
+
+  \begin{block}{Single-point predictive distribution (no noise)}
+    \begin{align*}
+      \mu_{pr} &= G_{\bz,\bX}\,G_{\bX}^{-1}(\btt-\Vmu_{\bX})\\
+      \sigma^2_{pr} &= \kappa(\bz,\bz)-G_{\bz,\bX}\,G_{\bX}^{-1}\,G_{\bz,\bX}^T
+    \end{align*}
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item At each training point $\bx_i$:
+          $\mu(f(\bx_i)\mid\bX,\btt)=t_i$ and $\sigma^2=0$.
+    \item This is exact \halert{interpolation}: all posterior functions agree at $\bx_i$.
+    \item Predictive uncertainty grows away from training points.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Predictive Mean and Variance -- No Noise}{}
+  \begin{center}
+    \includegraphics[width=0.78\linewidth]{figures/gp_predict_no_noise.png}
+  \end{center}
+  \begin{itemize}
+    \item \textcolor{blue}{Blue}: predictive mean $\mu_{pr}(x)$ over the domain.
+    \item Yellow band: $\pm 1$ standard deviation $\sigma_{pr}(x)$.
+    \item Variance is \halert{zero} at the 5 observed points (exact interpolation).
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{GP Regression with Gaussian Noise}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Gaussian Noise Model}{Motivation}
+  \begin{block}{More realistic assumption}
+    Each $t_i$ is a \halert{noisy} observation of $f(\bx_i)$:
+    \[
+      t_i = f(\bx_i)+\varepsilon,\qquad p(\varepsilon)=\mathcal{N}(0,\sigma_f^2)
+    \]
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Noise adds to the diagonal of the covariance matrix:
+      \[
+        \VSigma_{\bX}[i,j]=\kappa(\bx_i,\bx_j)\;(i\neq j),
+        \qquad
+        \VSigma_{\bX}[i,i]=\kappa(\bx_i,\bx_i)+\sigma_f^2
+      \]
+    \item In matrix form: $\hat{\VSigma}_{\bX}=G_{\bX}+\sigma_f^2\Ii$.
+    \item Observations no longer coincide with exact function values.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Noisy GP -- Modified Covariance Matrix}{}
+  \begin{block}{Covariance matrix with Gaussian noise}
+    \[
+      \hat{\VSigma}_{\bX}=G_{\bX}+\sigma_f^2\Ii=
+      \begin{pmatrix}
+        \kappa(\bx_1,\bx_1)+\sigma_f^2 & \kappa(\bx_1,\bx_2) & \cdots & \kappa(\bx_1,\bx_m)\\
+        \kappa(\bx_2,\bx_1) & \kappa(\bx_2,\bx_2)+\sigma_f^2 & \cdots & \kappa(\bx_2,\bx_m)\\
+        \vdots & \vdots & \ddots & \vdots\\
+        \kappa(\bx_m,\bx_1) & \cdots & \cdots & \kappa(\bx_m,\bx_m)+\sigma_f^2
+      \end{pmatrix}
+    \]
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Only \halert{diagonal} entries are modified (noise is i.i.d.\ and independent).
+    \item Off-diagonal entries remain determined solely by $\kappa$.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Noisy GP -- Prior Visualisation}{}
+  \begin{center}
+    \includegraphics[width=0.72\linewidth]{figures/gp_noise.png}
+  \end{center}
+  \begin{itemize}
+    \item Illustration of the effect of Gaussian noise on the GP prior.
+    \item Observations are scattered around the true function value.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Joint Distribution -- Noisy Case}{}
+  \begin{itemize}
+    \item Training: $\bX,\btt$ with $t_i=f(\bx_i)+\varepsilon$.
+    \item Test points: $\bZ=(\bz_1,\ldots,\bz_r)$.
+  \end{itemize}
+
+  \medskip
+  The joint distribution of $(f(\bX),f(\bZ))$ uses the modified covariance:
+  \[
+    \hat{\VSigma}_{(\bX,\bZ)}=
+    \begin{pmatrix}\hat{\VSigma}_{\bX} & G_{\bZ,\bX}^T \\ G_{\bZ,\bX} & G_{\bZ}\end{pmatrix},
+    \qquad
+    \hat{\VSigma}_{\bX}=G_{\bX}+\sigma_f^2\Ii
+  \]
+
+  \medskip
+  \begin{itemize}
+    \item Applying Gaussian conditionals with $G_{\bX}$ replaced by $\hat{\VSigma}_{\bX}$ yields the posterior.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Posterior Predictive Distribution -- Noisy Case}{}
+  \begin{block}{Noisy predictive distribution}
+    $p(f(\bZ)\mid\bZ,\bX,\btt)=\mathcal{N}(\hat{\Vmu}_{pr},\,\hat{\VSigma}_{pr})$ with
+    \begin{align*}
+      \hat{\Vmu}_{pr} &= \Vmu_{\bZ}+G_{\bZ,\bX}\,\hat{\VSigma}_{\bX}^{-1}(\btt-\Vmu_{\bX})\\
+      \hat{\VSigma}_{pr} &= G_{\bZ}-G_{\bZ,\bX}\,\hat{\VSigma}_{\bX}^{-1}\,G_{\bZ,\bX}^T
+    \end{align*}
+    Under zero-mean prior: $\hat{\Vmu}_{pr}=G_{\bZ,\bX}\,\hat{\VSigma}_{\bX}^{-1}\btt$.
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Same form as noise-free case with $G_{\bX}\to\hat{\VSigma}_{\bX}$.
+    \item Posterior variance is now \halert{positive} even at training points.
+    \item Noise introduces \halert{smoothing}: no exact interpolation.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{No Noise vs.\ Noisy Predictive -- Comparison}{}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{No noise}
+        \begin{itemize}
+          \item Inverts $G_{\bX}$.
+          \item Posterior variance is \emph{zero} at training points.
+          \item Exact \halert{interpolation}.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{With Gaussian noise}
+        \begin{itemize}
+          \item Inverts $\hat{\VSigma}_{\bX}=G_{\bX}+\sigma_f^2\Ii$.
+          \item Posterior variance is \emph{positive} everywhere.
+          \item \halert{Smoothing} regression.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Posterior Samples -- Noisy Observations}{}
+  \begin{center}
+    \includegraphics[width=0.72\linewidth]{figures/gp_post_sample_noise.png}
+  \end{center}
+  \begin{itemize}
+    \item Sampled functions \emph{no longer} pass exactly through training points.
+    \item The posterior \halert{smooths} through the observations.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Single-Point Prediction -- Noisy Case}{}
+  For a single test point $\bz$:
+
+  \begin{block}{Noisy single-point prediction}
+    \begin{align*}
+      \mu_{pr} &= m(\bx)+G_{\bz,\bX}\,\hat{\VSigma}_{\bX}^{-1}(\btt-\Vmu_{\bX})\\
+      \sigma^2_{pr} &= \kappa(\bz,\bz)-G_{\bz,\bX}\,\hat{\VSigma}_{\bX}^{-1}\,G_{\bz,\bX}^T
+    \end{align*}
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item Predictive mean no longer coincides with $t_i$ at training points.
+    \item Predictive variance is positive everywhere, including at $\bx_i$.
+    \item Uncertainty is \emph{not} fully resolved at observed locations.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Predictive Mean and Variance -- Noisy Case}{}
+  \begin{center}
+    \includegraphics[width=0.72\linewidth]{figures/gp_predict_noise.png}
+  \end{center}
+  \begin{itemize}
+    \item \textcolor{blue}{Blue}: predictive mean $\mu_{pr}(x)$.
+    \item Band: predictive uncertainty $\pm\sigma_{pr}(x)$.
+    \item At training points: residual variance $>0$ -- \halert{no exact interpolation}.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Kernel Hyperparameter Estimation}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Estimating Kernel Hyperparameters}{Why it matters}
+  \begin{alertblock}{Key observation}
+    GP predictive performance depends \emph{entirely} on the suitability of the chosen kernel.
+  \end{alertblock}
+
+  \medskip
+  \begin{itemize}
+    \item For the RBF kernel with noise:
+      \[
+        \kappa(\bx_i,\bx_j)=\sigma_f^2\,
+        e^{-\frac{1}{2}(\bx_i-\bx_j)^T\mathbf{M}(\bx_i-\bx_j)}
+        +\sigma_y^2\,\delta_{ij}
+      \]
+    \item Simplest choice: $\mathbf{M}=l^{-2}\Ii$ (isotropic length scale $l$).
+    \item Three hyperparameters: $\sigma_f$ (signal variance), $\sigma_y$ (noise variance), $l$ (length scale).
+    \item Different values yield \halert{very different} predictive behaviours.
+  \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Effect of Kernel Hyperparameters}{}
+  \begin{center}
+    \includegraphics[width=0.85\linewidth]{figures/gp_params.jpg}
+  \end{center}
+  \begin{center}
+    \small
+    (Figure from K.\ Murphy, \emph{Machine Learning: A Probabilistic Perspective}, p.\ 519,
+    with $(l,\sigma_f,\sigma_y)$ equal to $(1,1,0.1)$, $(0.3,1.08,0.00005)$, $(3.0,1.16,0.89)$.)
+  \end{center}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Hyperparameter Estimation -- Type-II MLE}{}
+  \begin{block}{Marginal likelihood (empirical Bayes)}
+    Optimise $\log p(\btt\mid\bX,\boldsymbol{\theta})$
+    with respect to $\boldsymbol{\theta}=(l,\sigma_f,\sigma_y)$:
+    \[
+      \log p(\btt\mid\bX,\boldsymbol{\theta})
+      =-\tfrac{1}{2}\btt^T\hat{\VSigma}_{\bX}^{-1}\btt
+       -\tfrac{1}{2}\log|\hat{\VSigma}_{\bX}|
+       -\tfrac{n}{2}\log 2\pi
+    \]
+  \end{block}
+
+  \medskip
+  \begin{itemize}
+    \item The marginal likelihood automatically balances data-fit and model complexity.
+    \item Gradient-based optimisation (e.g.\ L-BFGS) is typically used.
+    \item Multiple random restarts recommended to avoid local optima.
+    \item After optimisation, $\boldsymbol{\theta}^*$ is used for prediction.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Summary}
+% ============================================================
+
+%-------------------------------------------------------
+\begin{frame}{Summary}{Nonparametric regression at a glance}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Kernel / local methods}
+        \begin{itemize}
+          \item \textbf{Equiv.\ kernel}: prediction $=$ weighted sum of $t_i$.
+          \item \textbf{Nadaraya-Watson}: normalised kernel weights.
+          \item \textbf{LOESS}: local weighted least squares.
+          \item \textbf{Local logistic}: weighted cross-entropy for classification.
+        \end{itemize}
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Gaussian processes}
+        \begin{itemize}
+          \item Prior $\mathcal{GP}(m,\kappa)$ over functions.
+          \item Posterior $p(f\mid\bX,\btt)$ is Gaussian.
+          \item \textbf{No noise}: exact interpolation.
+          \item \textbf{With noise}: smoothing regression.
+          \item Hyperparameters: marginal likelihood.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+%-------------------------------------------------------
+\begin{frame}{Key Formulas at a Glance}{}
+  \begin{center}
+    \small
+    \renewcommand{\arraystretch}{1.45}
+    \begin{tabular}{ll}
+      \hline\hline
+      \textbf{Result} & \textbf{Formula} \\
+      \hline
+      Equivalent kernel & $\kappa(\bx_1,\bx_2)=\beta\,\ox_1^T\bS\ox_2$ \\
+      Prediction (equiv.\ kernel) & $h(\bx)=\sum_i\kappa(\bx,\bx_i)\,t_i$ \\
+      Nadaraya-Watson weights & $w_i(\bx)=\kappa_h(\bx-\bx_i)/\sum_j\kappa_h(\bx-\bx_j)$ \\
+      LOESS solution & $\ow^*(\bx)=(\oX^T\bPsi\oX)^{-1}\oX^T\bPsi\,\btt$ \\
+      GP prior & $p(f(\bX))=\mathcal{N}(\Vmu_{\bX},\,G_{\bX})$ \\
+      GP post.\ mean (no noise) & $\Vmu_{pr}=G_{\bZ,\bX}\,G_{\bX}^{-1}\btt$ \\
+      GP post.\ mean (noise) & $\hat{\Vmu}_{pr}=G_{\bZ,\bX}\,\hat{\VSigma}_{\bX}^{-1}\btt$ \\
+      GP post.\ cov.\ (no noise) & $\VSigma_{pr}=G_{\bZ}-G_{\bZ,\bX}G_{\bX}^{-1}G_{\bZ,\bX}^T$ \\
+      GP post.\ cov.\ (noise) & $\hat{\VSigma}_{pr}=G_{\bZ}-G_{\bZ,\bX}\hat{\VSigma}_{\bX}^{-1}G_{\bZ,\bX}^T$ \\
+      \hline\hline
+    \end{tabular}
+  \end{center}
+\end{frame}
+
+%\end{document}

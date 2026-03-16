@@ -1,0 +1,683 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Decision Trees}
+
+A \alert{decision tree} is a supervised learning model designed for either classification or
+regression tasks. At its core, the idea is disarmingly simple: rather than fitting a single
+global function to the data, a decision tree builds a sequence of \emph{if--then} decisions
+that progressively refine our knowledge about the output. Starting from the full dataset, the
+tree repeatedly partitions the instance space into smaller and smaller regions, each one more
+homogeneous with respect to the target variable than the one it came from. In this sense, a
+decision tree can be understood as a \emph{recursive partition} of the feature space, where
+each internal decision reduces ambiguity and each terminal region provides a final prediction.
+
+What makes decision trees particularly appealing as a modeling tool is the combination of
+predictive power and interpretability. Each internal node in the tree corresponds to an
+explicit, human-readable test on one of the input features, and a prediction for a new
+instance can be explained simply by tracing the sequence of tests that the instance satisfies
+from the root down to a leaf. This transparency is often a decisive practical advantage,
+especially in domains such as medicine, law, or finance, where the rationale behind a
+model's prediction carries as much weight as the prediction itself. Unlike many other
+machine learning models, a decision tree does not hide its logic inside a large collection
+of numerical parameters: its reasoning is laid out openly as a tree of conditions that any
+practitioner can inspect, question, and communicate to a non-technical audience.
+
+\section*{Structure and components}
+
+Formally, a decision tree is a rooted hierarchical structure composed of nodes and directed
+edges. The \textbf{root node} sits at the top of the hierarchy and represents the entire
+training set before any partition has taken place: it is the starting point from which all
+decisions flow. From the root, the tree expands through a sequence of \textbf{internal
+nodes}, each of which implements a decision rule based on the input features. The rule at an
+internal node tests some property of the instance currently being classified---for example,
+whether a particular feature exceeds a threshold---and routes the instance to one of the
+node's children depending on the outcome of the test. This routing continues recursively
+until the instance reaches a \textbf{leaf node} (also called a terminal node), which
+represents a region of the feature space where no further splitting is performed and where a
+final prediction is issued.
+
+An important practical convention is that each internal node is typically associated with a
+partition induced by a \emph{single} attribute. This univariate splitting constraint is not
+strictly necessary from a mathematical standpoint---one could in principle test arbitrary
+functions of several features at once---but it plays a crucial role in making the resulting
+model interpretable. When a split depends on exactly one feature (for instance, ``petal
+length $\leq 2.45$''), the meaning of each branch is immediately understandable to a human
+reader without any further explanation. As the tree grows deeper, each path from the root
+to a leaf accumulates a conjunction of such simple conditions, and the corresponding leaf
+therefore describes a clearly delineated subregion of the feature space: the set of all
+instances satisfying every condition along that path simultaneously.
+
+The nature of the prediction stored at each leaf depends on the task. In
+\textbf{classification}, a leaf may store a single \emph{class label}, yielding a
+deterministic prediction for every instance that falls into the corresponding region.
+Alternatively, it may store the \emph{empirical distribution of class labels} observed in
+that region during training, allowing the model to output calibrated probability estimates
+rather than hard assignments---a useful capability when downstream decisions depend on
+prediction confidence. In \textbf{regression}, the leaf stores a numerical summary of the
+target values observed in that region, most commonly their mean, which is then returned as
+the predicted output for any new instance landing in the leaf.
+
+It is worth pausing to appreciate how naturally the tree structure encodes the idea of
+divide-and-conquer problem solving. The root node faces the hardest problem: predicting the
+output for the entire, presumably heterogeneous, dataset. By choosing an informative
+splitting criterion, it divides this hard problem into two (or more) easier sub-problems,
+each involving a more homogeneous subset of the data. Each child node then applies the same
+logic recursively to its own subset, further reducing heterogeneity at every level. When the
+subsets become sufficiently pure---either because they contain instances of a single class,
+or because a stopping criterion is met---the recursion terminates and leaf nodes are created.
+The depth of the tree and the number of leaves thus reflect the complexity of the learned
+function: a shallow tree imposes a coarser partition and a simpler decision boundary, while
+a deep tree can capture finer distinctions at the risk of overfitting to the training data.
+
+\subsection*{A visual example}
+
+The figures below illustrate how a decision tree is grown, step by step, on the classic Iris
+dataset, which contains measurements of petal and sepal dimensions for flowers of three
+species. The visualizations serve a dual purpose: they show both the tree structure itself
+and the corresponding geometric partition of the feature space induced by the splits. Reading
+these two representations in parallel is essential for building intuition about what a
+decision tree actually computes.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=.7\linewidth]{iris.png}
+\caption{The Iris dataset}\label{f:iris}
+\end{center}
+\end{figure}
+
+The scatter plot in Figure~\ref{f:iris} shows the raw data. Even without any model, one can see that the
+three species form clusters in the feature space, though some overlap exists, suggesting
+that a small number of well-chosen splits might already achieve good separation.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=.4\linewidth]{dec_tree_0.png}
+\centerline{\textit{Initial decision tree with first split}}
+\bigskip
+\includegraphics[width=.7\linewidth]{dec_tree_regions_0.png}
+\centerline{\textit{Corresponding partition of the feature space}}
+\caption{After the first split}\label{f:split1}
+\end{center}
+\end{figure}
+
+The first split introduces a single axis-aligned cut in the feature space, dividing the
+instances into two groups (Figure \ref{f:split1}). One of the resulting regions may already be pure enough to
+constitute a leaf, while the other still contains a mixture of classes and must be split
+further. The corresponding tree has a root node and two children: one leaf and one internal
+node awaiting refinement. Notice how the partition of the feature space at this stage
+consists of just two half-planes separated by a single decision boundary.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=.4\linewidth]{dec_tree_1.png}
+\centerline{\textit{Decision tree after second split}}
+\bigskip
+\includegraphics[width=.7\linewidth]{dec_tree_regions_1.png}
+\centerline{\textit{Updated feature space partition}}
+\caption{After the second split}\label{f:split2}
+\end{center}
+\end{figure}
+
+The second split refines the partition by introducing a further cut within the impure
+region identified at the previous step (Figure~\ref{f:split2}). The feature space is now divided into three
+regions, and the tree has grown one level deeper in the branch that required further
+discrimination. At each step, the algorithm selects the split that maximally reduces the
+impurity (or heterogeneity) of the resulting subsets, according to some criterion such as
+the Gini index or information gain.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=.6\linewidth]{dec_tree.png}
+\centerline{\textit{Final decision tree}}
+\bigskip
+\includegraphics[width=.7\linewidth]{dec_tree_regions.png}
+\centerline{\textit{Final partition of the feature space}}
+\caption{After the third split}\label{f:split3}
+\end{center}
+\end{figure}
+
+The final tree and its associated partition illustrate the end result of the growing
+process (Figure~\ref{f:split3}). The feature space has been divided into a collection of rectangular regions (a
+direct consequence of using univariate, axis-aligned splits at each node), and each region
+is assigned the class label that was most common among the training instances it contains.
+The boundaries between regions are rectilinear, reflecting the fact that every split is
+determined by a threshold on a single feature. This axis-aligned structure is one of the
+most recognizable geometric signatures of decision tree models, and it distinguishes them
+from classifiers such as linear discriminants or support vector machines, whose decision
+boundaries are oblique hyperplanes.
+
+Comparing the tree diagram with the partition plot reinforces a key point: every path from
+the root to a leaf in the tree corresponds to exactly one rectangular cell in the partition,
+and conversely, every cell in the partition corresponds to exactly one leaf in the tree. The
+two representations are therefore dual to each other, and understanding this duality is
+essential for reasoning about how a decision tree generalizes to new data, where it succeeds,
+and where it can fail.
+
+\subsection*{Decision Tree: classification process}
+
+Once a tree has been learned from training data, classifying a new instance amounts to a
+deterministic \emph{top-down traversal} from the root to a leaf. Let
+$\z=(z_1,\ldots,z_d)^T$ denote an input instance with $d$ features. The prediction process
+begins at the root node, which represents the full feature space before any decision has
+been made. At each internal node encountered along the way, the model evaluates the node's
+decision rule and selects the outgoing branch that corresponds to the outcome of that rule,
+thereby restricting attention to a progressively smaller subregion of the feature space. The
+instance carries no memory of the path it has already traveled: at each step, only the
+current node's rule matters.
+
+More explicitly, suppose an internal node is associated with a feature $x_i$ and a decision
+function $f_i$. The evaluation of the node consists of computing $f_i(z_i)$ and using its
+value to select the next child node. A very common case is a threshold test applied to a
+continuous feature, where the node stores a threshold $\theta_i$ and implements the binary
+decision:
+\begin{myequation}
+\text{if } z_i \leq \theta_i \text{ go left,\quad otherwise (if } z_i > \theta_i \text{) go right.}
+\end{myequation}
+Each such test can be interpreted geometrically as a cut of the current region along an
+axis-aligned hyperplane, and statistically as a way of isolating subpopulations whose
+members tend to share similar labels. The sequence of cuts accumulated from the root down to
+any given node defines the rectangular cell of the feature space to which that node
+corresponds.
+
+The traversal continues, node by node, until a leaf is reached. At that point the tree
+returns either a class label, representing a deterministic prediction, or a probability
+distribution over classes, from which a final label can be derived if needed---for instance
+by selecting the most probable class. Both output modes will be discussed more carefully when
+we consider how leaf nodes are assigned their predictions.
+
+From a computational standpoint, because the traversal inspects exactly one node per level
+of the tree, the time required to produce a prediction is proportional to the height $h$ of
+the tree, that is $O(h)$. This makes inference extremely efficient: even when the training
+set is very large and the learned tree is complex, classifying a new instance requires only a
+small number of simple comparisons. This property is one of the practical strengths of
+decision trees relative to models such as nearest-neighbor classifiers, whose prediction cost
+grows with the size of the training data.
+
+\subsection*{Decision Tree: construction algorithm}
+
+Understanding how a decision tree is built helps clarify why it is both powerful and
+potentially prone to overfitting. Tree construction proceeds recursively, starting at the
+root and repeatedly selecting a split that partitions the current set of training instances
+into more homogeneous subsets. The most common approach is \emph{greedy and top-down}: at
+each node one chooses the locally best split according to some criterion, applies it
+immediately without reconsidering earlier choices, and then continues independently on each
+resulting child subset. The greedy nature of this strategy means that the algorithm does not
+search for the globally optimal tree---a problem that is computationally intractable in
+general---but instead builds a reasonable tree efficiently by making a sequence of locally
+good decisions.
+
+Operationally, one starts with the entire training set at the root. For a generic node
+associated with a subset $S$ of the training data, the algorithm first decides whether $S$
+should become a leaf or whether it should be split further. If splitting is chosen, the
+algorithm selects the feature and split rule that best improves the purity of the resulting
+subsets, partitions $S$ into child subsets accordingly, and then applies the same procedure
+recursively to each child. When a node is declared terminal, it is assigned prediction
+information: a class label, class distribution, or numerical value, depending on the task at
+hand.
+
+At every step of this process, two conceptual questions are always present, even if a
+library implementation hides them behind a single function call. The first is \emph{how to
+partition}: which feature should be tested, and with which threshold or grouping rule, in
+order to obtain the most useful separation of classes or the greatest reduction of regression
+error? The second is \emph{when to stop}: at what point should the current region be
+accepted as sufficiently informative and committed to a prediction, rather than split further
+at the risk of fitting noise rather than signal? These two questions are addressed in turn
+in the sections that follow.
+
+\subsection*{Decision Tree: selecting the best split}
+
+The selection of the best split at each node is guided by the notion of \alert{impurity}.
+Intuitively, a node is ``good'' when the labels of the instances that fall into it are mostly
+the same---high homogeneity---and ``bad'' when it contains a mixture of different classes---
+high heterogeneity. Impurity measures formalize this intuition: they assign a real number to
+a class distribution, small for concentrated (pure) distributions and large for uniform
+(maximally mixed) ones. The goal of the splitting step is therefore to find the partition
+that reduces impurity the most, moving from a more heterogeneous parent node to more
+homogeneous children.
+
+Before discussing specific impurity measures, it is useful to state precisely what
+properties a good impurity function should satisfy, and why each property is natural.
+
+\subsubsection*{Impurity measure: formal definition}
+
+Consider a node containing instances drawn from $k$ possible classes, and let
+$p = (p_1, \ldots, p_k)$ denote the empirical class distribution at that node, where $p_i$
+represents the fraction of instances belonging to class $i$. An impurity measure is a
+function $\phi: p \mapsto \mathbb{R}$ intended to quantify how mixed the distribution is.
+Several natural requirements characterize what we expect from such a function.
+
+To begin with, impurity should never be negative:
+\begin{myequation}
+\phi(p) \geq 0 \quad \text{for all } p.
+\end{myequation}
+This is a basic sanity condition: impurity is a quantity to be minimized, and having a
+non-negative baseline makes the notion of ``zero impurity'' (perfect purity) well-defined.
+Second, impurity should be minimal when the distribution is perfectly concentrated on a
+single class, that is, when there exists an index $i$ such that $p_i = 1$. For most common
+choices, $\phi(p) = 0$ in this case, reflecting the fact that a node containing instances
+of only one class requires no further splitting. Third, impurity should be maximal when all
+classes are equally represented, that is when $p_i = 1/k$ for all $i$, since this is the
+situation of greatest uncertainty about the label of a randomly drawn instance.
+
+Two additional properties are typically required. Symmetry states that impurity should not
+depend on the ordering or naming of the classes:
+\begin{myequation}
+\phi(p) = \phi(p')
+\quad
+\text{for every } p' \text{ obtained by permuting the components of } p.
+\end{myequation}
+This is natural because the classes themselves carry no intrinsic ordering: relabeling them
+should not change how mixed the distribution is. Smoothness, meaning differentiability of
+$\phi$ on the interior of the probability simplex, is also a convenient property, especially
+when one wants to study the behavior of impurity-based criteria analytically or to optimize
+impurity-related objectives with gradient methods:
+\begin{myequation}
+\phi(p)\ \text{is differentiable on the interior of the simplex.}
+\end{myequation}
+
+Taken together, these conditions encode a simple and compelling interpretation: impurity
+measures how hard it is to correctly guess the class label of a randomly drawn instance from
+the node. If almost all instances share the same label, guessing is easy and impurity is
+close to zero. If classes are balanced, no label is a better guess than any other, and
+impurity is large. The impurity function thus quantifies, in a single number, how much
+uncertainty about the label remains at a given node.
+
+\subsubsection*{Goodness of split}
+
+Given a labeled set $S$ of instances, let $p_S$ denote the class-probability vector
+associated with $S$, computed as empirical frequencies. Suppose we apply a split function
+$f: S \mapsto \{1, \ldots, r\}$ that partitions $S$ into $r$ disjoint subsets:
+\begin{myequation}
+s_i = \{x \in S \mid f(x) = i\},
+\end{myequation}
+so that $S = s_1 \cup \cdots \cup s_r$.
+
+The central idea is to compare the impurity of the parent node with the \emph{expected
+impurity} after the split. The expected impurity after splitting is computed as a weighted
+average of the impurities of the child nodes, with weights proportional to the fraction of
+data that falls into each child. This leads to the following definition of
+\textbf{goodness of split}:
+\begin{myequation}
+\Delta_\phi(S, f) = \phi(p_S) - \sum_{i=1}^r \frac{|s_i|}{|S|} \phi(p_{s_i}).
+\end{myequation}
+The quantity $\Delta_\phi(S, f)$ measures the reduction in impurity achieved by splitting
+$S$ according to $f$. A larger value of $\Delta_\phi$ means that the children are, on
+average, substantially purer than the parent, so the split is considered better. When
+searching for the best split at a node, the algorithm evaluates $\Delta_\phi(S, f)$ for all
+candidate split functions $f$ and selects the one achieving the highest value.
+
+The weighted average $\sum_{i=1}^r \frac{|s_i|}{|S|} \phi(p_{s_i})$ in the definition
+deserves a moment of attention. The weighting by $|s_i|/|S|$ ensures that large child nodes
+contribute more to the expected post-split impurity than small ones. This is desirable: a
+split that achieves excellent purity in a tiny subset while leaving the majority of instances
+in a mixed node should not score as well as a split that achieves moderate purity improvement
+across all children. The weighted average correctly captures this asymmetry.
+
+\subsubsection*{Practical split functions}
+
+While the definition above allows for very general split functions, practical decision trees
+typically restrict attention to splits based on a \emph{single feature}. This restriction is
+closely tied to interpretability and computational feasibility: it limits the search space of
+candidate splits and ensures that each decision rule can be stated as a simple condition on
+one variable, making the tree easy to explain.
+
+For a \textbf{discrete} (categorical) feature, one can create a multiway split by assigning
+one branch to each distinct value of the feature, or alternatively group the values into two
+sets to obtain a binary split. In the multiway case, the split function simply maps each
+categorical value to its own child index. In the binary case, the algorithm must find the
+best partition of the set of categories into two groups, which for small cardinalities can
+be done by exhaustive enumeration. The binary version is sometimes preferred when the feature
+has high cardinality, since a multiway split would produce many small, statistically
+unreliable children.
+
+For a \textbf{continuous} feature, splits are defined by one or more thresholds. The most
+common and computationally tractable choice is a single threshold $\theta$, producing the
+binary partition:
+\begin{myequation}
+x_i \leq \theta
+\quad \text{vs} \quad
+x_i > \theta.
+\end{myequation}
+Candidate thresholds are typically chosen from the set of observed feature values. A standard
+and exact procedure is to sort the training instances by the feature value, consider all
+midpoints between consecutive distinct values as candidate thresholds, evaluate $\Delta_\phi$
+at each candidate, and select the threshold achieving the highest goodness of split. The
+total cost of this search for a single feature is $O(n \log n)$ due to sorting, where $n$ is
+the number of instances at the current node.
+
+\subsubsection*{Entropy and information gain}
+
+A particularly important and theoretically well-motivated impurity measure comes from
+information theory: \alert{entropy}. Entropy quantifies the uncertainty present in a
+probability distribution. When applied to the class distribution at a node, it captures how
+unpredictable the class label of an instance reaching that node is: a node with high entropy
+is one where many different classes are represented in comparable proportions, while a node
+with low entropy is one where most instances share the same label.
+
+For any set $S$ of instances drawn from $k$ classes, with $S_i$ denoting the subset
+belonging to class $i$, entropy is defined as
+\begin{myequation}
+H_S = -\sum_{i=1}^k \frac{|S_i|}{|S|} \log_2 \frac{|S_i|}{|S|}.
+\end{myequation}
+The base-2 logarithm is a conventional choice that gives entropy the unit of bits, matching
+the classical information-theoretic interpretation: $H_S$ equals the expected number of
+binary questions one would need to ask (under an optimal strategy) in order to identify the
+class of a randomly chosen instance from $S$.
+
+The extreme values of entropy confirm that it behaves as desired. When the node is perfectly
+pure and all instances belong to the same class $i$, then $|S_i|/|S| = 1$ and
+$|S_j|/|S| = 0$ for $j \neq i$. Using the convention $0 \log_2 0 = 0$, we obtain $H_S = 0$:
+there is no uncertainty and no information is needed to determine the class. Conversely, when
+all $k$ classes are equally represented, $|S_i|/|S| = 1/k$ for every $i$, and
+$H_S = \log_2 k$, which is the maximum possible value. This upper bound grows with the
+number of classes, reflecting the fact that more classes means more potential uncertainty.
+
+When entropy is used as the impurity function $\phi$, the goodness-of-split criterion
+$\Delta_\phi(S, f)$ specializes to what is known as \alert{information gain}. For a split
+function $f$ that partitions $S$ into subsets $s_1, \ldots, s_r$, information gain is:
+\begin{myequation}
+IG(S, f) = H_S - \sum_{j=1}^r \frac{|s_j|}{|S|} H_{s_j}.
+\end{myequation}
+The interpretation
+
+\subsection*{Pruning: overview and motivation}
+
+The discussion above highlights a fundamental tension in decision tree learning: trees can
+become very expressive by growing deep and creating fine-grained partitions, but this
+expressiveness comes with a high risk of \emph{overfitting}. A decision tree that is allowed
+to grow without restraint will eventually create one leaf per training instance, achieving
+zero training error while learning nothing transferable to new data. Unlike models whose
+complexity is tuned through continuous parameters---where regularization can be applied
+smoothly---a decision tree's complexity emerges from discrete splitting decisions, making the
+bias--variance trade-off both essential to manage and genuinely difficult to control.
+
+\paragraph{The core problem}
+
+The key difficulty is that it is rarely obvious, during the growth phase, when the tree
+should stop adding splits. Two extreme strategies illustrate the dilemma clearly.
+
+On one end, enforcing strict stopping criteria---known as an \emph{early stopping}
+strategy---produces small, shallow trees. Such trees are easy to interpret and often
+statistically stable across different training samples, but they may suffer from high bias
+and underfit the data: important patterns can require several levels of splitting before
+becoming apparent, and stopping too early may prevent the tree from discovering deeper
+regularities. This is sometimes described as a ``horizon effect'': a split that looks only
+moderately useful when evaluated locally might unlock a sequence of highly informative splits
+further down the tree, which early stopping would never allow the algorithm to reach.
+
+On the other end, adopting loose stopping criteria---a \emph{late stopping} strategy---lets
+the tree continue splitting until it has captured almost every irregularity of the training
+set. Training error can become extremely small, sometimes even zero, but many of the learned
+distinctions reflect noise in the specific training sample rather than genuine structure in
+the underlying distribution. The resulting model has high variance: it is sensitive to small
+fluctuations in the training data and generalizes poorly to unseen instances. Furthermore,
+deeply grown trees are often large enough to be practically uninterpretable, undermining
+one of the main advantages of the decision tree family.
+
+\paragraph{The pruning solution}
+
+Pruning addresses this dilemma with a pragmatic ``grow first, simplify later'' philosophy.
+Rather than trying to guess the correct stopping time during growth---a problem complicated
+by the horizon effect---one intentionally grows a large tree that has the opportunity to
+capture all potentially useful regularities, and then systematically removes branches that
+do not contribute to generalization. The strategy decomposes naturally into two phases: a
+\textbf{growing phase}, in which the tree is expanded using loose stopping criteria,
+favoring coverage and flexibility, and a \textbf{pruning phase}, in which subtrees that
+appear to model noise rather than robust structure are deleted, retaining only the parts that
+improve expected performance on unseen data.
+
+The pruning phase can estimate generalization in several ways: by holding out a dedicated
+validation set and measuring accuracy directly, by applying a statistical correction to the
+training error to account for optimism, or by penalizing model complexity through a
+regularization term. Different pruning methods reflect different choices along these
+dimensions. The following sections introduce and discuss the most important approaches, each
+of which has influenced the design of major decision tree implementations.
+
+\subsubsection*{Reduced Error Pruning (REP)}
+
+Reduced Error Pruning is perhaps the conceptually simplest pruning
+method and provides a useful baseline against which more sophisticated approaches can be
+compared. The algorithm requires the data to be partitioned into three disjoint sets: a
+training set used to grow the initial tree, a \emph{pruning set} (also called a validation
+set) used to evaluate pruning decisions, and an optional test set for final evaluation. The
+pruning set plays a central role: all decisions about which subtrees to remove are made by
+directly measuring their effect on the accuracy of the tree on this held-out data.
+
+The algorithm proceeds bottom-up through the internal nodes of the fully grown tree. At each
+internal node, the algorithm asks: what would happen if this node were replaced by a leaf
+that predicts the majority class among the training instances that reached it? It then
+evaluates both the original subtree and the candidate leaf on the pruning set, and replaces
+the subtree with the leaf if doing so does not decrease accuracy on the pruning set. The
+process continues until no further pruning improves or maintains accuracy.
+
+Several properties of REP deserve attention. First, it is exact in the sense that it
+directly optimizes the criterion of interest (accuracy on held-out data) rather than
+approximating it. Second, it is computationally efficient: a single bottom-up pass through
+the tree suffices, and each pruning decision requires only a simple comparison of
+error counts on the pruning set. Third, and most importantly, REP tends to produce small
+trees that generalize well when the pruning set is sufficiently large, because it directly
+measures generalization rather than estimating it indirectly.
+
+The main limitation of REP is its dependence on the size of the pruning set. If the
+available data are scarce, allocating a substantial fraction to pruning leaves too little
+for growing the initial tree, and the resulting pruned tree may be overly aggressive in
+removing branches that would have been useful with more training data. Conversely, a small
+pruning set produces noisy estimates of validation accuracy, leading to unreliable pruning
+decisions. For this reason, REP is most attractive when large amounts of labeled data are
+available, and it is typically used as a reference method rather than as the preferred
+approach in data-scarce settings.
+
+\subsubsection*{Cost Complexity Pruning (CCP) and the CART framework}
+
+Cost Complexity Pruning, sometimes called weakest-link pruning, is the pruning strategy
+employed in the CART (Classification and Regression Trees) framework. Rather than using a separate validation set, CCP employs a
+penalized error criterion that balances training accuracy against tree size, and it generates
+an entire sequence of progressively simpler trees from which the best can be selected.
+
+The key idea is to define, for any subtree $T$ of the fully grown tree $T_{\max}$, a
+\emph{cost-complexity measure}:
+\begin{myequation}
+R_\alpha(T) = R(T) + \alpha \lvert \tilde{T} \rvert,
+\end{myequation}
+where $R(T)$ is the resubstitution error of $T$ (the total misclassification cost on the
+training set, possibly weighted by misclassification costs), $\lvert \tilde{T} \rvert$ is
+the number of leaf nodes of $T$, and $\alpha \geq 0$ is a complexity parameter that controls
+the penalty per leaf. When $\alpha = 0$, no penalty is imposed and $R_0(T)$ is minimized by
+the fully grown tree; as $\alpha$ increases, smaller trees become preferred because each
+additional leaf must justify its existence by reducing training error by at least $\alpha$.
+
+For a given $\alpha$, the optimal subtree $T(\alpha)$ is the smallest subtree of $T_{\max}$
+that minimizes $R_\alpha$. A fundamental result in the CART theory is that the optimal
+subtrees form a finite nested sequence:
+\begin{myequation}
+T_{\max} = T_0 \supset T_1 \supset T_2 \supset \cdots \supset T_m = \{t_1\},
+\end{myequation}
+where $\{t_1\}$ is the root node alone (the trivial single-leaf tree). This sequence can be
+computed efficiently by repeatedly identifying and collapsing the \emph{weakest link}: the
+internal node $t$ whose removal produces the smallest increase in resubstitution error per
+leaf removed. More precisely, for each internal node $t$ one defines the effective
+complexity parameter
+\begin{myequation}
+\alpha(t) = \frac{R(t) - R(T_t)}{\lvert \tilde{T}_t \rvert - 1},
+\end{myequation}
+where $R(t)$ is the resubstitution error of the leaf that would replace the subtree $T_t$
+rooted at $t$, and $\lvert \tilde{T}_t \rvert$ is the number of leaves in $T_t$. The node
+with the smallest $\alpha(t)$ is pruned first, and the process is repeated to generate the
+full sequence. The practical implication is that CCP avoids the need to specify $\alpha$ in
+advance: the algorithm generates all candidate trees, and cross-validation is then used to
+select the best value of $\alpha$ (and hence the best tree in the sequence). This makes CCP
+both theoretically principled and practically flexible.
+
+An important feature of CART that distinguishes it from earlier decision tree methods is
+that it builds \emph{binary} trees: every internal node has exactly two children, produced
+by a binary split on a single feature. This restriction simplifies the tree structure and
+the pruning algorithm, and it facilitates the handling of both categorical and continuous
+features within a unified framework. For continuous features, binary splits of the form
+$x_i \leq \theta$ are used as discussed earlier. For categorical features with $m$ values,
+CART considers all $2^{m-1} - 1$ binary partitions of the set of values, which is feasible
+for small $m$ but can be expensive for features with high cardinality. CART handles
+regression through a separate impurity criterion (the within-node variance, leading to the
+squared-error impurity), but the pruning mechanism remains essentially the same.
+
+\subsubsection*{Pessimistic Error Pruning (PEP) and the C4.5 framework}
+
+Pessimistic Error Pruning is the pruning strategy used in the C4.5 algorithm, which itself is an extension of the earlier ID3 algorithm. Unlike REP, PEP does
+not require a separate validation set: it estimates the generalization error directly from
+the training data using a statistical upper confidence bound on the true error rate. This
+makes C4.5 particularly attractive in settings where available data are limited.
+
+The motivation for PEP begins with the observation that the resubstitution error of a
+leaf---the fraction of training instances it misclassifies---is an optimistically biased
+estimate of the true error. A leaf that correctly classifies all of its training instances
+does not necessarily generalize perfectly; it may simply have seen too few instances for its
+error rate to be estimated reliably. PEP corrects for this bias by applying a continuity
+correction and then using the upper bound of a confidence interval for the binomial
+proportion.
+
+Specifically, suppose a leaf contains $n$ instances and misclassifies $e$ of them. Rather
+than using $e/n$ as the error estimate, C4.5 computes a pessimistic estimate by treating
+the observed error rate as a binomial proportion and computing an upper confidence bound at
+a user-specified confidence level (typically $25\%$, a deliberately conservative choice
+that encourages pruning). Denoting this upper bound by $\bar{e}(n, e)$, the estimated error
+of the leaf is $n \cdot \bar{e}(n, e)$.
+
+The same pessimistic estimate is computed for any subtree rooted at an internal node by
+summing the estimated errors of all its leaves. Pruning is then applied top-down: a subtree
+is replaced by a leaf if the estimated error of the leaf does not exceed the sum of
+estimated errors of the subtree's leaves. Because the upper confidence bound penalizes small
+leaf sizes (a leaf with few instances has a wide confidence interval, and hence a higher
+upper bound), PEP naturally discourages very fine-grained splits supported by little data
+while preserving splits that are well-supported by many instances.
+
+C4.5 also differs from CART in several other respects. It builds multiway splits for
+categorical features rather than binary splits, assigns one branch per distinct value of
+the feature. It uses information gain ratio as the splitting criterion rather than Gini
+impurity, specifically to correct the bias of raw information gain toward high-cardinality
+features. It handles missing values through a fractional instance mechanism: when a training
+instance has a missing value for the splitting feature, it is distributed fractionally among
+all branches in proportion to the fraction of known instances that follow each branch. These
+design choices make C4.5 particularly robust in practice and have contributed to its
+widespread adoption. The subsequent C5.0 algorithm, a commercial successor to C4.5,
+introduced further improvements including boosting integration and more efficient memory
+use, but retains the same fundamental pruning philosophy.
+
+\subsubsection*{Minimum Error Pruning (MEP)}
+
+Minimum Error Pruning takes a Bayesian perspective on the
+pruning problem. Rather than estimating error through confidence bounds or a validation set,
+MEP uses a prior distribution over class probabilities to compute an expected error rate for
+each node, and prunes by comparing these expected rates.
+
+The key quantity is the \emph{m-estimate} (or Laplace-corrected estimate) of the error
+probability at a node. For a node containing $n$ instances with $n_c$ belonging to the
+majority class, the m-estimate of the probability of correct classification is
+\begin{myequation}
+\hat{p}_c = \frac{n_c + m \cdot p_c}{n + m},
+\end{myequation}
+where $m$ is a smoothing parameter (often set to the number of classes $k$) and $p_c = 1/k$
+is the prior probability of the majority class under a uniform prior. The corresponding
+expected error rate is $1 - \hat{p}_c$. For small $n$, the estimate is pulled toward the
+prior $1/k$, reflecting the uncertainty due to the small sample; for large $n$, it
+approaches the empirical error rate $1 - n_c/n$.
+
+Pruning proceeds bottom-up: a subtree rooted at an internal node is replaced by a leaf if
+the expected error of the leaf is no greater than the average expected error of the subtree
+(weighted by the number of instances reaching each leaf). In this way, MEP prunes subtrees
+that are supported by too few instances to reliably improve upon the prior estimate. A
+desirable property of MEP is that it does not require any parameter tuning beyond the
+smoothing constant $m$, and it is computationally efficient since it requires only a single
+bottom-up pass. Its main limitation is sensitivity to the choice of $m$: different values of
+$m$ can lead to substantially different levels of pruning, and there is no universally agreed
+upon method for choosing $m$ automatically.
+
+\subsubsection*{Error-Based Pruning (EBP)}
+
+Error-Based Pruning is conceptually related to PEP but differs in that it applies the
+confidence-bound correction subtree by subtree rather than leaf by leaf. In EBP, the
+estimated error of a subtree is computed by aggregating the confidence-bound-corrected
+errors of its individual leaves, and this is compared against the confidence-bound-corrected
+error of the corresponding leaf that would result from pruning. The subtree is pruned if the
+leaf's estimated error is not substantially worse than the subtree's.
+
+The advantage of EBP over PEP is that it accounts more carefully for the error at the
+subtree level, rather than approximating the subtree error as a simple sum of leaf errors.
+In practice, EBP tends to produce trees of intermediate size between REP (which can prune
+aggressively when the validation set is large) and PEP (which can be conservative when the
+confidence level is high). Its main limitation is that, like PEP, it relies on the
+confidence level as a hyperparameter whose optimal value is data-dependent.
+
+\subsubsection*{Minimum Description Length (MDL) pruning}
+
+A quite different perspective on pruning comes from information theory, specifically from
+the \emph{Minimum Description Length} (MDL) principle. The MDL principle states that the
+best model for a dataset is the one that minimizes the total number of bits needed to
+describe both the model and the data given the model. In the context of decision trees, this
+translates into a trade-off between the description cost of the tree itself (which grows
+with the number of nodes) and the description cost of the training labels given the tree
+(which decreases as the tree fits the data better).
+
+Concretely, the MDL score of a tree $T$ on dataset $S$ is
+\begin{myequation}
+MDL(T, S) = L(T) + L(S \mid T),
+\end{myequation}
+where $L(T)$ is the code length needed to describe the tree structure and its associated
+split rules, and $L(S \mid T)$ is the code length needed to describe the training labels
+given that the tree is known. Both terms are expressed in bits using appropriate coding
+schemes. The pruning algorithm selects the tree that minimizes this combined description
+length, balancing model complexity against fitting accuracy. A subtree is pruned if doing
+so reduces the total MDL score, meaning that the simplification of the model description
+more than compensates for the increased cost of encoding the residual errors.
+
+MDL pruning has attractive theoretical properties: it provides a coherent framework for
+model selection grounded in information theory and does not require an arbitrary confidence
+parameter. However, it requires careful specification of the coding scheme for the tree and
+the labels, and different coding choices can lead to different pruning decisions. In
+practice, MDL-based methods are less commonly used in off-the-shelf implementations than
+REP or CCP, but they remain an important conceptual tool for understanding the pruning
+problem as model selection.
+
+\subsection*{Comparison of pruning methods and practical guidelines}
+
+Having surveyed the main pruning methods, it is instructive to compare them along several
+practical dimensions. REP is the most direct method: it optimizes validation accuracy
+exactly and is easy to implement, but it requires a dedicated pruning set and may be
+unreliable when data are scarce. CCP, as implemented in CART, produces an elegant sequence
+of candidate trees and uses cross-validation for model selection, making it robust and
+widely applicable; it is the default strategy in the widely used scikit-learn implementation
+of decision trees. PEP and EBP, as used in C4.5 and related systems, avoid the need for a
+separate validation set at the cost of introducing a confidence parameter, and they are
+particularly well-suited to settings with limited data. MEP provides a Bayesian
+regularization perspective that is theoretically appealing but requires tuning of the
+smoothing parameter. MDL pruning offers a theoretically grounded criterion but requires
+additional choices about coding schemes.
+
+Beyond the choice of pruning method, the structural differences between major
+implementations also matter in practice. CART builds strictly binary trees with a
+unified treatment of regression and classification, uses Gini impurity as the default
+splitting criterion, and supports cost-sensitive classification through weighted
+misclassification costs. C4.5 builds multiway splits for categorical features, uses
+gain ratio to correct for high-cardinality bias, and handles missing values through
+fractional instance propagation. ID3, the ancestor of C4.5, uses raw information gain
+and does not handle continuous features or missing values natively. More recent
+implementations such as LightGBM and XGBoost, while primarily associated with gradient
+boosting, incorporate sophisticated variants of decision tree construction and pruning that
+include leaf-wise growth strategies, histogram-based split finding, and explicit
+regularization terms in the splitting criterion, pushing the performance envelope further
+while retaining the interpretability benefits of tree-based models at the individual tree
+level.
+
+In most practical applications, the choice of pruning strategy matters less than ensuring
+that some form of regularization is applied. An unpruned tree almost always overfits, while
+a reasonably pruned tree---regardless of the specific method used---typically achieves
+substantially better generalization. When data are plentiful, REP or CCP with
+cross-validation are natural first choices. When data are scarce, PEP or MEP avoid the cost
+of setting aside a validation set. When theoretical interpretability of the pruning criterion
+is important, MDL provides a principled framework. And when the decision tree is used as a
+component within an ensemble method such as random forests or gradient boosting, pruning is
+often replaced by limiting the maximum depth directly, since the ensemble mechanism provides
+its own form of variance reduction that makes aggressive pruning unnecessary at the
+individual tree level.
+
+
+%\end{document}

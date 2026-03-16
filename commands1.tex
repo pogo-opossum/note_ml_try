@@ -1,0 +1,595 @@
+\usepackage{math}
+
+% Set up the images/graphics package
+%\usepackage{graphicx,picins,lastpage}
+%
+%\graphicspath{{graphics/}}
+%
+%\usepackage{pgfplots}
+%\usepackage{tikz}
+%\usetikzlibrary{arrows,decorations.pathmorphing,positioning,backgrounds,fit}
+%\usetikzlibrary{decorations,positioning,backgrounds,fit,shadows,automata,backgrounds,patterns}
+%\usetikzlibrary{calc,intersections,through,shapes,scopes,chains,matrix,shapes.arrows}
+%\usepackage{tikz-network}
+%\usepackage{xkcdcols}
+%
+%\usepackage{centernot}
+
+
+
+%-----------
+%\usefonttheme[onlymath]{serif}
+%\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+%%\useinnertheme{rounded}
+%%\usecolortheme{seahorse}
+%%\usefonttheme{structuresmallcapsserif}
+%%\usefonttheme{professionalfonts}
+%%\usepackage{math}
+%%\usepackage{kurier}
+%%\usepackage{iwona}
+%%\usepackage[lm-default,no-math]{fontspec}
+%\usepackage{xunicode}
+%\usepackage{xltxtra}
+%\usepackage{fancyvrb}
+%\usepackage{multicol}
+%\usepackage{url}
+
+
+%\usepackage{verbatim}
+%%\setmainfont[BoldFont={TechnicalBold}]{TriathlonDB}
+%%\newcommand{\argmax}{\text{argmax}}
+%
+%\definecolor{sand}{RGB}{244,215,103}
+%\definecolor{brown}{RGB}{123,60,27}
+%\definecolor{pale}{RGB}{245,245,200}
+%\usepackage{amsfonts}
+%\usepackage{amssymb}
+%\usepackage{amsthm}
+%\usepackage{array}
+%\usepackage{graphicx,picins,lastpage}
+%\usepackage{bbm}
+%%\usepackage[dvipsnames]{xcolor}
+%%\usepackage{subfigure}
+%\usetikzlibrary{arrows,decorations.pathmorphing,positioning,backgrounds,fit}
+%
+%
+
+%\newcommand{\V}[1]{\mathbf{#1}}
+%\newcommand{\A}{\V{A}}
+%\ifdefined\B
+%  \renewcommand{\B}{\V{B}}%
+%\else
+%  \newcommand{\B}{\V{B}}%
+%\fi
+%\ifdefined\C
+%  \renewcommand{\C}{\V{C}}%
+%\else
+%  \newcommand{\C}{\V{C}}%
+%\fi
+%\newcommand{\I}{\V{I}}
+\newcommand{\D}{\V{D}}
+%\ifdefined\F
+%  \renewcommand{\F}{\V{F}}%
+%\else
+%  \newcommand{\F}{\V{F}}%
+%\fi
+%\renewcommand{\H}{\V{H}}
+%\ifdefined\K
+%  \renewcommand{\K}{\V{K}}%
+%\else
+%  \newcommand{\K}{\V{K}}%
+%\fi
+%\newcommand{\N}{\V{N}}
+%\newcommand{\R}{\V{R}}
+%\renewcommand{\P}{\V{P}}
+%\renewcommand{\S}{\V{S}}
+%\ifdefined\T
+%  \renewcommand{\T}{\V{T}}%
+%\else
+%  \newcommand{\T}{\V{T}}%
+%\fi
+%\newcommand{\TT}{\V{T}}
+%\ifdefined\U
+%  \renewcommand{\U}{\V{U}}%
+%\else
+%  \newcommand{\U}{\V{U}}%
+%\fi
+%\newcommand{\VV}{\V{V}}
+%\newcommand{\X}{\mathbf{X}}
+%\newcommand{\W}{\V{W}}
+%\newcommand{\Y}{\V{Y}}
+%\newcommand{\Z}{\boldsymbol{Z}}
+%%\renewcommand{\a}{\V{a}}
+%\renewcommand{\b}{\V{b}}
+%\ifdefined\x
+%  \renewcommand{\x}{\V{x}}%
+%\else
+%  \newcommand{\x}{\V{x}}%
+%\fi
+%
+%\renewcommand{\l}{\V{l}}
+%\newcommand{\n}{\V{n}}
+%\newcommand{\s}{\V{s}}
+%\ifdefined\t
+%  \renewcommand{\t}{\V{t}}%
+%\else
+%  \newcommand{\t}{\V{t}}%
+%\fi
+%\newcommand{\y}{\V{y}}
+%\newcommand{\w}{\V{w}}
+%%\renewcommand{\v}{\V{v}}
+%\newcommand{\z}{\V{z}}
+%\renewcommand{\u}{\V{u}}
+%\newcommand{\Vuno}{\V{1}}
+%\newcommand{\VGamma}{\V{\Gamma}}
+%\newcommand{\VLambda}{\boldsymbol{\Lambda}}
+%\newcommand{\VSigma}{{\Sigma}}
+%
+%\newcommand{\Vepsilon}{\boldsymbol{\epsilon}}
+%\newcommand{\VPhi}{{\Phi}}
+%\newcommand{\VPi}{\V{\Pi}}
+%\newcommand{\VPsi}{\boldsymbol{\Psi}}
+%\newcommand{\VTheta}{\boldsymbol{\Theta}}
+%\newcommand{\Vmu}{\boldsymbol{\mu}}
+%\newcommand{\Vxi}{\boldsymbol{\xi}}
+%\newcommand{\Valpha}{\boldsymbol{\alpha}}
+%\newcommand{\Vbeta}{\boldsymbol{\beta}}
+%\newcommand{\Vgamma}{\boldsymbol{\gamma}}
+%\newcommand{\Veta}{\boldsymbol{\eta}}
+%\newcommand{\Vphi}{\boldsymbol{\phi}}
+%\newcommand{\Vpsi}{\boldsymbol{\psi}}
+%\newcommand{\Vpi}{\boldsymbol{\pi}}
+%\newcommand{\Vtheta}{\boldsymbol{\theta}}
+%\newcommand{\Vzeta}{\boldsymbol{\zeta}}
+%\newcommand{\Vomega}{\boldsymbol{\omega}}
+%\newcommand{\Vlambda}{\V{\lambda}}
+
+\newcommand{\CI}{\mathrel{\text{\scalebox{1.07}{$\perp\mkern-8mu\perp$}}}}
+\newcommand{\nCI}{\cancel{\mathrel{\text{\scalebox{1.07}{$\perp\mkern-8mu\perp$}}}}}
+\def\cind#1#2#3{#1\CI #2 \mid #3}
+\def\ind#1#2{#1\CI #2}
+\def\notcind#1#2#3{#1\nCI #2 \mid #3}
+\def\notind#1#2{#1\nCI #2}
+
+\newcommand{\iseq}[2]{#1_{1},#1_{2},\ldots ,#1_{#2}}
+
+
+%\definecolor{pale}{RGB}{245,245,200}
+\definecolor{pale}{RGB}{145,145,145}
+\definecolor{node}{RGB}{220,220,220}
+%\definecolor{observed}{RGB}{145,145,145}
+\definecolor{observed}{RGB}{240,140,140}
+\definecolor{box}{RGB}{240,240,240}
+%\definecolor{param}{RGB}{176,200,233}
+\definecolor{param}{RGB}{255,255,221}
+
+\definecolor{ft}{RGB}{210,40,40}
+\definecolor{bt}{RGB}{54,94,155}
+\definecolor{nt}{RGB}{90,90,90}
+\definecolor{mt}{RGB}{168,27,49}
+\definecolor{at}{RGB}{170,80,80}
+
+
+\definecolor{BerkeleyGold}{RGB}{193,129,45}
+\definecolor{BerkeleyBlueText}{RGB}{48,99,126}
+\definecolor{BerkeleyTableGold}{RGB}{222,157,46}
+\definecolor{BerkeleyTableBlue1}{RGB}{207,226,234}
+\definecolor{BerkeleyTableBlue2}{RGB}{232,241,245}
+\definecolor{mDarkBrown}{HTML}{604c38}
+\definecolor{mDarkTeal}{HTML}{23373b}
+\definecolor{mLightBrown}{RGB}{193,129,45}
+\definecolor{mLightGreen}{HTML}{14B03D}
+\definecolor{bittersweet}{rgb}{1.0, 0.44, 0.37}
+\definecolor{blush}{rgb}{0.87, 0.36, 0.51}
+\definecolor{brightpink}{rgb}{1.0, 0.0, 0.5}
+\definecolor{brinkpink}{rgb}{0.98, 0.38, 0.5}
+\definecolor{candypink}{rgb}{0.89, 0.44, 0.48}
+\definecolor{dimgray}{rgb}{0.41, 0.41, 0.41}
+\definecolor{lightslategray}{rgb}{0.47, 0.53, 0.6}
+
+\definecolor{bittersweet}{rgb}{1.0, 0.44, 0.37}
+\definecolor{blush}{rgb}{0.87, 0.36, 0.51}
+\definecolor{brightpink}{rgb}{1.0, 0.0, 0.5}
+\definecolor{brinkpink}{rgb}{0.98, 0.38, 0.5}
+\definecolor{candypink}{rgb}{0.89, 0.44, 0.48}
+\definecolor{dimgray}{rgb}{0.41, 0.41, 0.41}
+\definecolor{lightslategray}{rgb}{0.47, 0.53, 0.6}
+\newcommand{\light}[1]{#1}%{\textcolor{lightslategray}{#1}}
+
+\newcommand{\tset}{{\cal T}}
+\newcommand{\defeq}{\stackrel{\Delta}{=}}
+\newcommand{\argmin}{{\mbox{argmin}}}
+\newcommand{\linefrac}[2]{{#1}/{#2}}
+
+\renewcommand{\part}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\parts}[2]{\frac{\partial^{2} #1}{\partial #2^{2}}}
+\newcommand{\partl}[1]{ \frac{\partial}{\partial #1 } }
+\newcommand{\ppartl}[2]{ \frac{\partial^2}{\partial #1 \partial #2 } }
+
+\newcommand{\MCMC}{Markov chain Monte Carlo}
+%\renewcommand{\argmax}{\,\mbox{argmax}\,}
+%\renewcommand{\Real}{{\rm I\kern-.2emR}}
+
+% Must be included in \mbox when used in math mode
+%\renewcommand{\Natural}{{\rm I\kern-.2emN}}
+
+\newcommand{\subfunc}[3]{\underset{#2}{\textrm{#1}}\:#3} 
+\renewcommand{\argmin}[2]{\subfunc{argmin}{#1}{#2}}
+\newcommand{\argmax}[2]{\subfunc{argmax}{#1}{#2}} 
+\renewcommand{\min}[2]{\subfunc{min}{#1}{#2}}
+\renewcommand{\max}[2]{\subfunc{max}{#1}{#2}} 
+
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+%matrice
+\newcommand{\matr}[1]{\boldsymbol{#1}}
+
+\newcommand{\matrighe}[2]{
+ \left(
+     \begin{array}{ccc}
+          \mbox{--} &  #1  &  \mbox{--} \\
+          & \vdots &  \\
+           \mbox{--} &  #2  &  \mbox{--} 
+     \end{array}
+\right)
+}
+     
+%matcolonne
+\newcommand{\matcolonne}[2]{
+     \left(
+     \begin{array}{ccc}
+          \vert  &  &  \vert \\
+         #1 & \cdots & #2 \\
+           \vert  &  &  \vert 
+     \end{array}
+     \right)}
+
+\newcommand{\vcol}[2]{
+\left(
+     \begin{array}{c}
+          #1 \\
+          \vdots \\
+          #2
+     \end{array}
+     \right)}
+     
+\newcommand{\vcoll}[3]{
+\left(
+     \begin{array}{c}
+          #1 \\
+          #2 \\
+          \vdots \\
+          #3
+     \end{array}
+     \right)}
+
+%vettore riga
+\newcommand{\vriga}[2]{
+\left(
+\begin{array}{ccc}
+#1 & \cdots & #2
+\end{array}
+\right)
+}
+
+\newcommand{\vrigal}[3]{
+\left(
+\begin{array}{cccc}
+#1 & #2 & \cdots & #3
+\end{array}
+\right)
+}
+
+%norma di un vettore
+\newcommand{\vnorm}[1]{\left |\left | #1\right |\right |}
+
+%vettore
+%\newcommand{\V}[1]{\boldsymbol{\mathbf{#1}}}
+
+\newcommand{\Zero}{\V{0}}
+
+\newcommand{\me}[1]{\textit{E}[#1]}
+
+%media rispetto ad una distribuzione
+\newcommand{\med}[2]{\textit{E}_{#1}[#2]}
+
+%varianza
+\newcommand{\va}[1]{\text{\textit{Var}}[#1]}
+
+%covarianza
+\newcommand{\cov}[1]{\text{\textit{Cov}}[#1]}
+
+%diagonale
+\newcommand{\diag}[1]{\text{\textit{diag}}#1}
+
+
+%definizione
+\newcommand{\bydef}{\overset{\Delta}{=}}
+
+%gaussiana
+\newcommand{\gaussian}[3]{\frac{1}{\sqrt{2\pi}#3}\textit{exp}\left(-\frac{(#1-#2)^{2}}{2#3^{2}}\right)}
+
+%%gaussiana con media a 0
+%\renewcommand{\gaussiansimpler}[2]{\frac{1}{\sqrt{2\pi}#2}\textit{exp}\left(-\frac{#1^{2}}{2#2^{2}}\right)}
+
+%%gaussiana con media a 0 e varianza a 1
+\newcommand{\gaussiansimplest}[1]{\frac{1}{\sqrt{2\pi}}\textit{exp}\left(-\frac{#1^{2}}{2}\right)}
+
+%%gaussiana multivariata
+\newcommand{\mgaussian}[4]{\frac{1}{(2\pi)^{#4/2}|#3|^{1/2}}\textit{exp}\left(-\frac{1}{2}(#1-#2)^{T}#3^{-1}(#1-#2)\right)}
+
+%%variabile distribuita in modo gaussiano
+\newcommand{\gaussiandistr}[3]{#1\sim{\mathcal{N}}(#2,#3)}
+
+
+
+
+\usepackage[customcolors]{hf-tikz}
+
+\hfsetfillcolor{green!10}
+\hfsetbordercolor{green!50!black}
+
+
+
+
+\newcommand{\alert}[1]{\textcolor{xkcdBloodOrange}{\textbf{#1}}}
+
+\colorlet{pale}{xkcdLightGrey}%
+\colorlet{observed}{xkcdPinkish!60}
+\colorlet{param}{xkcdLightTan}
+\colorlet{latent}{xkcdPeriwinkle}
+
+
+\definecolor{node}{RGB}{220,220,220}
+\definecolor{box}{RGB}{240,240,240}
+\definecolor{ft}{RGB}{210,40,40}
+\definecolor{bt}{RGB}{54,94,155}
+\definecolor{nt}{RGB}{90,90,90}
+
+
+\colorlet{evidmath}{xkcdBlack}
+\colorlet{lightmath}{xkcdMediumGrey!80}
+\colorlet{odata}{xkcdDuskBlue}
+\colorlet{emath1}{xkcdBrightRed}
+\colorlet{emath2}{xkcdLighterPurple}
+\colorlet{emath}{xkcdGreenishBlue}
+\colorlet{edummy}{xkcdBurntSiena}
+\colorlet{efunc}{xkcdBurntSiena}
+\colorlet{efunc1}{xkcdNeonPink}
+\colorlet{evar}{xkcdLightishRed}
+\colorlet{eparam}{xkcdGreenishBlue}
+\colorlet{elat}{xkcdPurplishRed}
+
+
+\newcommand{\val}[1]{{\color{odata}{#1}}}
+\newcommand{\lat}[1]{{\color{elat}{#1}}}
+\newcommand{\prm}[1]{{\color{eparam}{#1}}}
+\newcommand{\dummy}[1]{{\color{edummy}{#1}}}
+\newcommand{\func}[1]{{\color{efunc}{#1}}}
+\newcommand{\ffunc}[1]{{\color{efunc1}{#1}}}
+\newcommand{\param}[1]{{\color{eparam}{#1}}}
+\newcommand{\vr}[1]{{\color{evar}{#1}}}
+
+
+
+\newcommand{\mb}[1]{\mathbf{#1}}
+%\newcommand{\x}[0]{\mb{x}}
+%\newcommand{\x}[0]{\mb{X}}
+
+\newcommand{\generative}[0]{p_{\btheta}\left(\x_i | \bz_i \right)}
+\newcommand{\recognition}[0]{q_{\bphi} \left(\bz_i | \x_i \right)}
+\newcommand{\dkl}[2]{D_{KL} \left({#1} || {#2} \right) }
+\newcommand{\Ex}[2]{\mathbb{E}_{{#1}}\Big[ {#2} \Big]}
+\newcommand{\mathL}[0]{\mL}
+\newcommand{\tmathL}[0]{\tilde{\mL}}
+
+\newcommand{\bb}[1]{\mathbf{#1}}
+%
+\newcommand{\bbb}{\bb{b}}
+\newcommand{\bx}{\bb{x}}
+\newcommand{\bxi}{\bx^{(i)}}
+\newcommand{\bxl}{\bx^{(l)}}
+\newcommand{\bt}{\bb{t}}
+\newcommand{\by}{\bb{y}}
+\newcommand{\bv}{\bb{v}}
+\newcommand{\bw}{\bb{w}}
+\newcommand{\bc}{\bb{c}}
+\newcommand{\bd}{\bb{d}}
+\newcommand{\bg}{\bb{g}}
+\newcommand{\bh}{\bb{h}}
+\newcommand{\br}{\bb{r}}
+\newcommand{\bu}{\bb{u}}
+\newcommand{\byl}{\by^{(l)}}
+\newcommand{\bz}{\bb{z}}
+\newcommand{\bzi}{\bz^{(i)}}
+\newcommand{\bzl}{\bz^{(l)}}
+\newcommand{\bzil}{\bz^{(i,l)}}
+\newcommand{\bpa}{\bb{pa}}
+\newcommand{\bp}{\bb{p}}
+
+\newcommand{\bT}{\Vtheta}
+\newcommand{\bTl}{\boldsymbol{\theta}^{(l)}}
+\newcommand{\balpha}{\boldsymbol{\alpha}}
+\newcommand{\bphi}{\boldsymbol{\phi}}
+\newcommand{\beps}{\boldsymbol{\epsilon}}
+\newcommand{\bepsl}{\beps^{(l)}}
+\newcommand{\bepsil}{\beps^{(i,l)}}
+\newcommand{\bzeta}{\boldsymbol{\zeta}}
+\newcommand{\btheta}{\boldsymbol{\theta}}
+\newcommand{\bzetal}{\zeta^{(l)}}
+\newcommand{\bsigma}{\boldsymbol{\sigma}}
+\newcommand{\bmu}{\boldsymbol{\mu}}
+\newcommand{\bzero}{\bb{0}}
+
+\newcommand{\bepsilon}{\boldsymbol{\epsilon}}
+
+%
+\newcommand{\bL}{\bb{L}}
+\newcommand{\bV}{\bb{V}}
+\newcommand{\bW}{\bb{W}}
+\newcommand{\bI}{\bb{I}}
+\newcommand{\bR}{\bb{R}}
+\newcommand{\bX}{\bb{X}}
+\newcommand{\bO}{\bb{O}}
+
+\newcommand{\btPa}{\widetilde{\bb{Pa}}}
+\newcommand{\btpa}{\widetilde{\bb{pa}}}
+
+%
+\newcommand{\tz}{\widetilde{z}}
+\newcommand{\tZ}{\widetilde{Z}}
+\newcommand{\tf}{\widetilde{f}}
+\newcommand{\btZ}{\widetilde{\bb{Z}}}
+\newcommand{\btz}{\widetilde{\bz}}
+\newcommand{\btT}{\widetilde{\bT}}
+\newcommand{\tPa}{\widetilde{Pa}}
+
+\newcommand{\pT}{p_{\bT}}
+\newcommand{\pTl}{p_{\bT^{(l)}}}
+\newcommand{\pA}{p_{\balpha}}
+\newcommand{\qT}{q_{\bT}}
+\newcommand{\qPhi}{q_{\bphi}}
+\newcommand{\fT}{f_{\bT}}
+\newcommand{\fPhi}{f_{\bphi}}
+\newcommand{\fTPhi}{f_{\bT,\bphi}}
+\newcommand{\gT}{g_{\bT}}
+\newcommand{\gPhi}{g_{\bphi}}
+\newcommand{\hPhi}{h_{\bphi}}
+\newcommand{\rPhi}{r_{\bphi}}
+\newcommand{\qD}{q_\mathcal{D}}
+\newcommand{\qDP}{q_{\mathcal{D},\bphi}}
+\newcommand{\qP}{q_{\bphi}}
+
+
+\newcommand{\NeuralNet}{\text{NeuralNet}}
+\newcommand{\EncoderNeuralNet}{\text{EncoderNeuralNet}_{\bphi}}
+\newcommand{\DecoderNeuralNet}{\text{DecoderNeuralNet}_{\bT}}
+
+\newcommand{\dP}{d_{\bphi}}
+
+\newcommand{\Exp}[2]{\mathbb{E}_{#1}\left[#2\right]}
+\newcommand{\Ed}{\mathbb{E}_\bd}
+\newcommand{\eqnr}{\addtocounter{equation}{1}\tag{\theequation}}
+
+%
+%\newcommand{\ELBO}{\mathcal{L}_{\bT,\bphi}}
+\newcommand{\TELBO}{\tilde{\mathcal{L}}_{\bT,\bphi}}
+
+%\DeclareMathOperator*{\argmin}{argmin}
+%\DeclareMathOperator*{\argmax}{argmax}
+
+
+
+%
+\newcommand{\ie}{\emph{i.e.}}
+\newcommand{\eg}{\emph{e.g.}}
+\newcommand{\etc}{\emph{etc}}
+\newcommand{\now}{\textsc{now}}
+
+\newcommand{\ox}{\overline{\x}}
+\newcommand{\oX}{\overline{\X}}
+\newcommand{\ow}{\overline{\w}}
+
+\newcommand{\mL}{\mathcal{L}}
+\newcommand{\mK}{\mathcal{K}}
+\newcommand{\mZ}{\mathcal{Z}}
+\newcommand{\mP}{\mathcal{P}}
+\newcommand{\mQ}{\mathcal{Q}}
+
+\colorlet{evidmath}{xkcdBlack}
+\colorlet{lightmath}{xkcdMediumGrey!80}
+\colorlet{odata}{xkcdDuskBlue}
+\colorlet{emath1}{xkcdBrightRed}
+\colorlet{emath2}{xkcdLighterPurple}
+\colorlet{emath}{xkcdGreenishBlue}
+\colorlet{edummy}{xkcdBurntSiena}
+\colorlet{efunc}{xkcdBurntSiena}
+\colorlet{efunc1}{xkcdNeonPink}
+\colorlet{evar}{xkcdLightishRed}
+\colorlet{eparam}{xkcdGreenishBlue}
+\colorlet{elat}{xkcdPurplishRed}
+
+
+%\newcommand{\val}[1]{{\color{odata}{#1}}}
+%\newcommand{\lat}[1]{{\color{elat}{#1}}}
+%\newcommand{\prm}[1]{{\color{eparam}{#1}}}
+%\newcommand{\dummy}[1]{{\color{edummy}{#1}}}
+%\newcommand{\func}[1]{{\color{efunc}{#1}}}
+%\newcommand{\ffunc}[1]{{\color{efunc1}{#1}}}
+%\newcommand{\param}[1]{{\color{eparam}{#1}}}
+%\newcommand{\vr}[1]{{\color{evar}{#1}}}
+
+\newcommand{\otz}{{\overline\Vtheta_0}}
+\newcommand{\otu}{{\overline\Vtheta_1}}
+
+\newcommand{\htt}{{\hat\Vtheta}}
+
+%\newcommand{\mL}{\mathcal{L}}
+%\newcommand{\mK}{\mathcal{K}}
+%\newcommand{\mZ}{\mathcal{Z}}
+%\newcommand{\mP}{\mathcal{P}}
+%\newcommand{\mQ}{\mathcal{Q}}
+
+\newcommand{\vlx}{{\val{\x}}}
+\newcommand{\vlxu}{{\val{\x_1}}}
+\newcommand{\vlxi}{\val{\x_i}}
+\newcommand{\vlxn}{{\val{\x_n}}}
+\newcommand{\vlX}{{\val{\X}}}
+
+
+\newcommand{\lz}{{\lat{\z}}}
+\newcommand{\lzu}{{\lat{\z_1}}}
+\newcommand{\lzi}{\lat{\z_i}}
+\newcommand{\lzn}{{\lat{\z_n}}}
+\newcommand{\lzm}{{\lat{\z_m}}}
+\newcommand{\lZ}{{\lat{\Z}}}
+
+\newcommand{\vrt}{{\vr{\Vtheta}}}
+\newcommand{\vrtr}{{\vr{\Vtheta_r}}}
+\newcommand{\vrp}{{\vr{\VPsi}}}
+
+
+\newcommand{\prth}{{\prm{\hat\Vtheta}}}
+\newcommand{\prt}{{\prm{\Vtheta}}}
+\newcommand{\prts}{{\prm{\Vtheta^*}}}
+\newcommand{\prp}{{\prm{\Vphi}}}
+
+\newcommand{\prto}{{\prm{\overline\Vtheta}}}
+\newcommand{\prtoz}{{\prm{\overline\Vtheta_0}}}
+\newcommand{\prtou}{{\prm{\overline\Vtheta_1}}}
+\newcommand{\prtok}{{\prm{\overline\Vtheta_k}}}
+\newcommand{\prtokm}{{\prm{\overline\Vtheta_{k-1}}}}
+\newcommand{\prQo}{\prm{\overline{\mathcal{Q}}}}
+\newcommand{\prtz}{\prm{\Vtheta_0}}
+\newcommand{\prtu}{\prm{\Vtheta_1}}
+\newcommand{\prtk}{\prm{\Vtheta_k}}
+\newcommand{\prtkm}{\prm{\Vtheta_{k-1}}}
+\newcommand{\prqi}{\prm{\overline{q}_i}}
+\newcommand{\prq}{\prm{\overline{q}}}
+
+
+\newcommand{\fq}{\func{q}}
+\newcommand{\fqi}{\func{q_i}}
+\newcommand{\fqj}{\func{q}}
+\newcommand{\fqu}{\func{q_1}}
+\newcommand{\fqn}{\func{q_n}}
+\newcommand{\fqmj}{\func{q_{-j}}}
+\newcommand{\fQ}{\func{\mathcal{Q}}}
+
+\newcommand{\ffqh}{\prm{\overline{q}}}
+\newcommand{\ffqhu}{\ffunc{\hat{q}_1}}
+\newcommand{\ffqhn}{\ffunc{\hat{q}_n}}
+\newcommand{\ffqhi}{\prm{\overline{q}_i}}
+\newcommand{\ffqhj}{\prm{\overline{q}_j}}
+\newcommand{\ffQ}{\ffunc{\hat{\mathcal{Q}}}}
+
+
+
+
+\newcommand{\gradient}[2]{\mathlarger{\mathlarger{\nabla}}_{\mathsmaller{#1}} #2}
+
+%\newcommand{\dz}{\dummy{\z}}
+
+
+%\newcommand{\mb}[1]{\mathbf{#1}}
+%\newcommand{\x}[0]{\mb{x}}
+%\newcommand{\x}[0]{\mb{X}}

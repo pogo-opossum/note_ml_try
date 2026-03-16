@@ -1,0 +1,524 @@
+
+# %% [markdown]
+# ---
+# # Polynomial Regression and Overfitting
+#
+# ## 1 — The Regression Problem
+#
+# In a **supervised regression** task we are given a training set
+# $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$ where each target $y_i$ is a
+# noisy observation of some unknown function $f$:
+#
+# $$
+# y_i = f(x_i) + \varepsilon_i, \qquad
+# \varepsilon_i \sim \mathcal{N}(0, \sigma^2).
+# $$
+#
+# The goal is to learn a model $\hat{f}$ that predicts well on **new, unseen**
+# inputs — not just on the training data.
+#
+# ## 2 — Polynomial Models and the Design Matrix
+#
+# We restrict the hypothesis class to **polynomials of degree $d$**:
+#
+# $$
+# \hat{f}(x;\,\boldsymbol{\theta}) = \sum_{j=0}^{d} \theta_j\, x^j
+# = \boldsymbol{\theta}^\top \boldsymbol{\phi}(x),
+# \qquad
+# \boldsymbol{\phi}(x) = [1,\, x,\, x^2,\, \ldots,\, x^d]^\top.
+# $$
+#
+# Applying this feature map to every training point gives the **design matrix**
+# $\mathbf{\Phi} \in \mathbb{R}^{N \times (d+1)}$:
+#
+# $$
+# \mathbf{\Phi} =
+# \begin{bmatrix}
+#   1 & x_1 & x_1^2 & \cdots & x_1^d \\
+#   \vdots & & & & \vdots \\
+#   1 & x_N & x_N^2 & \cdots & x_N^d
+# \end{bmatrix}.
+# $$
+#
+# ## 3 — Ordinary Least Squares (OLS)
+#
+# We fit the model by minimising the **sum of squared residuals**:
+#
+# $$
+# \mathcal{L}(\boldsymbol{\theta})
+# = \|\mathbf{y} - \mathbf{\Phi}\boldsymbol{\theta}\|^2
+# = \sum_{i=1}^{N}(y_i - \hat{f}(x_i;\boldsymbol{\theta}))^2.
+# $$
+#
+# Setting $\nabla_{\boldsymbol{\theta}}\mathcal{L} = 0$ gives the **normal
+# equations**, whose unique solution (when $\mathbf{\Phi}^\top\mathbf{\Phi}$
+# is invertible) is the **OLS estimator**:
+#
+# $$
+# \hat{\boldsymbol{\theta}}
+# = (\mathbf{\Phi}^\top \mathbf{\Phi})^{-1} \mathbf{\Phi}^\top \mathbf{y}.
+# $$
+#
+# ## 4 — Overfitting, Underfitting, and the Bias–Variance Trade-off
+#
+# The degree $d$ controls the **complexity** of the model:
+#
+# - **Underfitting** ($d$ too small): the model cannot capture the true shape
+#   of $f$.  Both training and test error are high — the model has **high
+#   bias**.
+#
+# - **Overfitting** ($d$ too large): the model fits the training noise
+#   precisely.  Training error is very low but test error is high — the model
+#   has **high variance**.
+#
+# This tension is the **bias–variance trade-off**.  For a fixed test point
+# $x_0$, the expected squared prediction error decomposes as:
+#
+# $$
+# \mathbb{E}\!\left[(y_0 - \hat{f}(x_0))^2\right]
+# = \underbrace{\left(\mathbb{E}[\hat{f}(x_0)] - f(x_0)\right)^2}_{\text{Bias}^2}
+# + \underbrace{\operatorname{Var}[\hat{f}(x_0)]}_{\text{Variance}}
+# + \underbrace{\sigma^2}_{\text{Irreducible noise}}.
+# $$
+#
+# Increasing $d$ decreases bias but increases variance; the optimal degree
+# minimises total generalisation error.
+#
+# ### The Root-Mean-Square Error (RMSE)
+#
+# We measure fit quality with the **RMSE**, which is in the same units as $y$:
+#
+# $$
+# E_{\text{RMS}} = \sqrt{\frac{1}{2N}\sum_{i=1}^{N}(y_i - \hat{f}(x_i))^2}.
+# $$
+#
+# Plotting $E_{\text{RMS}}$ on train and test sets as a function of $d$ reveals
+# the classic U-shaped test-error curve and the monotonically decreasing
+# train-error curve.
+# 
+
+# %%
+# ── Suppress non-critical warnings ───────────────────────────────────────────
+import warnings
+warnings.filterwarnings('ignore')
+
+# %%
+# ── Core libraries ────────────────────────────────────────────────────────────
+import numpy as np
+import pandas as pd
+import scipy.stats as stats
+
+# %%
+# ── Plotting configuration ────────────────────────────────────────────────────
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+plt.style.use("ggplot")
+plt.rcParams.update({
+    "font.family":         "sans-serif",
+    "font.size":           10,
+    "axes.labelsize":      10,
+    "axes.labelweight":    "bold",
+    "axes.titlesize":      11,
+    "xtick.labelsize":     8,
+    "ytick.labelsize":     8,
+    "legend.fontsize":     10,
+    "figure.titlesize":    12,
+    "image.cmap":          "jet",
+    "image.interpolation": "none",
+    "figure.figsize":      (14, 6),
+    "lines.linewidth":     2,
+    "lines.markersize":    8,
+})
+
+# Accessible xkcd colour palette
+COLORS = [
+    "xkcd:pale orange", "xkcd:sea blue",     "xkcd:pale red",
+    "xkcd:sage green",  "xkcd:terra cotta",  "xkcd:dull purple",
+    "xkcd:teal",        "xkcd:goldenrod",    "xkcd:cadet blue",
+    "xkcd:scarlet",     "xkcd:steel grey",   "xkcd:mint green",
+    "xkcd:burnt orange","xkcd:royal purple", "xkcd:bright pink",
+    "xkcd:olive green",
+]
+
+# Re-usable style for the annotation text box
+BBOX_PROPS = dict(boxstyle="round,pad=0.3", fc=COLORS[0], alpha=0.5)
+
+# %% [markdown]
+# ---
+# ## 5 — True Function and Data-Generating Process
+#
+# The ground-truth function is:
+#
+# $$
+# f(x) = \sin(x)\cos^2(x).
+# $$
+#
+# This is a smooth, non-polynomial function, so no finite-degree polynomial
+# can represent it exactly — the best we can do is approximate it.
+#
+# Observed targets are generated by adding independent Gaussian noise:
+#
+# $$
+# y \mid x \;\sim\; \mathcal{N}\!\left(f(x),\; \sigma^2 = 0.01\right),
+# \qquad x \sim \mathcal{U}(-2, 2).
+# $$
+# 
+
+# %%
+# ── True function f(x) = sin(x) cos²(x) ──────────────────────────────────────
+def f(x: np.ndarray) -> np.ndarray:
+    """Ground-truth noiseless function."""
+    return np.sin(x) * np.cos(x) ** 2
+
+# %%
+# ── Noisy observation model: y ~ N(f(x), σ²=0.01) ───────────────────────────
+NOISE_STD = 0.1    # standard deviation of the additive Gaussian noise
+
+def sample_targets(x: np.ndarray) -> np.ndarray:
+    """
+    For each scalar input x_i return one noisy observation
+    y_i = f(x_i) + ε_i,  ε_i ~ N(0, NOISE_STD²).
+    """
+    return np.array([
+        stats.norm.rvs(loc=f(xi), scale=NOISE_STD, size=1)
+        for xi in x.ravel()
+    ]).reshape(-1, 1)
+
+# %% [markdown]
+# ---
+# ## 6 — Dataset Generation
+#
+# Training and test points are drawn i.i.d. from $\mathcal{U}(-2, 2)$.
+# Using separate, independent draws for train and test is essential: the
+# test set must act as a **proxy for future, unseen data**, not as a
+# second look at the training distribution.
+# 
+
+# %%
+# ── Dataset sizes ─────────────────────────────────────────────────────────────
+N_TRAIN = 30
+N_TEST  = 30
+
+DOMAIN = (-2.0, 2.0)    # input domain [a, b]
+
+# %%
+# ── Sample training set ───────────────────────────────────────────────────────
+np.random.seed(42)    # reproducibility
+x_train = stats.uniform.rvs(
+    loc=DOMAIN[0], scale=DOMAIN[1] - DOMAIN[0], size=N_TRAIN
+).reshape(-1, 1)
+y_train = sample_targets(x_train)     # shape (N_TRAIN, 1)
+
+# ── Sample test set ───────────────────────────────────────────────────────────
+x_test = stats.uniform.rvs(
+    loc=DOMAIN[0], scale=DOMAIN[1] - DOMAIN[0], size=N_TEST
+).reshape(-1, 1)
+y_test = sample_targets(x_test)       # shape (N_TEST, 1)
+
+# %%
+# ── Dense grid for plotting the true function ─────────────────────────────────
+x_plot = np.linspace(DOMAIN[0], DOMAIN[1], 1000)
+
+# %%
+# ── Figure 1 – True function and raw datasets ─────────────────────────────────
+fig, ax = plt.subplots(figsize=(14, 6))
+ax.plot(x_plot, f(x_plot), lw=2, color=COLORS[3], alpha=0.9, label='True function $f(x)$')
+ax.scatter(x_train, y_train, s=40, color=COLORS[1], label=f'Train set ($N={N_TRAIN}$)')
+ax.scatter(x_test,  y_test,  s=40, color=COLORS[0], label=f'Test set ($N={N_TEST}$)')
+ax.set_xlim(*DOMAIN)
+ax.set_ylim(-1, 1)
+ax.set_xlabel('$x$')
+ax.set_ylabel('$y$')
+ax.legend()
+ax.set_title('True function and observed data')
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
+# ---
+# ## 7 — Model: Polynomial Regression
+#
+# ### Design matrix construction
+#
+# Given a degree $d$, the design matrix for a set of $N$ points is built by
+# stacking the feature vectors $\boldsymbol{\phi}(x_i)$ as rows:
+#
+# $$
+# \mathbf{\Phi} =
+# \begin{bmatrix}
+#   \boldsymbol{\phi}(x_1)^\top \\
+#   \vdots \\
+#   \boldsymbol{\phi}(x_N)^\top
+# \end{bmatrix}
+# \in \mathbb{R}^{N \times (d+1)},
+# \qquad
+# \boldsymbol{\phi}(x) = [1,\, x,\, x^2,\, \ldots,\, x^d]^\top.
+# $$
+#
+# ### OLS closed-form solution
+#
+# The OLS estimator satisfies the normal equations
+# $\mathbf{\Phi}^\top\mathbf{\Phi}\,\hat{\boldsymbol{\theta}} = \mathbf{\Phi}^\top\mathbf{y}$,
+# giving:
+#
+# $$
+# \hat{\boldsymbol{\theta}}
+# = (\mathbf{\Phi}^\top \mathbf{\Phi})^{-1} \mathbf{\Phi}^\top \mathbf{y}.
+# $$
+#
+# > **Numerical note.** Direct inversion of $\mathbf{\Phi}^\top\mathbf{\Phi}$
+# > can be ill-conditioned for high $d$.  In production one prefers
+# > `np.linalg.lstsq` (QR decomposition) or regularisation (ridge regression).
+# > We use the direct formula here for pedagogical clarity.
+# 
+
+# %%
+# ── Build polynomial design matrix for a given degree ─────────────────────────
+def design_matrix(x: np.ndarray, degree: int) -> np.ndarray:
+    """
+    Build the Vandermonde-like design matrix for polynomial regression.
+
+    Parameters
+    ----------
+    x      : array of shape (N, 1) — input points
+    degree : int — polynomial degree d
+
+    Returns
+    -------
+    Phi : ndarray of shape (N, d+1)
+          Columns are [1, x, x², …, x^d].
+    """
+    x = x.ravel()
+    return np.column_stack([x ** j for j in range(degree + 1)])
+
+# %%
+# ── OLS estimator: θ̂ = (ΦᵀΦ)⁻¹ Φᵀ y ─────────────────────────────────────────
+def fit_ols(Phi: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """
+    Solve the normal equations and return the OLS coefficient vector.
+
+    Parameters
+    ----------
+    Phi : ndarray of shape (N, d+1)
+    y   : ndarray of shape (N, 1)
+
+    Returns
+    -------
+    theta : ndarray of shape (d+1, 1)
+    """
+    return np.linalg.inv(Phi.T @ Phi) @ Phi.T @ y
+
+# %%
+# ── Predictions: ŷ = Φ θ̂ ─────────────────────────────────────────────────────
+def predict(theta: np.ndarray, x: np.ndarray, degree: int) -> np.ndarray:
+    """
+    Evaluate the fitted polynomial at new inputs x.
+
+    Parameters
+    ----------
+    theta  : ndarray of shape (d+1, 1) — fitted coefficients
+    x      : ndarray of shape (M, 1)   — query points
+    degree : int — polynomial degree
+
+    Returns
+    -------
+    y_hat : ndarray of shape (M,)
+    """
+    Phi = design_matrix(x, degree)
+    return (Phi @ theta).ravel()
+
+# %%
+# ── Root-mean-square error ─────────────────────────────────────────────────────
+def rmse(theta: np.ndarray, x: np.ndarray, y: np.ndarray, degree: int) -> float:
+    """
+    Compute E_RMS = sqrt( (1/2N) Σ (y_i - ŷ_i)² ).
+
+    The factor 1/(2N) (instead of 1/N) is a common convention in pattern
+    recognition literature (Bishop, PRML, Chapter 1).
+    """
+    n = x.shape[0]
+    residuals = y.ravel() - predict(theta, x, degree)
+    return float(np.sqrt(np.sum(residuals ** 2) / (2.0 * n)))
+
+# %% [markdown]
+# ---
+# ## 8 — Fitting a Single Polynomial of Degree $d$
+#
+# We first fit and visualise the model for a specific degree.
+# Adjusting `DEGREE` lets you interactively explore underfitting ($d=1,2$),
+# a good fit ($d \approx 4$–$6$), and overfitting ($d \ge 10$).
+# 
+
+# %%
+# ── Fit a degree-d polynomial ─────────────────────────────────────────────────
+DEGREE = 3
+
+Phi_train = design_matrix(x_train, DEGREE)
+theta_hat  = fit_ols(Phi_train, y_train)
+
+c_train = rmse(theta_hat, x_train, y_train, DEGREE)
+c_test  = rmse(theta_hat, x_test,  y_test,  DEGREE)
+
+print(f"Degree {DEGREE}  |  RMSE train = {c_train:.4f}  |  RMSE test = {c_test:.4f}")
+
+# %%
+# ── Figure 2 – Fitted polynomial vs. true function ───────────────────────────
+fig, ax = plt.subplots(figsize=(14, 6))
+ax.plot(x_plot, f(x_plot),
+        lw=2, color=COLORS[3], alpha=0.9, label='True function $f(x)$')
+ax.scatter(x_train, y_train, s=40, color=COLORS[1], label='Train set')
+ax.scatter(x_test,  y_test,  s=40, color=COLORS[0], label='Test set')
+ax.plot(x_plot, predict(theta_hat, x_plot.reshape(-1, 1), DEGREE),
+        lw=2, color=COLORS[2], alpha=1.0, label=f'Polynomial fit (d={DEGREE})')
+ax.set_xlim(*DOMAIN)
+ax.set_ylim(-1, 1)
+ax.set_xlabel('$x$')
+ax.set_ylabel('$y$')
+ax.set_title(f'Polynomial regression — degree $d = {DEGREE}$')
+ax.text(
+    0.98, 0.95,
+    f'$E_{{RMS}}$\ntrain: {c_train:.3f}\ntest:  {c_test:.3f}',
+    fontsize=11, transform=ax.transAxes,
+    va='top', ha='right', bbox=BBOX_PROPS,
+)
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
+# ---
+# ## 9 — Systematic Study: RMSE vs. Polynomial Degree
+#
+# We now sweep $d$ from $0$ to $d_{\max} - 1$ and record $E_{\text{RMS}}$ on
+# both train and test sets.
+#
+# **Expected observations:**
+#
+# - **Train RMSE** decreases monotonically with $d$: a more complex model can
+#   always fit the training data at least as well.
+# - **Test RMSE** follows a U-shaped curve: it decreases as $d$ grows (less
+#   bias), reaches a minimum near the "right" complexity, then rises again
+#   (excess variance).
+# - The **ratio** $E_{\text{RMS}}^{\text{test}} / E_{\text{RMS}}^{\text{train}}$
+#   is a dimensionless measure of overfitting.  A ratio close to 1 indicates
+#   good generalisation; values $\gg 1$ signal overfitting.
+# ---
+
+# %%
+# ── Sweep polynomial degree from 0 to MAX_DEGREE - 1 ─────────────────────────
+MAX_DEGREE = 20
+
+records = []
+for d in range(MAX_DEGREE):
+    Phi = design_matrix(x_train, d)
+    theta_d = fit_ols(Phi, y_train)
+    records.append({
+        'degree':     d,
+        'rmse_train': rmse(theta_d, x_train, y_train, d),
+        'rmse_test':  rmse(theta_d, x_test,  y_test,  d),
+    })
+
+df = pd.DataFrame(records).set_index('degree')
+df['ratio'] = df['rmse_test'] / df['rmse_train']
+
+print(df.to_string(float_format='{:.4f}'.format))
+
+# %%
+# ── Figure 3 – RMSE curves (train and test, separate panels) ─────────────────
+fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True, figsize=(12, 7))
+
+ax0.plot(df.index, df['rmse_train'],
+         color=COLORS[1], lw=2, alpha=0.8, marker='o', markersize=5)
+ax0.set_ylabel('$E_{RMS}$')
+ax0.set_title('Training RMSE')
+
+ax1.plot(df.index, df['rmse_test'],
+         color=COLORS[2], lw=2, alpha=0.8, marker='o', markersize=5)
+ax1.set_ylabel('$E_{RMS}$')
+ax1.set_title('Test RMSE')
+ax1.set_xlabel('Polynomial degree $d$')
+
+for ax in (ax0, ax1):
+    ax.set_xlim(-0.2, MAX_DEGREE - 0.8)
+
+plt.tight_layout()
+plt.show()
+
+# %%
+# ── Figure 4 – Overlay: both curves on the same axes ─────────────────────────
+fig, ax = plt.subplots(figsize=(12, 5))
+ax.plot(df.index, df['rmse_train'],
+        color=COLORS[1], lw=2, alpha=0.8, marker='o', markersize=5,
+        label='Train RMSE')
+ax.plot(df.index, df['rmse_test'],
+        color=COLORS[2], lw=2, alpha=0.8, marker='o', markersize=5,
+        label='Test RMSE')
+ax.set_xlabel('Polynomial degree $d$')
+ax.set_ylabel('$E_{RMS}$')
+ax.set_xlim(-0.2, MAX_DEGREE - 0.8)
+ax.set_title('Train vs. Test RMSE — bias–variance trade-off')
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+# %%
+# ── Figure 5 – Overfitting ratio test / train ─────────────────────────────────
+fig, ax = plt.subplots(figsize=(12, 5))
+ax.plot(df.index, df['ratio'],
+        color=COLORS[6], lw=2, alpha=0.8, marker='o', markersize=5,
+        label='$E_{RMS}^{test} / E_{RMS}^{train}$')
+ax.axhline(1.0, color='grey', lw=1, linestyle='--', label='ratio = 1 (perfect generalisation)')
+ax.set_xlabel('Polynomial degree $d$')
+ax.set_ylabel('Test / Train ratio')
+ax.set_xlim(-0.2, MAX_DEGREE - 0.8)
+ax.set_title('Overfitting ratio as a function of model complexity')
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
+# ---
+# ## 10 — Summary and Key Takeaways
+#
+# | Degree $d$ | Train RMSE | Test RMSE | Regime |
+# |---|---|---|---|
+# | $0$ – $2$ | High | High | Underfitting (high bias) |
+# | $\approx 3$–$6$ | Moderate | Low | Good fit |
+# | $\ge 10$ | Very low | High | Overfitting (high variance) |
+#
+# **Key takeaways:**
+#
+# 1. **Training error alone is a misleading metric.** A degree-$19$ polynomial
+#    can interpolate $30$ training points almost perfectly while generalising
+#    catastrophically.  Always evaluate on held-out data.
+#
+# 2. **The optimal degree depends on both $N$ and $\sigma^2$.**  More data
+#    allows fitting higher-degree polynomials without overfitting; more noise
+#    rewards simpler models.
+#
+# 3. **The ratio $E_{\text{RMS}}^{\text{test}} / E_{\text{RMS}}^{\text{train}}$
+#    diagnoses overfitting** without knowing the true function: ratios $\gg 1$
+#    indicate excessive model complexity.
+#
+# 4. **Regularisation is the practical remedy.** Adding a penalty
+#    $\lambda\|\boldsymbol{\theta}\|^2$ (**ridge regression**) to the OLS
+#    objective shrinks the coefficients and controls effective complexity
+#    without changing the degree:
+#
+#    $$
+#    \hat{\boldsymbol{\theta}}_{\text{ridge}}
+#    = (\mathbf{\Phi}^\top\mathbf{\Phi} + \lambda\mathbf{I})^{-1}
+#      \mathbf{\Phi}^\top\mathbf{y}.
+#    $$
+#
+# 5. **Cross-validation selects the optimal complexity** in practice.
+#    Instead of a single train/test split, $k$-fold CV averages test RMSE
+#    over $k$ different splits, giving a more reliable estimate of the
+#    true generalisation error.
+# 
+
+
+
+
+# %%

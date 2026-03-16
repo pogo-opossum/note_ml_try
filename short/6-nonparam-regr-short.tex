@@ -1,0 +1,222 @@
+%!TEX program = xelatex
+%!TEX root = ../all_short.tex
+
+\chapter{Nonparametric regression: A Summary}
+
+\section*{Fully Bayesian Regression Recap}
+
+\begin{itemize}
+    \item In fully Bayesian regression, no specific model parameters $\overline\w^*$ are identified. Instead, the predictive distribution $p(t|\x)$ is derived.
+    \item Under Gaussian assumptions:
+    \begin{myequation}
+    p(t|\x, \X,\t, \alpha,\beta)=\mathcal{N}(t|m(\x), \sigma^2(\x))
+    \end{myequation}
+    with:
+    \begin{myalign}
+    m(\x)&=\beta\ox^{T}\S\oX^{T}\t\\
+    \sigma^{2}(\x)&=\frac{1}{\beta}+\ox^{T}\S\ox
+    \end{myalign}
+    where $\S=(\alpha\I+\beta\oX^T\oX)^{-1} \in\Real^{(d+1)\times (d+1)}$.
+\end{itemize}
+
+\subsection*{Equivalent Kernel}
+
+\begin{itemize}
+    \item Prediction (expectation of predictive distribution):
+    \begin{myequation}
+    h(\x)=m(\x)=\beta\ox^{T}\S\oX^{T}\t
+    \end{myequation}
+    \item Since $\oX^T\t = \sum_{i=1}^n \ox_i t_i$, we can write:
+    \begin{myequation}
+    h(\x)=\sum_{i=1}^{n}\beta\ox^{T}\S\ox_{i}t_{i}
+    \end{myequation}
+    \item Prediction is a linear combination of target values $t_i$, with weights depending on $\x$ and $\x_i$.
+    \item Define \alert{equivalent kernel} $\kappa(\x_1,\x_2)=\beta\ox_1^{T}\S\ox_2$.
+    \item Then:
+    \begin{myequation}
+    h(\x)=\sum_{i=1}^{n}\kappa(\x,\x_{i})t_{i}
+    \end{myequation}
+    \item With basis functions $\Vphi$:
+    \begin{myequation}
+    \kappa(\x_1,\x_2)=\beta\Vphi(\x_1)^{T}\S\Vphi(\x_2)
+    \end{myequation}
+    \item $\kappa(\x,\x_i)$ measures relevance of known target $t_i$ for predicting at $\x$.
+    \item Equivalent kernel tends to assign greater relevance to targets $t_i$ corresponding to items $\x_i$ near $\x$ (localization property).
+    \item Instead of introducing basis functions, we can directly use a \alert{localized kernel} defined on $\Real^d\times\Real^d$.
+\end{itemize}
+
+\section*{Kernel Regression}
+
+\begin{itemize}
+    \item Predict target for $\x$ by referring to training items, especially those closer to $\x$.
+    \item Controlled by predefined \alert{kernel} function $\kappa_h(\x)$ (non-negligible only near 0).
+    \item Common kernel: Gaussian (RBF) kernel:
+    \begin{myequation}
+    g(\x)=e^{-\frac{{\left\lVert\x\right\rVert}^2}{2h^2}}
+    \end{myequation}
+    \item Goal: approximate conditional expectation:
+    \begin{myequation}
+    \me{t|\x} = \frac{\int t\; p(\x,t)dt}{\int p(\x,t)dt}
+    \end{myequation}
+    \item Approximate joint distribution using kernel:
+    \begin{myequation}
+    p(\x,t)\approx\frac{1}{n}\sum_{i=1}^n\kappa_h(\x-\x_i)\kappa_h(t-t_i)
+    \end{myequation}
+    \item Assuming kernel is non-negative, has mean 0 and area 1 (probability density), we get \alert{Nadaraya-Watson} estimator:
+    \begin{myequation}
+    h(\x)= \frac{\sum_{i=1}^n\kappa_h(\x-\x_i)t_i}{\sum_{i=1}^n\kappa_h(\x-\x_i)} = \sum_{i=1}^n w_i(\x) t_i
+    \end{myequation}
+    with $w_i(\x)=\frac{\kappa_h(\x-\x_i)}{\sum_{j=1}^n\kappa_h(\x-\x_j)}$.
+    \item With basis functions $\Vphi$:
+    \begin{myequation}
+    h(\x)=\sum_{i=1}^n w_i(\Vphi(\x)) t_i,\quad w_i(\x)=\frac{\kappa_h(\Vphi(\x)-\Vphi(\x_i))}{\sum_{j=1}^n\kappa_h(\Vphi(\x)-\Vphi(\x_i))}
+    \end{myequation}
+\end{itemize}
+
+\section*{Locally Weighted Regression (LOESS)}
+
+\begin{itemize}
+    \item Improves Nadaraya-Watson by using weighted version of sum of squared differences loss.
+    \item For predicting $t$ at $\x$, define local loss with weights $\psi_i(\x)=\kappa_h(\x-\x_i)$:
+    \begin{myequation}
+    L(\x)=\sum_{i=1}^n\psi_i(\x)(\ow^T\ox_i-t_i)^2
+    \end{myequation}
+    \item Minimization yields:
+    \begin{myequation}
+    \ow^*(\x)= (\oX^T\Psi(\x)\oX)^{-1}\oX^T\Psi(\x)\t
+    \end{myequation}
+    where $\Psi(\x)$ is diagonal with $\Psi(\x)_{ii}=\psi_i(\x)$.
+    \item Prediction:
+    \begin{myequation}
+    h(\x) = \ow^*(\x)^T\ox
+    \end{myequation}
+\end{itemize}
+
+\section*{Local Logistic Regression}
+
+\begin{itemize}
+    \item Same approach applied to classification using weighted cross-entropy:
+    \begin{myequation}
+    L(\x)=\sum_{i=1}^n\kappa_h(\x-\x_i)(t_i\log p_i-(1-t_i)\log(1-p_i))
+    \end{myequation}
+    with $p_i=\sigma(\ow^T\ox_i)$.
+\end{itemize}
+
+\section*{Gaussian Processes}
+
+\subsection*{Definition}
+
+\begin{itemize}
+    \item A \alert{stochastic process} $f(\x)$ is a collection of random variables $\{f(\x): \x\in\chi\}$.
+    \item It is a \alert{Gaussian process} (GP) if for any finite subset $\X=(\x_1,\ldots,\x_n)$, the values $f(\x_1),\ldots,f(\x_n)$ have a joint multivariate Gaussian distribution.
+    \item GP generalizes multivariate Gaussians to infinite dimensions.
+    \item Specified by:
+    \begin{itemize}
+        \item \alert{Mean function} $m(\x)$: for any $\x$, $\mathbb{E}[f(\x)] = m(\x)$.
+        \item \alert{Covariance function} (kernel) $\kappa(\x,\x')$: $\text{Cov}(f(\x), f(\x')) = \kappa(\x,\x')$.
+    \end{itemize}
+    \item For any finite set $\X$, $f(\X) \sim \mathcal{N}(\Vmu_{\X}, \VSigma_{\X})$ where:
+    \begin{itemize}
+        \item $\Vmu_{\X} = (m(\x_1),\ldots,m(\x_n))^T$
+        \item $\VSigma_{\X}[i,j] = \kappa(\x_i,\x_j)$ (Gram matrix $G_{\X}$)
+    \end{itemize}
+    \item $\kappa$ must be a \alert{positive definite kernel}: for any distinct $\x_1,\ldots,\x_n$ and constants $c_i$ not all zero:
+    \begin{myequation}
+    \sum_{i=1}^n\sum_{j=1}^n c_i c_j \kappa(\mathbf{x}_i,\mathbf{x}_j) > 0
+    \end{myequation}
+    \item Common kernel: RBF kernel $\kappa(\x_1,\x_2)=\sigma^2 e^{-\frac{||\x_1-\x_2||^2}{2\tau^2}}$.
+    \item RBF kernel assigns higher covariance to nearby points, producing smooth functions. Smoothing increases with $\tau$.
+\end{itemize}
+
+\subsection*{Posterior Distribution (Noise-Free Case)}
+
+\begin{itemize}
+    \item GP defines a prior distribution over functions: $f \sim \mathcal{GP}(m, \kappa)$.
+    \item Assume we observe $t_i = f(\x_i)$ exactly (no noise) at training points $\X$.
+    \item For new points $\Z$, joint distribution of $f(\X)$ and $f(\Z)$ is:
+    \begin{myalign}
+    \begin{pmatrix} f(\X) \\ f(\Z) \end{pmatrix} \sim \mathcal{N}\left( \begin{pmatrix} \Vmu_{\X} \\ \Vmu_{\Z} \end{pmatrix}, \begin{pmatrix} G_{\X} & G_{\Z,\X} \\ G_{\Z,\X}^T & G_{\Z} \end{pmatrix} \right)
+    \end{myalign}
+    where $G_{\Z,\X}[i,j] = \kappa(\z_i,\x_j)$.
+    \item Using properties of conditional Gaussians, predictive distribution $p(f(\Z)|\Z,\X,f(\X))$ is Gaussian with:
+    \begin{myalign}
+    \Vmu_{pr} &= \Vmu_{\Z} + G_{\Z,\X} G_{\X}^{-1} (f(\X) - \Vmu_{\X}) \\
+    \VSigma_{pr} &= G_{\Z} - G_{\Z,\X} G_{\X}^{-1} G_{\Z,\X}^T
+    \end{myalign}
+    \item For a single test point $\z$:
+    \begin{myalign}
+    \mu_{pr} &= m(\z) + G_{\z,\X} G_{\X}^{-1} (\t - \Vmu_{\X}) \\
+    \sigma^2_{pr} &= \kappa(\z,\z) - G_{\z,\X} G_{\X}^{-1} G_{\z,\X}^T
+    \end{myalign}
+    \item With zero mean assumption ($m(\x)=0$):
+    \begin{myequation}
+    \mu_{pr} = G_{\z,\X} G_{\X}^{-1} \t
+    \end{myequation}
+    \item In noise-free case, predictive mean interpolates training points exactly: for $\x_i \in \X$, $\mu_{pr}(\x_i) = t_i$ and $\sigma^2_{pr}(\x_i) = 0$.
+\end{itemize}
+
+\subsection*{Gaussian Process Regression with Gaussian Noise}
+
+\begin{itemize}
+    \item Realistic assumption: $t_i = f(\x_i) + \varepsilon$ with independent Gaussian noise $\varepsilon \sim \mathcal{N}(0, \sigma_f^2)$.
+    \item Then $\text{Cov}(t_i, t_j) = \kappa(\x_i,\x_j) + \sigma_f^2 \delta_{ij}$.
+    \item Covariance matrix for training points becomes:
+    \begin{myequation}
+    \hat\VSigma_{\X} = G_{\X} + \sigma_f^2 \I
+    \end{myequation}
+    \item For new points $\Z$, joint distribution:
+    \begin{myalign}
+    \begin{pmatrix} \t \\ f(\Z) \end{pmatrix} \sim \mathcal{N}\left( \begin{pmatrix} \Vmu_{\X} \\ \Vmu_{\Z} \end{pmatrix}, \begin{pmatrix} \hat\VSigma_{\X} & G_{\Z,\X} \\ G_{\Z,\X}^T & G_{\Z} \end{pmatrix} \right)
+    \end{myalign}
+    \item Predictive distribution $p(f(\Z)|\Z,\X,\t)$ is Gaussian with:
+    \begin{myalign}
+    \hat\Vmu_{pr} &= \Vmu_{\Z} + G_{\Z,\X} \hat\VSigma_{\X}^{-1} (\t - \Vmu_{\X}) \\
+    \hat\VSigma_{pr} &= G_{\Z} - G_{\Z,\X} \hat\VSigma_{\X}^{-1} G_{\Z,\X}^T
+    \end{myalign}
+    \item With zero mean assumption:
+    \begin{myequation}
+    \hat\Vmu_{pr} = G_{\Z,\X} \hat\VSigma_{\X}^{-1} \t
+    \end{myequation}
+    \item For a single test point $\z$:
+    \begin{myalign}
+    \mu_{pr} &= m(\z) + G_{\z,\X} \hat\VSigma_{\X}^{-1} (\t - \Vmu_{\X}) \\
+    \sigma^2_{pr} &= \kappa(\z,\z) - G_{\z,\X} \hat\VSigma_{\X}^{-1} G_{\z,\X}^T
+    \end{myalign}
+    \item With noise, predictive mean no longer interpolates exactly, and predictive variance at training points is $\sigma_f^2 > 0$.
+\end{itemize}
+
+\subsection*{Estimating Kernel Parameters}
+
+\begin{itemize}
+    \item Predictive performance depends on suitability of chosen kernel and its hyperparameters.
+    \item For RBF kernel:
+    \begin{myequation}
+    \kappa(\x_i,\x_j)=\sigma^2_f e^{-\frac{1}{2}(\x_i-\x_j)^T\mathbf{M}(\x_i-\x_j)}+\sigma_y^2\delta_{ij}
+    \end{myequation}
+    \item Simplest $\mathbf{M} = l^{-2}\I$, giving hyperparameters $\sigma_f, \sigma_y, l$.
+    \item Varying these parameters significantly affects predictions:
+    \begin{itemize}
+        \item $l$ (length scale): controls smoothness (larger $l$ $\Rightarrow$ smoother).
+        \item $\sigma_f$ (signal variance): controls amplitude of function variations.
+        \item $\sigma_y$ (noise variance): controls amount of assumed noise.
+    \end{itemize}
+    \item Hyperparameters can be estimated by maximizing the log marginal likelihood:
+    \begin{myequation}
+    \log p(\t|\X) = -\frac{1}{2}\t^T \hat\VSigma_{\X}^{-1} \t - \frac{1}{2}\log|\hat\VSigma_{\X}| - \frac{n}{2}\log 2\pi
+    \end{myequation}
+    \item This provides an automatic trade-off between data fit and model complexity.
+\end{itemize}
+
+\subsection*{Recap of Gaussian Process Properties}
+
+\begin{itemize}
+    \item GP provides a nonparametric Bayesian approach to regression.
+    \item Directly defines a distribution over functions via mean and covariance functions.
+    \item Predictions come with natural uncertainty estimates (predictive variance).
+    \item Kernel choice encodes assumptions about function smoothness and structure.
+    \item Hyperparameters can be learned from data via marginal likelihood optimization.
+    \item GP regression is equivalent to Bayesian linear regression with an infinite number of basis functions.
+    \item The equivalent kernel perspective shows GP predictions are weighted averages of training targets, with weights determined by kernel and training data.
+    \item GP naturally handles noise and provides interpolation in the noise-free case, regression with uncertainty in the noisy case.
+\end{itemize}
+

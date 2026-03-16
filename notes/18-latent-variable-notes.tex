@@ -1,0 +1,1076 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+\chapter{Latent variable models}
+
+\section*{Inference and Maximum Likelihood Recall}\label{sec:ml}
+
+The construction of a probabilistic model from a finite sample of observed data is one of
+the central and most fundamental problems in pattern recognition and machine learning.
+Given a collection of observations, we wish to identify a probability distribution that
+faithfully describes the process that generated them---one that not only fits the data at
+hand, but generalises to unseen instances drawn from the same underlying process.
+
+A standard and widely adopted approach to this problem involves \emph{parametric
+models}: rather than searching over all conceivable probability distributions, one proposes
+a specific functional form for the density, indexed by a finite-dimensional vector of
+parameters. The problem of model construction then reduces to the problem of estimating
+these parameters from data. This reduction is both a strength and a limitation: it makes
+the problem tractable, but it introduces a modelling assumption whose validity must be
+justified by domain knowledge or empirical evaluation.
+
+Concretely, we assume that the observed data $\ox$ is a realisation of a random variable
+$\x$ defined on a domain $\mathcal{X}$, distributed according to a parametric family
+$p(\x; \Vtheta)$ with parameter vector $\Vtheta = (\theta_1, \ldots, \theta_m)$.\footnote{We
+may interpret $p(\x; \Vtheta)$ as a function of $\x$ given the value of the parameter
+$\Vtheta$, or as a function of $\Vtheta$ given an observed value of $\x$.} The true
+distribution of $\x$ is unknown; we only commit to the assumption that it belongs to the
+parametric family $\{p(\x;\vrt) : \vrt \in \Theta\}$ for some parameter space $\Theta$.
+
+This gives rise to an \alert{inference} problem: given the observation $\ox$, find the
+parameter value $\prts$ such that $p(\x;\prts)$ best represents the data. The qualifier
+``best'' requires a criterion, and the most natural and widely used one is to choose the
+parameter value that assigns the highest probability to the observed data. This approach is
+called \alert{point estimation}, as it produces a single estimate $\prts$ rather than a full
+posterior distribution over parameters.
+
+\subsection*{Maximum Likelihood Estimation}
+
+Given a parameter value $\prt$, the \alert{evidence} $p(\vlx;\prt)$ of the observation
+$\vlx$ is simply the probability that the model assigns to $\vlx$ under parameter $\prt$.
+When viewed as a function of $\Vtheta$ for a fixed observation $\vlx$, this quantity is
+called the \alert{likelihood} $L(\vrt|\vlx)$. The likelihood has a natural and intuitive
+interpretation: it measures how plausible the parameter value $\vrt$ is, given what we have
+observed. A high likelihood means the model with parameter $\vrt$ would have been very
+likely to produce the observed data; a low likelihood indicates the opposite.
+
+The \alert{maximum likelihood estimate} (MLE) is defined as the parameter value that
+maximises the likelihood:
+\begin{myequation}
+	\prts=\argmax{\Vtheta} L(\vrt|\vlx).
+\end{myequation}
+Since the logarithm is a strictly monotone increasing function, maximising the likelihood is
+equivalent to maximising its logarithm:
+\begin{myequation}
+	\val\prts=\argmax{\Vtheta} \log L(\Vtheta|\ox)=\argmax{\Vtheta} l(\vrt|\vlx),
+\end{myequation}
+where $l(\vrt|\vlx)\defeq\log L(\vrt|\vlx)$ is the \alert{log-likelihood} of
+$\vlx$.\footnote{The equality holds because both functions have the same stationary
+points, since $\frac{d}{dx}\log f(x)=\frac{1}{f(x)}\frac{d}{dx}f(x)$ and $f(x)$ is
+bounded, and because $f(x_1)>f(x_2)$ if and only if $\log f(x_1)>\log f(x_2)$.}
+Working with the log-likelihood is almost always preferable in practice: it transforms
+products into sums (which are numerically more stable), and it simplifies the computation
+of gradients and stationarity conditions.
+
+Finding the MLE proceeds differently depending on the complexity of the model. In the
+simplest and most favourable case, the stationarity condition\footnote{This corresponds to
+the system of equations $\pdv{l(\vrt|\vlx)}{\vr{\theta_i}}=0$ for $i=1,\ldots,n$.}
+\begin{myequation}
+	\gradient{\vrt} {l(\vrt|\vlx)}=\gradient{\vrt}{\log p(\vlx|\vrt)}=\Zero
+\end{myequation}
+admits a finite set of closed-form solutions $\{\prm{\Vtheta_0^*}, \prm{\Vtheta_1^*},
+\ldots, \prm{\Vtheta_r^*}\}$. The global maximum can then be identified by simply
+evaluating and comparing the log-likelihood at each stationary point. This is the ideal
+scenario, realised for example in Gaussian models and in certain exponential family
+distributions.
+
+When closed-form solutions are unavailable, one must resort to numerical optimisation. If
+the likelihood $L(\vrt|\vlx)$ can be evaluated for any $\Vtheta$, its gradient can also be
+computed---either analytically or through automatic differentiation---and \alert{gradient
+ascent} methods can be applied iteratively:
+\begin{myequation}
+	\prm{\Vtheta^{(i+1)}}=\prm{\Vtheta^{(i)}}+\eta\gradient{\vrt}{L(\vrt|\vlx)}\big\vert_{\prm{\Vtheta^{(i)}}},
+\end{myequation}
+where $\eta > 0$ is a step size (learning rate). Starting from some initial parameter value
+$\prm{\Vtheta^{(0)}}$, this procedure follows the gradient of the likelihood uphill and
+converges to a stationary point, which in general will be a local maximum. The quality of
+the solution therefore depends on both the initialisation and the geometry of the likelihood
+surface.
+
+\subsection*{Maximum Likelihood from a Dataset}
+
+In practice, parameter values are determined not from a single observation but from a
+whole dataset $\X = \{\vlxu, \ldots, \vlxn\}$ of $n$ observations. Each observation is
+assumed to be an independent realisation of the same random variable $\x$ distributed
+according to $p(\x;\Vtheta)$---the standard \emph{i.i.d.} (independent and identically
+distributed) assumption.
+
+The independence assumption has a crucial consequence: the joint probability of the entire
+dataset factorises as a product of individual observation probabilities. The likelihood of the
+dataset is therefore:
+\begin{myequation}
+L(\vrt|\X)\defeq p(\X;\vrt)=\prod_{i=1}^n p(\vlxi ;\vrt).
+\end{myequation}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[latent/.style={circle,draw,fill=latent},
+visible/.style={circle,outer sep=0pt,draw,fill=observed},
+param/.style={circle,draw, fill=param},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=box},
+lbl/.style={circle}]
+\draw[line width=.5pt]
+(2,0) node[param] (B) {$\Vtheta$}
+(0,0) node[rounded corners,minimum height=2.1cm,minimum width=1.9cm,draw,fill=box] {}
+(0,0) node[visible] (C) {$\vlxi$}
+(.7,-.8) node[lbl] {$n$}
+;
+\draw[->,>=stealth',shorten >=1pt] (B) -- (C);
+\end{tikzpicture}
+\caption{The dataset consists of a set of $n$ independent realisations of the random
+variable $\x$ distributed according to a given parametric distribution $p(\x;\Vtheta)$ with
+parameter $\Vtheta$.}\label{bn1}
+\end{center}
+\end{figure}
+
+The graphical model in Figure~\ref{bn1} represents this structure compactly: the plate
+notation indicates that the $n$ observations $\vlxi$ are conditionally independent given
+$\Vtheta$, all sharing the same generative mechanism parameterised by $\Vtheta$.
+
+The best parameter value $\prts$ to model the dataset $\vlX$ is found by maximising either
+the likelihood or, more conveniently, the log-likelihood of the entire dataset:
+\begin{myequation}
+	L(\vrt|\vlX)=\prod_{i=1}^n p(\vlxi;\Vtheta),
+\end{myequation}
+\begin{myequation}
+	l(\vrt|\vlX)=\sum_{i=1}^n \log p(\vlxi;\Vtheta).
+\end{myequation}
+The log-likelihood of a dataset is thus a sum of individual log-likelihoods, one per data
+point. This additive structure is computationally convenient and conceptually natural: each
+observation contributes independently to the total evidence about the parameters. All the
+considerations developed above for the single-observation case apply directly, with
+$L(\vrt|\vlx)$ replaced by $L(\vrt|\vlX)$. The single-observation setting is simply the
+special instance $n=1$.
+
+\section*{Latent variable models}\label{sec:latentmodels}
+\subsection*{Beyond Point Estimation: Latent Variable Models}
+
+Inferring $\prts$ by maximum likelihood provides a useful but limited description of the
+data.\footnote{In the following we will refer to a set $\vlX$ of observations, which in a
+particular case shall be a single observation $\vlx$.} Maximum likelihood estimation tells
+us which member of the parametric family $\{p(\x;\vrt)\}$ best fits the observations, but it
+does not reveal the internal structure or organisation of the data. In unsupervised learning,
+however, we are often interested in discovering patterns, clusters, or hidden dependencies
+within a set of observations $\vlX$---questions that go beyond what a simple parametric
+density estimate can answer.
+
+To address these richer goals, more sophisticated probabilistic models can be introduced.
+These models augment the observed variables $\x$ with additional \emph{latent} random
+variables $\z = (z_1, \ldots, z_q)$ defined on a domain $\mZ$, which are never directly
+observed but whose inferred values carry the structural information we wish to extract from
+the data. The observed distribution $p(\x)$ is then expressed in terms of this richer joint
+model by marginalising over the latent variables:
+\begin{myequation}
+p(\x) = \int_{\mZ} p(\x, \z)\, d\z = \int_{\mZ} p(\x|\z)\, p(\z)\, d\z.
+\end{myequation}
+This factorisation decomposes the model into two interpretable components: the
+\emph{prior} $p(\z)$ over the latent variables, which encodes our beliefs about the hidden
+structure before observing any data, and the \emph{conditional} $p(\x|\z)$, which describes
+how the observed data is generated from a given latent configuration. By choosing
+expressive forms for these two components, latent variable models can represent complex,
+multimodal distributions over $\x$ that would be difficult to capture with a simple
+parametric family on $\x$ alone. The challenge, as we will see, is that this increased
+expressiveness comes at the cost of a more difficult inference and learning problem.
+
+More precisely, we consider a probabilistic model $p(\x,\z; \Vtheta)$ where $\Vtheta=
+\Vphi\cup\Vpsi$, involving an \alert{observed} random variable $\x$---whose instantiations
+can be directly observed---and a \alert{latent} random variable $\z$, whose instantiations
+are never accessible to the learner. The variable $\z$ is called \emph{latent} (from the
+Latin for ``hidden'') precisely because it exists in the model only as a theoretical construct
+that explains the variability in $\x$. Intuitively, one can think of $\z$ as encoding an
+underlying cause, a cluster membership, or a compact representation of the observed data
+point $\x$.
+
+In the general case, both the domain $\mathcal{X}$ of $\x$ and the domain $\mathcal{Z}$
+of $\z$ are continuous. In the simpler discrete case, where $\mathcal{Z}$ is a finite or
+countable set, all integrals over $\mathcal{Z}$ are replaced by sums; the conceptual
+structure of the model remains entirely the same, and the clustering models introduced in
+the previous chapter---such as Gaussian mixture models---belong precisely to this discrete-
+latent-variable regime.
+
+The joint distribution factorises as $p(\x,\z; \Vtheta)=p(\x|\z;\Vtheta)p(\z;\Vtheta)$, and
+we assume that the parameter vector $\Vtheta$ can be partitioned into two disjoint subsets
+$\Vphi$ and $\Vpsi$, where $\Vphi$ governs the \emph{prior distribution} $p(\z;\Vphi)$
+of the latent variable, while $\Vpsi$ governs the \emph{conditional distribution}
+$p(\x|\z;\Vpsi)$ of the observed variable given the latent one. This separation reflects the
+generative structure of the model: first, a latent value is drawn from the prior; then, an
+observation is generated according to the conditional distribution at that latent value. We
+may therefore write:
+\begin{myequation}
+p(\x,\z; \Vtheta)=p(\x|\z;\Vpsi)p(\z;\Vphi).
+\end{myequation}
+
+This factorisation is clean and intuitive, but it conceals a fundamental computational
+difficulty. Even if we assume that the joint distribution $p(\x,\z;\Vtheta)$ is
+tractable---meaning its value and its gradient with respect to $\Vtheta$ can be computed
+efficiently---the \emph{marginal} distribution of the observed variable, known as the
+\emph{evidence}, requires integrating out the latent variable:
+\begin{myequation}
+p(\x;\Vtheta)=\int_{\mZ}p(\x,\dz; \Vtheta)d\dz=\int_{\mZ}p(\x|\dz;\Vpsi)p(\z;\Vphi)d\dz.
+\end{myequation}
+This integral is, in general, intractable. The domain $\mathcal{Z}$ is typically
+high-dimensional, rendering both analytical solutions and numerical approximations
+computationally prohibitive: any quadrature-based approach would require evaluating the
+integrand at an exponentially large number of points. This intractability of the evidence is
+the central computational challenge in latent variable models, and it motivates the
+approximate inference methods we will develop in the remainder of this chapter.
+
+The same difficulty propagates to the posterior distribution of the latent variable given the
+observation. By Bayes' theorem:
+\begin{myequation}
+p(\z|\x;\Vtheta)=\frac{p(\x,\z;\Vtheta)}{p(\x;\Vtheta)}.
+\end{myequation}
+Computing this posterior requires evaluating the evidence $p(\x;\Vtheta)$ in the
+denominator, which is exactly what we cannot compute. The posterior $p(\z|\x;\Vtheta)$ is
+of great practical importance---it tells us, given an observed data point, what the
+distribution over latent representations looks like---but it is generally inaccessible in
+closed form. To make progress, we need to understand precisely where the boundary
+between tractable and intractable lies, and it is to this end that we now introduce two
+working hypotheses.
+
+To make the discussion precise, we introduce two hypotheses that delineate the boundary
+between tractable and intractable regimes in latent variable models. These are not merely
+technical conveniences---they reflect a fundamental asymmetry at the heart of the
+challenge: the joint distribution over observed and latent variables is often manageable,
+while the marginal distribution over observed variables alone is typically not.
+
+The first hypothesis establishes a baseline level of tractability that we will assume
+throughout the entire development.
+
+\begin{description}
+\item[Hypothesis 1]
+For all values $\vlx, \lz, \prt$, it is feasible to compute the joint probability
+$p(\vlx,\lz; \prt)$. Moreover, it is also feasible to find local maxima with respect to $\vrt$
+of such distribution, or of its logarithm, either because the stationarity equation
+$\gradient{\vrt}{p(\vlx,\lz; \vrt)}=\Zero$ admits closed-form solutions, or because the
+gradient itself can be evaluated at any $\prt$, making it possible to apply numerical
+optimisation methods such as gradient ascent. Under this hypothesis, it is therefore
+possible to compute a (local) maximum $\prts$ of the complete-data likelihood:
+\begin{myequation}
+\prts=\argmax{\vrt}{p(\vlx,\lz; \vrt)}=\argmax{\vrt}{\log p(\vlx,\lz; \vrt)}=\argmax{\vrt}{l(\vrt|\vlx,\lz)}.
+\end{myequation}
+\end{description}
+
+Hypothesis 1 is a baseline assumption that we will maintain throughout. It states that the
+\emph{complete-data} likelihood---the likelihood of the joint observation $(\vlx, \lz)$---is
+computationally accessible. This is a reasonable assumption for most latent variable
+models of practical interest, since the joint distribution $p(\vlx,\lz;\prt) =
+p(\vlx|\lz;\Vpsi)\,p(\lz;\Vphi)$ typically factorises into two components that are
+individually simple and tractable. The difficulty, as we have seen, arises not from the
+joint but from the marginal.
+
+This leads to the second hypothesis, which addresses precisely whether the marginal
+likelihood over the observed variables is tractable. Unlike Hypothesis 1, this condition may
+or may not hold depending on the specific model, and the two cases give rise to
+qualitatively different algorithmic strategies.
+
+\begin{description}
+\item[Hypothesis 2]
+It is feasible, for all $\vlx$ and $\prt$, to compute the marginal probability
+\begin{myequation}
+p(\vlx; \prt)=\int_{\mZ}p(\vlx, \dz;\prt)\,d\dz.
+\end{myequation}
+As a consequence, the gradient $\gradient{\vrt}{p(\vlx; \vrt)}|_{\vrt=\prt}$ can be
+evaluated, either in closed form or by automatic differentiation, and finding local maxima
+of the observed-data likelihood is feasible, at least via gradient ascent. Equivalently,
+when this hypothesis holds it is also feasible to compute the posterior distribution of the
+latent variable given the observation:
+\begin{myequation}
+p(\z|\vlx;\prt)=\frac{p(\vlx,\z;\prt)}{p(\vlx;\prt)},
+\end{myequation}
+since the denominator is now available. This means that both the model parameters
+$\theta_i$ and the latent values $\lat{\z_i}$ associated with each observation can in
+principle be inferred: the parameters through maximum likelihood estimation, and the
+latent variables by reasoning probabilistically under the posterior $p(\z|\vlx;\prt)$.
+\end{description}
+
+When Hypothesis 2 holds, computing the marginal probability $p(\vlx;\prt)$ is feasible for
+any observation $\vlx$ and any parameter value $\prt$. This single fact is sufficient to
+reduce the entire learning and inference problem to a standard maximum likelihood
+estimation problem. Recall that in standard MLE, the only requirement is that one can
+evaluate the likelihood $L(\vrt|\vlx) = p(\vlx;\vrt)$---and optionally its gradient---at any
+candidate parameter value $\vrt$. Hypothesis 2 guarantees exactly this, and there is
+therefore no obstacle to applying the same optimisation machinery one would use in a
+model without latent variables at all. In other words, the presence of latent variables in
+the model is, under Hypothesis 2, merely a modelling choice that enriches the
+expressiveness of the distribution over $\x$---it does not introduce any additional
+algorithmic difficulty. The latent variables have been effectively marginalised out, and what
+remains is a perfectly ordinary parametric density $p(\vlx;\prt)$ that can be evaluated
+pointwise.
+
+The posterior $p(\z|\vlx;\prt)$ is also available as a by-product, since it requires only
+dividing the tractable joint $p(\vlx,\z;\prt)$ by the now-tractable marginal $p(\vlx;\prt)$:
+\begin{myequation}
+p(\z|\vlx;\prt) = \frac{p(\vlx,\z;\prt)}{p(\vlx;\prt)}.
+\end{myequation}
+Since both quantities in this ratio are computable, the posterior is computable as well. This
+means that once the parameters have been estimated via MLE, one can also perform
+inference on the latent variables---assigning to each observation $\vlx$ a full probability
+distribution over the latent states that generated it.
+
+This favourable situation is, however, the exception rather than the rule. In the vast
+majority of practically useful latent variable models---including mixture models, factor
+analysis, and deep generative models---the marginal likelihood
+\begin{myequation}
+p(\vlx;\prt) = \int_{\mZ} p(\vlx, \dz;\prt)\, d\dz
+\end{myequation}
+involves a high-dimensional integral that is analytically intractable and numerically
+infeasible to approximate. It is precisely in this regime that specialised algorithms become
+necessary. The \alert{Expectation-Maximisation} (EM) algorithm, which we present shortly,
+is the principal and most widely used tool for parameter estimation in this setting. Its central
+insight is to circumvent the intractability of the marginal likelihood by constructing and
+optimising a tractable surrogate---a lower bound on the log-likelihood built from the
+complete-data likelihood which, by Hypothesis 1, remains accessible throughout.
+
+\subsection*{Generation in Latent Variable Models}
+
+Once a latent variable model $p(\x,\z;\Vtheta)$ has been specified and its parameters
+estimated, it can be used not only for inference but also for \emph{generation}---that is,
+for producing new synthetic observations in $\mathcal{X}$ that resemble those drawn from
+the true data distribution. The generative capability of latent variable models is one of their
+most compelling properties, and understanding it requires distinguishing between two
+qualitatively different generation policies.
+
+The most natural generation procedure follows directly from the probabilistic structure of
+the model. Since the joint distribution factorises as $p(\x,\z;\Vtheta) =
+p(\x|\z;\Vpsi)\,p(\z;\Vphi)$, new observations can be produced by ancestral sampling: one
+first draws a latent value $\lz$ from the prior distribution $p(\z)$, and then draws an
+observation $\val\x$ from the conditional distribution $p(\x|\lz)$, as illustrated in
+Figure~\ref{f:gen}.\footnote{We shall not consider here the problem of how to sample
+efficiently from arbitrary distributions.} This two-stage procedure has a clean and intuitive
+interpretation. The latent variable $\lz$ acts as a selector: different values of $\lz$ index
+different ``modes'' or ``components'' of the data distribution, each corresponding to a
+distinct region or cluster in the observation space $\mathcal{X}$. Given $\lz$, the
+conditional distribution $p(\x|\lz)$ then generates a specific observation consistent with
+that mode. It is precisely this hierarchical structure---a continuous or discrete space of
+latent configurations, each associated with a local distribution over observations---that
+gives latent variable models their flexibility to represent complex, multimodal distributions.
+
+\begin{figure}[ht]
+\begin{center}
+  \begin{tikzpicture}[>=latex']
+	  \fill [elat!10] (8,7) rectangle (13,11);
+    \node[elat] (c1) at (8.5,10.5) {$\mathcal Z$};
+
+	  \draw [fill=elat!30, thick, draw=elat, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(10,8.6) (12.4,8) (11,10)};
+    \draw [fill=elat!30, draw=elat, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(10.2,8.8) (12.2,8.2) (11.1,9.7)};
+    \draw [fill=elat!30, draw=elat, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(10.4,9) (12,8.5) (11.1,9.6)};
+    \draw [fill=elat!30, draw=elat, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(10.5,9.2) (11.5,8.8) (11.1,9.4)};
+    \node[elat] (z) at (11,10.3) {$p(\z)$};
+
+    \fill [odata!10] (0,3) rectangle (7,11);
+    \node[odata] (c3) at (0.5,10.5) {$\mathcal X$};
+
+    \draw [fill=odata!30, thick,draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(.5,4) (2,3.6) (1.2,6) (.5,5.6)};
+    \draw [fill=odata!30, draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(.7,4.1) (1.7,3.8) (1.2,5.6) (.8,5.4)};
+    \draw [fill=odata!30, draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(1.1,3.9) (1.6,4) (1,5.2)};
+    \node[odata] (x1) at (2.7,3.5) {$p(\x|\overline{\z}_1)$};
+
+	  \draw [fill=odata!30, thick,draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(1.7,8.6) (3.9,8.8) (4.3,10) (1.7,9.6)};
+    \draw [fill=odata!30, draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(3,8.6) (4,9.8) (2.2,9.6) (1.8,9)};
+    \draw [fill=odata!30, draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(3,8.7) (3.8,9.6) (2.4,9.4) (2,9)};
+    \node[odata] (x2) at (1.5,10) {$p(\x|\overline{\z}_2)$};
+
+    \draw [fill=odata!30, thick,draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(3.3,6.8) (6.2,6.4) (4.6,8) (3.1,7.6)};
+    \draw [fill=odata!30, draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(3.8,6.9) (6,6.6) (4.6,7.6) (3.4,7.5)};
+    \draw [fill=odata!30, draw=odata, densely dashed]
+      plot [smooth cycle, tension=1] coordinates {(4,7) (5.9,6.7) (4.6,7.4) (3.8,7.5)};
+    \node[odata] (x3) at (3,6.4) {$p(\x|\overline{\z}_3)$};
+
+    \coordinate (a) at (11.5, 8.5);
+    \coordinate (b) at (1, 5);
+    \coordinate (c) at (4, 9.5);
+    \coordinate (d) at (11, 9.5);
+    \coordinate (e) at (5, 7);
+    \coordinate (f) at (10.5, 8.7);
+
+   	\draw [->, line width=.5mm, color=xkcdDustyOrange] (a) to [bend left=20] (b);
+	  \draw [->, line width=.5mm, color=xkcdDustyOrange] (d) to [bend right=20] (c);
+	  \draw [->, line width=.5mm, color=xkcdDustyOrange] (f) to [bend right=10] (e);
+
+    \fill[elat] (a) circle [radius=2pt] node [anchor=north] {$\overline{\z}_1$};
+    \fill[elat] (d) circle [radius=2pt] node [anchor=north] {$\overline{\z}_2$};
+    \fill[elat] (f) circle [radius=2pt] node [anchor=north] {$\overline{\z}_3$};
+
+    \fill[odata] (b) circle [radius=2pt] node [anchor=north] {$\vlxu$};
+    \fill[odata] (c) circle [radius=2pt] node [anchor=north] {$\ox_2$};
+    \fill[odata] (e) circle [radius=2pt] node [anchor=north] {$\ox_3$};
+  \end{tikzpicture}
+\caption{Generation of new items in a latent variable model: each latent value $\overline{\z}_i$
+sampled from the prior $p(\z)$ determines a local conditional distribution
+$p(\x|\overline{\z}_i)$ over the observation space, from which a new data point is then
+sampled.}\label{f:gen}
+\end{center}
+\end{figure}
+
+A second, qualitatively different generation policy arises when one wishes to produce a
+new observation $\val{\overline\x} \in \mathcal{X}$ that is related to---or in many practical
+contexts, similar to---a given reference observation $\val\x \in \mathcal{X}$. Rather than
+sampling the latent variable freely from the prior, one first \emph{encodes} the reference
+observation by sampling from the posterior distribution $p(\z|\val\x)$, obtaining a latent
+value $\lz$ that is informed by $\val\x$ and captures its essential structure. One then
+\emph{decodes} this latent value by sampling the conditional distribution $p(\x|\lz)$,
+producing the new observation $\val{\overline\x}$. This encode-then-decode procedure
+introduces a form of structured generation: the new sample is not drawn blindly from the
+model, but is anchored to the reference observation through the shared latent
+representation. The resulting $\val{\overline\x}$ can be thought of as a plausible variation
+or reconstruction of $\val\x$, consistent with the patterns the model has learned from data.
+This mechanism is precisely the generative procedure underlying Variational Autoencoders
+and related models, where an encoder network approximates the posterior $p(\z|\x)$ and a
+decoder network parameterises the conditional $p(\x|\z)$, enabling both efficient inference
+and flexible generation.
+
+\subsection*{Inference in Latent Variable Models}
+
+Having described the generative structure of latent variable models, we now turn to the
+inference problem: given observed data, how do we estimate the model parameters and
+reason about the latent variables? This is where the computational difficulties described
+above become central, and where the gap between the complete-data and observed-data
+likelihoods takes on its full practical significance.
+
+The inference setting involves two random variables: an \alert{observed random variable}
+$\x$, whose instantiation $\ox$ is available to the learner, and a \alert{latent variable}
+$\z$, whose instantiation $\lz$ is never directly observable. Together, $(\ox, \lz)$
+constitute the \alert{complete dataset}---the full information that would be needed to
+evaluate the complete-data likelihood. In practice, of course, only $\ox$ is available, and
+$\lz$ must be reasoned about indirectly through the model.
+
+In the general case, we work with a dataset $\X = \{\vlxu, \ldots, \vlxn\}$ of $n$
+observations, each regarded as an independent instantiation of $\x$ generated according to
+the latent variable model. This means we postulate the existence of a corresponding set
+$\Z = \{\lat{\z_1}, \ldots, \lat{\z_n}\}$ of latent instantiations, one for each observation,
+where each $\lat{\z_i}$ was sampled from the prior $p(\z;\Vphi)$ and each $\vlxi$ was
+then sampled from the conditional $p(\x|\lat{\z_i};\Vpsi)$. The latent values $\lat{\z_i}$
+are never observed---their existence is a modelling assumption that explains how the data
+was generated, but they remain hidden throughout.
+
+The independence structure of this generative process has immediate and important
+consequences for the dataset-level distributions. Since each pair $(\vlxi, \lat{\z_i})$ is
+generated independently of all others, all joint, marginal, and conditional distributions over
+the full dataset factorise into products of the corresponding single-observation
+distributions:
+\begin{myalign}
+p(\Z)&=\prod_{i=1}^n p(\lat{\z_i}),\\
+p(\X|\Z)&=\prod_{i=1}^n p(\vlxi|\lat{\z_i}),\\
+p(\X,\Z)&=\prod_{i=1}^n p(\vlxi,\lat{\z_i}),\\
+p(\X)&=\prod_{i=1}^n p(\vlxi),\\
+p(\Z|\X)&=\prod_{i=1}^n p(\lat{\z_i}|\vlxi).
+\end{myalign}
+These product forms are a direct consequence of the conditional independence assumptions
+encoded in the model: given their respective latent variables, the observations are mutually
+independent. This structure is represented compactly in the graphical model of
+Figure~\ref{bn2}, where the plate notation indicates that the $n$ pairs $(\lat{\z_i},
+\vlxi)$ are independent replications of the same generative process, governed by shared
+parameters $\prm\Vphi$ and $\prm\Vpsi$.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[
+latent/.style={circle,draw,fill=latent!40!white},
+visible/.style={circle,outer sep=0pt,draw,fill=observed},
+param/.style={circle,draw, fill=param},
+plate/.style={rounded corners,minimum height=1.5cm,minimum width=1.5cm,draw,fill=box},
+lbl/.style={circle}]
+\draw[line width=.5pt]
+(2,1.5) node[param] (D) {$\prm\Vphi$}
+(2,0) node[param] (B) {$\prm\Vpsi$}
+(0,.7) node[rounded corners,minimum height=3.1cm,minimum width=1.9cm,draw,fill=node!50] {}
+(0,1.5) node[latent] (A) {$\lat{\z_i}$}
+(0,0) node[visible] (C) {$\vlxi$}
+(.7,-.6) node[lbl] {\footnotesize $n$};
+\draw[->,>=stealth',shorten >=1pt] (B) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (A) -- (C);
+\draw[->,>=stealth',shorten >=1pt] (D) -- (A);
+\end{tikzpicture}
+\caption{The dataset is composed of a set of $n$ independent realisations of a pair of
+random variables $\x, \z$, with the latent variable $\z$ distributed according to
+$p(\z;\prm\Vphi)$ and the observed variable $\x$ dependent on $\z$ and distributed
+according to the conditional $p(\x|\z;\prm\Vpsi)$.}\label{bn2}
+\end{center}
+\end{figure}
+
+In the following, we work with the general case of a dataset of $n$ pairs
+$\{(\vlxu,\lat{\z_1}),\ldots,(\vlxn,\lat{\z_n})\}$, keeping in mind that the
+single-observation case $(\ox,\lz)$ is simply the special instance $n=1$ and that all
+results extend straightforwardly between the two settings.
+
+Since each observation $\vlxi$ is available while the corresponding latent value
+$\lat{\z_i}$ is not, our knowledge of the latent variable is necessarily probabilistic. The
+appropriate object for reasoning about $\lat{\z_i}$ given $\vlxi$ is the posterior
+distribution $p(\z|\vlx;\prt)$, which by Bayes' theorem takes the form:
+\begin{myalign}
+p(\lat{\z_i}|\vlxi;\prt)&=\frac{p(\vlxi|\lat{\z_i};\prm\Vpsi)\,p(\lat{\z_i};\prm\Vphi)}{p(\vlxi;\prm\Vtheta)}=\frac{p(\vlxi|\lat{\z_i};\prm\Vpsi)\,p(\lat{\z_i};\prm\Vphi)}{\int_{\mathcal{Z}}p(\vlxi,\z;\prt)\,d\z}.
+\end{myalign}
+The numerator is tractable by Hypothesis 1: it is simply the joint probability
+$p(\vlxi,\lat{\z_i};\prt)$, which we assume can be evaluated efficiently. The denominator,
+however, is the evidence $p(\vlxi;\prm\Vtheta)$, obtained by integrating the joint over all
+possible latent values---precisely the intractable integral we have been grappling with
+throughout. We therefore proceed under the assumption that Hypothesis 2 does not hold:
+the evidence $p(\vlxi;\prm\Vtheta)$ cannot be feasibly computed, which in turn makes the
+posterior $p(\lat{\z_i}|\vlxi;\prm\Vtheta)$ inaccessible by direct calculation. Both
+parameter estimation and latent variable inference are thus blocked by the same
+fundamental obstacle, and it is to overcome this obstacle that we now develop the EM
+algorithm.
+
+\paragraph{The gap between complete and observed likelihoods.}
+
+The inference problem identified above has a direct and critical consequence for parameter
+estimation. Following the maximum likelihood principle, our objective is to maximise the
+\emph{observed-data} log-likelihood:
+\begin{myalign}
+l(\vrt|\vlX)&=\log p(\X;\Vtheta)=\sum_{i=1}^{n}\log p(\vlxi;\Vtheta),
+\end{myalign}
+since $\vlX$ is the only dataset actually available to us. Each term in this sum requires
+evaluating $\log p(\vlxi;\Vtheta)$---the log-marginal probability of $\vlxi$ under the
+model---which in turn requires integrating out the latent variable. Under the assumption
+that Hypothesis 2 fails, this is intractable: we cannot even evaluate the objective function
+we wish to optimise, let alone compute its gradient.
+
+The situation would be entirely different if the latent variables were observed. If the
+complete dataset $(\vlX, \Z)$ were available, we could work with the
+\emph{complete-data} log-likelihood:
+\begin{myalign}
+l(\vrt|\vlX, \Z)&=\log p(\X,\Z;\Vtheta)=\sum_{i=1}^{n}\log p(\vlxi , \lat{\z_i};\vrt).
+\end{myalign}
+Each term in this sum involves only the joint probability $p(\vlxi, \lat{\z_i};\vrt)$, which
+by Hypothesis 1 is tractable to compute and optimise. The complete-data log-likelihood is
+therefore a well-behaved objective---it is accessible, differentiable, and amenable to
+standard maximum likelihood techniques. The fundamental difficulty is simply that $\Z$ is
+not available, so this objective cannot be evaluated either.
+
+We are thus caught between two likelihoods: the observed-data likelihood, which
+corresponds to the right objective but is intractable, and the complete-data likelihood,
+which is tractable but depends on unobserved quantities. As we shall see, the
+\alert{Expectation-Maximisation} (EM) algorithm resolves this tension elegantly by
+constructing a surrogate objective that bridges the two. Rather than maximising the
+complete-data log-likelihood directly---which would require knowledge of $\Z$---the EM
+algorithm replaces the unknown latent variables with their expected values under the
+posterior distribution $p(\Z|\vlX;\Vtheta)$ computed at the current parameter estimate.
+This yields a tractable lower bound on the observed-data log-likelihood that can be
+maximised with respect to the parameters, and the procedure is iterated to convergence.
+The precise construction and justification of this approach is the subject of the next section.
+
+\section*{The Evidence Lower Bound}
+
+Having established that direct maximisation of the observed-data log-likelihood
+$\log p(\ox;\Vtheta)$ is generally intractable, we now develop the key mathematical tool
+that makes approximate maximisation possible: the \alert{Evidence Lower Bound} (ELBO).
+The central idea is to introduce an auxiliary distribution $q(\z)$ over the latent variable and
+use it to construct a tractable lower bound on the log-likelihood. By iteratively tightening
+and maximising this lower bound, we will obtain a principled algorithm for parameter
+estimation in latent variable models.
+
+\subsection*{Derivation of the ELBO}
+
+Let us first consider the case of a single observation $\ox$, and let $q(\z)$ be any
+probability distribution over the latent variable. The choice of $q(\z)$ is, for the moment,
+completely arbitrary---it can be any valid probability distribution on $\mathcal{Z}$, and the
+derivation that follows holds regardless of this choice. The key insight is that we can
+introduce $q(\z)$ into the expression for $\log p(\ox;\prt)$ without changing its value, by
+exploiting the fact that any probability distribution integrates to one. This manipulation,
+while seemingly circular, will allow us to decompose the log-likelihood into two
+interpretable and useful terms, each with a clear probabilistic meaning.
+
+For any $\prt$, the following chain of equalities holds:
+\begin{myalign}
+\log p(\ox ;\prt)&=\log p(\ox ;\prt){\int_{\mZ}q(\dz)d\dz} \\
+&=\int_{\mZ}q(\dz)\log p(\ox ;\prt)d\dz \\
+&=\int_{\mZ} q(\dz)\log\frac{p(\ox,\dz;\prt)}{p(\dz|\ox;\prt)}d\dz \\
+&=\int_{\mZ} q(\dz)\left(\log p(\ox,\dz;\prt)-\log  p(\dz|\ox;\prt)\right)d\dz \\
+&=\int_{\mZ} q(\dz)\left(\log\frac{p(\ox,\dz;\prt)}{ q(\dz)}-\log\frac{p(\dz|\ox;\prt)}{ q(\dz)}\right)d\dz \\
+&=\int_{\mZ}q(\dz)\log\frac{p(\ox,\dz;\prt)}{q(\dz)}d\dz-\int_{\mZ}q(\dz)\log\frac{p(\dz|\ox;\prt)}{q(\dz)}d\dz \\
+&=\mL(q,\ox, \prt)+\mK(q,\ox, \prt).
+\end{myalign}
+
+It is worth tracing through the logic of each step carefully, as the derivation is compact but
+non-obvious. The first two steps simply use the fact that $q(\z)$ integrates to one, moving
+$\log p(\ox;\prt)$---which does not depend on $\z$---inside the integral. The third step
+rewrites $p(\ox;\prt)$ using the definition of conditional probability: since
+$p(\ox,\z;\prt) = p(\z|\ox;\prt)\,p(\ox;\prt)$, we have $p(\ox;\prt) =
+p(\ox,\z;\prt)/p(\z|\ox;\prt)$. The fifth step introduces $q(\z)$ symmetrically in both
+terms by adding and subtracting $\log q(\z)$---a manipulation that leaves the value
+unchanged since $q(\z)/q(\z) = 1$. Finally, the integral separates into two terms, each
+taking the form of an expectation under $q(\z)$ and admitting a clear probabilistic
+interpretation.
+
+The two resulting quantities are defined as:
+\begin{myalign}
+\mL(q,\ox, \prt)& \defeq\ev{\dz\sim q(\dz)}{\log\frac{p(\ox,\dz;\prt)}{q(\dz)}}=-\ev{\dz\sim q(\dz)}{\log\frac{q(\dz)}{p(\ox,\dz;\prt)}}=-\dkl{q(\z)}{p(\ox ,\z;\prt)},\\
+\mK(q,\ox, \prt)&\defeq-\ev{\dz\sim q(\dz)}{\log\frac{p(\dz|\ox;\prt)}{q(\dz)}}=\ev{\dz\sim q(\dz)}{\log\frac{q(\dz)}{p(\dz|\ox;\prt)}}=\dkl{q(\z)}{p(\z|\ox ;\prt)},
+\end{myalign}
+where the \alert{Kullback-Leibler divergence} between two distributions $p_1(\z)$ and
+$p_2(\z)$ is defined as:
+\begin{myequation}
+\dkl{p_1(\z)}{p_2(\z)}\defeq \ev{p_1(\z)}{\log\frac{p_1(\z)}{p_2(\z)}}=\int_{\mZ}p_1(\z)\log\frac{p_1(\z)}{p_2(\z)}d\z.
+\end{myequation}
+The KL divergence is a fundamental quantity in information theory and statistics that
+measures the dissimilarity between two probability distributions: it quantifies how much
+information is lost when $p_2$ is used to approximate $p_1$, or equivalently, how
+surprised one would be on average if observations drawn from $p_1$ were evaluated under
+$p_2$. When $\z$ is discrete, the integral is replaced by a sum over $\mathcal{Z}$.
+Importantly, the KL divergence is \emph{not} symmetric in general---$\dkl{p_1}{p_2} \neq
+\dkl{p_2}{p_1}$---and this asymmetry will have meaningful consequences for how we use it.
+
+The two terms $\mL$ and $\mK$ have distinct and complementary interpretations. The
+term $\mK(q,\ox, \prt)$ is a genuine KL divergence between $q(\z)$ and the true posterior
+$p(\z|\ox;\prt)$: it measures precisely how far the auxiliary distribution $q$ is from the
+posterior that we would ideally use to reason about the latent variable given the observation.
+The term $\mL(q,\ox, \prt)$, on the other hand, is written in the form of a negative KL
+divergence between $q(\z)$ and the joint distribution $p(\ox,\z;\prt)$. A technical
+clarification is in order here: the standard KL divergence $\dkl{p_1(\z)}{p_2(\z)}$ is
+defined between two probability distributions over the same space, meaning both $p_1$ and
+$p_2$ should be normalised over $\z$. However, $p(\ox,\z;\prt)$ is a joint distribution over
+the product space $\mathcal{X} \times \mathcal{Z}$, not a distribution over $\mathcal{Z}$
+alone. Viewed as a function of $\z$ with $\ox$ fixed, it is generally not normalised:
+integrating it over $\z$ gives $p(\ox;\prt)$, which is not $1$ in general. The expression
+\begin{myequation}
+\mL(q,\ox,\prt) = \int_{\mZ} q(\z) \log \frac{p(\ox,\z;\prt)}{q(\z)}\, d\z
+\end{myequation}
+therefore does not fit the strict definition of a negative KL divergence, because the
+numerator in the logarithm is an unnormalised function of $\z$. The notation
+$-\dkl{q(\z)}{p(\ox,\z;\prt)}$ is nonetheless widely adopted in the literature as a
+deliberate and convenient abuse: the mathematical form is identical to that of a KL
+divergence, and the same intuition applies---$\mL$ is large when $q(\z)$ places mass in
+regions where $p(\ox,\z;\prt)$ is large, and small otherwise.
+
+Before proceeding, it is worth pausing to understand the mathematical nature of both
+$\mL$ and $\mK$. Neither is a function of $\z$, since $\z$ has been marginalised out by
+the integration. Both depend on the observation $\ox$ (treated here as fixed) and on the
+parameter $\Vtheta$. Most importantly, both are \emph{functionals} of the auxiliary
+distribution $q$---their inputs include an entire probability distribution rather than a
+finite-dimensional vector. Although both $\mL$ and $\mK$ individually depend on $q$,
+their sum equals $\log p(\ox;\prt)$, which is entirely independent of $q$. This conservation
+property is the key to understanding why the ELBO is useful: varying $q$ redistributes
+value between $\mL$ and $\mK$ but leaves their sum---the log-likelihood---unchanged.
+Increasing $\mL$ by choosing a better $q$ necessarily decreases $\mK$ by the same
+amount, tightening the approximation to the true log-likelihood.
+
+\subsection*{The ELBO as a Lower Bound}
+
+The decomposition $\log p(\ox;\prt) = \mL(q,\ox,\prt) + \mK(q,\ox,\prt)$ becomes truly
+useful once we invoke the fundamental properties of the KL divergence. For any two
+distributions $p_1$ and $p_2$:
+\begin{myalign}
+	\dkl{p_1(\z)}{p_2(\z)}&\geq 0,\\
+	\dkl{p_1(\z)}{p_2(\z)}&=0\quad\text{if and only if}\quad p_1(\z)=p_2(\z)\quad\text{for all }\z.
+\end{myalign}
+The non-negativity of the KL divergence is a classical result in information theory. It
+follows from Jensen's inequality applied to the strictly convex function $-\log$: since
+$-\log$ is convex, the expected value of $-\log(p_2/p_1)$ under $p_1$ is at least $-\log$
+of the expected value of $p_2/p_1$, which equals zero by normalisation. Equality holds if
+and only if the ratio $p_2(\z)/p_1(\z)$ is constant almost everywhere, which for normalised
+distributions forces $p_1 = p_2$.
+
+This non-negativity has an immediate and important consequence for our decomposition.
+Since $\mK(q,\x,\prt) = \dkl{q(\z)}{p(\z|\x;\prt)} \geq 0$, it follows directly that:
+\begin{myequation}
+\mL(q,\x, \prt)=\log p(\x ;\prt)-\mK(q,\x, \prt)\leq\log p(\x ;\prt),
+\end{myequation}
+and therefore, for any observation $\ox$, any parameter value $\prt$, and any auxiliary
+distribution $q(\z)$ whatsoever:
+\begin{myequation}
+\mL(\fq,\x, \prt)\leq\log p(\x;\prt)\hspace{1cm}\text{ whatever the distribution }\fq.
+\end{myequation}
+The quantity $\mL(q,\ox,\prt)$ is therefore a lower bound on the log-likelihood
+$\log p(\ox;\prt)$, holding \emph{universally}---it does not depend on any particular choice
+of $q$, and no assumption on the model or the observation is required. We call
+$\mL(q,\ox,\prt)$ the \alert{evidence lower bound}, or \alert{ELBO}, for parameters $\prt$
+and observation $\ox$. The name reflects both the role of $p(\ox;\prt)$ as the ``evidence''
+in Bayesian terminology and the fact that $\mL$ provides a lower bound on its logarithm.
+
+The gap between the ELBO and the true log-likelihood is not arbitrary: it is exactly
+$\mK(q,\ox,\prt) = \dkl{q(\z)}{p(\z|\ox;\prt)}$, the KL divergence between the auxiliary
+distribution $q$ and the true posterior over the latent variable. This has a clear and
+important interpretation: the ELBO is tight---that is, it equals the log-likelihood---if and
+only if $q(\z) = p(\z|\ox;\prt)$ for all $\z$, i.e., when the auxiliary distribution coincides
+with the true posterior. Any deviation of $q$ from the posterior introduces a gap, and the
+size of that gap is precisely measured by the KL divergence between the two distributions.
+
+Beyond its role as a bound, the ELBO admits an alternative decomposition that reveals
+why it is computationally tractable:
+\begin{myequation}
+ \mL(q,\x, \prt)=\ev{\z\sim q(\z)}{\log p(\x,\dz;\prt)}-\ev{\z\sim q(\z)}{\log q(\dz)}.
+\end{myequation}
+The first term is the expected complete-data log-likelihood under the distribution $q(\z)$:
+it averages $\log p(\x,\z;\prt)$ over the latent variable distributed according to $q$. By
+Hypothesis 1, the complete-data log-likelihood is tractable to evaluate for any fixed $\z$,
+and computing its expectation under a chosen $q$ is therefore feasible whenever
+expectations under $q$ can be computed analytically or estimated by sampling. The second
+term is the \emph{entropy} of $q(\z)$, defined as $-\ev{q(\z)}{\log q(\z)}$, which depends
+only on $q$ and not on the model parameters $\Vtheta$. The entropy term acts as a
+regulariser: it is large when $q$ is diffuse and spread out, and small when $q$ is
+concentrated, thus penalising overly peaked choices of the auxiliary distribution.
+
+Taken together, the ELBO differs from the expected complete-data log-likelihood only by
+the entropy of $q(\z)$, which is a constant with respect to $\Vtheta$. This means that, for
+a fixed $q$, maximising the ELBO over $\Vtheta$ is equivalent to maximising the expected
+complete-data log-likelihood---a quantity that is tractable by Hypothesis 1. This is the
+fundamental reason why the ELBO serves as a useful surrogate objective: it replaces the
+intractable log-likelihood with a computable approximation whose tightness is controlled by
+how well $q$ approximates the true posterior.
+
+As illustrated in Figure~\ref{f:elbo}, different choices of the auxiliary distribution $q$
+yield different lower bounds on the same log-likelihood $\log p(\x;\prt)$. Some choices
+produce tighter bounds that closely track the true log-likelihood, while others produce
+looser bounds. The figure also shows, for each $q_i$, the corresponding expected
+complete-data log-likelihood $\ev{q_i}{\log p(\x,\z;\prt)}$ as a dashed curve: this lies
+uniformly above the ELBO by the (constant) entropy of $q_i$, confirming the
+decomposition above. The art of the EM algorithm, as we shall see, lies in choosing $q$
+optimally at each iteration so as to make the bound as tight as possible before maximising
+it over $\Vtheta$.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+\begin{axis}[
+    clip=false,axis lines=middle,
+    xmin=-2, xmax=16, xlabel = $\x$,
+    ymin=-3, ymax=1,  ylabel={},
+    xticklabels = {},
+    yticklabels = {},
+    extra x ticks={},
+    extra x tick style={grid=major,
+        tick label style={anchor=north west}},
+    extra x tick labels={},
+    legend style={
+        legend pos=outer north east,
+    },]
+\addplot [xkcdCadetBlue, line width=.4mm, smooth, tension=.9] coordinates {(-2, -2.9) (0,-2.7) (2,-1.6) (4,-1.4) (6,-1.3) (8,-2) (10,-.7) (12,-1.5) (14,-2.3)};
+\addlegendentry{\footnotesize $\log p(\x;\prt)$}
+\addplot [xkcdRed, smooth, tension=.9] coordinates {(-2, -3) (0,-3) (2,-2) (4,-1.5) (6,-1.8) (8,-2.5) (10,-2) (12,-2.2) (14,-2.7)};
+\addlegendentry{\footnotesize $\mL(\func{q_1},\x, \prt)$}
+\addplot [xkcdGreen,smooth, tension=.9] coordinates {(-2,-3.2) (0,-2.9) (2,-2) (4,-2.3) (6,-2.6) (8,-3) (10,-1) (12,-2) (14,-2.7)};
+\addlegendentry{\footnotesize $\mL(\func{q_2},\x, \prt)$}
+\addplot [xkcdOrange,smooth, tension=.9] coordinates {(-2,-3.2) (0,-3) (2,-2) (4,-2.1) (6,-2.3) (8,-3.2) (10,-1.8) (12,-2.1) (14,-3)};
+\addlegendentry{\footnotesize $\mL(\func{q_3},\x, \prt)$}
+\addplot [xkcdRed, smooth, dashed, tension=.9, yshift=2mm] coordinates {(-2, -3) (0,-3) (2,-2) (4,-1.5) (6,-1.8) (8,-2.5) (10,-2) (12,-2.2) (14,-2.7)};
+\addlegendentry{\footnotesize $\ev{\func{q_1}}{\log p(\x,\dz;\prt)}$}
+\addplot [xkcdGreen, smooth, dashed, tension=.9, yshift=1mm] coordinates {(-2,-3.2) (0,-2.9) (2,-2) (4,-2.3) (6,-2.6) (8,-3) (10,-1) (12,-2) (14,-2.7)};
+\addlegendentry{\footnotesize $\ev{\func{q_2}}{\log p(\x,\dz;\prt)}$}
+\addplot [xkcdOrange, smooth, dashed, tension=.9, yshift=1.7mm] coordinates {(-2,-3.2) (0,-3) (2,-2) (4,-2.1) (6,-2.3) (8,-3.2) (10,-1.8) (12,-2.1) (14,-3)};
+\addlegendentry{\footnotesize $\ev{\func{q_3}}{\log p(\x,\dz;\prt)}$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\caption{Each distribution $\func{q_i}$ provides a different lower bound (ELBO) on the
+log-likelihood $\log p(\x;\prt)$, shown as the thick blue curve. The dashed curves show
+the corresponding expected complete-data log-likelihoods $\ev{\func{q_i}}{\log
+p(\x,\z;\prt)}$, which lie uniformly above the respective ELBOs by the entropy of
+$\func{q_i}$.}\label{f:elbo}
+\end{figure}
+
+\subsection*{Iterative Maximisation via the ELBO}
+
+The ELBO provides more than just a lower bound on the log-likelihood---it provides a
+concrete strategy for maximising that log-likelihood iteratively, even when direct
+maximisation is infeasible. The key observation is that the ELBO depends on two distinct
+objects: the auxiliary distribution $q$, which controls how tight the bound is, and the
+model parameters $\Vtheta$, which we ultimately wish to optimise. This suggests a natural
+two-step iterative procedure that alternates between optimising over $q$ with $\Vtheta$
+fixed, and optimising over $\Vtheta$ with $q$ fixed. Each step is individually tractable,
+and together they drive the log-likelihood upward---a claim we will make precise below.
+
+\paragraph{First step: tightening the bound.}
+At iteration $k$, suppose we have a current parameter estimate $\prm{\Vtheta^{(k)}}$.
+The log-likelihood $\log p(\ox;\prm{\Vtheta^{(k)}})$ is fixed at this point, but the ELBO
+\begin{myequation}
+\mL(q,\ox,\prm{\Vtheta^{(k)}})=\ev{q(\z)}{\log p(\ox,\dz;\prm{\Vtheta^{(k)}})}-\ev{q(\z)}{\log q(\dz)}\leq \log p(\ox;\prm{\Vtheta^{(k)}})
+\end{myequation}
+still depends on $q$, and different choices of $q$ yield different lower bounds on the same
+log-likelihood value, as illustrated in Figure~\ref{f:elbo1}. We wish to find the distribution
+$\func{q^{(k)}}$ that makes the bound as tight as possible, i.e., that maximises
+$\mL(q,\ox,\prm{\Vtheta^{(k)}})$ over all valid distributions $q$. Since the log-likelihood
+is fixed and the gap between the ELBO and the log-likelihood is exactly
+$\mK(q,\ox,\prm{\Vtheta^{(k)}}) = \dkl{q(\z)}{p(\z|\ox;\prm{\Vtheta^{(k)}})}$,
+maximising the ELBO over $q$ is equivalent to minimising this KL divergence. The
+minimum is zero, achieved when $q(\z) = p(\z|\ox;\prm{\Vtheta^{(k)}})$, at which point the
+ELBO touches the log-likelihood from below and the bound is exact. The optimal
+distribution is therefore the true posterior of the latent variable under the current
+parameter estimate:
+\begin{myequation}
+  \func{q^{(k)}}=\argmax{\vr{q}}{\mL(\vr{q},\ox, \prm{\Vtheta^{(k)}})} = p(\z|\ox;\prm{\Vtheta^{(k)}}).
+\end{myequation}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+\begin{axis}[
+    clip=false,axis lines=middle,
+    xmin=-2, xmax=16, xlabel = $\x$,
+    ymin=-3, ymax=1,  ylabel={},
+    xticklabels = {},
+    yticklabels = {},
+    extra x ticks={4},
+    extra x tick style={grid=major,
+        tick label style={anchor=north west}},
+    extra x tick labels={$\ox$},
+    legend style={
+        legend pos=outer north east,
+    },]
+\addplot [xkcdCadetBlue, line width=.4mm, smooth, tension=.9] coordinates {(-2, -2.9) (0,-2.7) (2,-1.6) (4,-1.4) (6,-1.3) (8,-2) (10,-.7) (12,-1.5) (14,-2.3)};
+\addlegendentry{\footnotesize $\log p(\x;\prm{\Vtheta^{(k)}})$}
+\addplot [xkcdRed, smooth, tension=.9] coordinates {(-2, -3) (0,-3) (2,-2) (4,-1.5) (6,-1.8) (8,-2.5) (10,-2) (12,-2.2) (14,-2.7)};
+\addlegendentry{\footnotesize $\mL(\func{q_1},\x, \prm{\Vtheta^{(k)}})$}
+\addplot [xkcdGreen,smooth, tension=.9] coordinates {(-2,-3.2) (0,-2.9) (2,-2) (4,-2.3) (6,-2.6) (8,-3) (10,-1) (12,-2) (14,-2.7)};
+\addlegendentry{\footnotesize $\mL(\func{q_2},\x, \prm{\Vtheta^{(k)}})$}
+\addplot [xkcdOrange,smooth, tension=.9] coordinates {(-2,-3.2) (0,-3) (2,-2) (4,-2.1) (6,-2.3) (8,-3.2) (10,-1.8) (12,-2.1) (14,-3)};
+\addlegendentry{\footnotesize $\mL(\func{q_3},\x, \prm{\Vtheta^{(k)}})$}
+\filldraw (4,-1.5) [xkcdRed]circle (2pt)node{};
+\filldraw (3.5,-1) node[above, font=\footnotesize] {$\mL(\func{q_1},\ox,\prm{\Vtheta^{(k)}})$};
+\draw[-stealth]  (3.5,-1) -- (4,-1.5);
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\caption{Different distributions provide different lower bounds to the log-likelihood at the
+observation $\ox$, given the current parameter value $\prm{\Vtheta^{(k)}}$. The optimal
+$q$ is the one whose ELBO is closest to the log-likelihood at $\ox$.}\label{f:elbo1}
+\end{figure}
+
+\paragraph{Second step: maximising the bound over parameters.}
+Having fixed $\func{q^{(k)}}$, we now consider the ELBO as a function of $\Vtheta$ alone:
+\begin{myequation}
+\mL(\func{q^{(k)}},\ox,\Vtheta)=\ev{\func{q^{(k)}}(\z)}{\log p(\ox,\dz;\Vtheta)}-\ev{\func{q^{(k)}}(\z)}{\log\func{q^{(k)}}(\dz)}.
+\end{myequation}
+The second term is the entropy of $\func{q^{(k)}}(\z)$, written $\entr{}{\func{q^{(k)}}(\dz)}$,
+which does not depend on $\Vtheta$ and is therefore a constant with respect to the
+optimisation. Maximising the ELBO over $\Vtheta$ is thus equivalent to maximising only
+the first term---the expected complete-data log-likelihood under $\func{q^{(k)}}$:
+\begin{myequation}
+Q(\func{q^{(k)}},\ox,\vrt) \defeq \ev{\func{q^{(k)}}(\z)}{\log p(\ox,\dz;\vrt)}.
+\end{myequation}
+This quantity is tractable by Hypothesis 1: the complete-data log-likelihood $\log
+p(\ox,\z;\vrt)$ can be evaluated for any $\z$ and $\vrt$, and $\func{q^{(k)}}$ is a known
+distribution, so computing its expectation is feasible. The new parameter estimate is then:
+\begin{myequation}
+  \prm{\Vtheta^{(k+1)}}=\argmax{\vrt}{\mL(\func{q^{(k)}},\ox,\vrt)}=\argmax{\vrt}{Q(\func{q^{(k)}},\ox,\vrt)}.
+\end{myequation}
+
+The geometric picture of this step is shown in Figure~\ref{f:elbo2}. With $\func{q^{(k)}}$
+fixed, the ELBO $\mL(\func{q^{(k)}},\ox,\Vtheta)$ acts as a lower bound on the
+log-likelihood $\log p(\ox;\Vtheta)$ for every value of $\Vtheta$---not just at the current
+$\prm{\Vtheta^{(k)}}$, but everywhere. Maximising this lower bound over $\Vtheta$ yields
+the new parameter estimate $\prm{\Vtheta^{(k+1)}}$, which achieves a higher value of
+the ELBO than $\prm{\Vtheta^{(k)}}$. Since the ELBO is a lower bound on the
+log-likelihood at every $\Vtheta$, the new log-likelihood $\log
+p(\ox;\prm{\Vtheta^{(k+1)}})$ is at least as large as the new ELBO value---though, as we
+discuss shortly, this does not immediately guarantee that the log-likelihood itself has
+increased.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+\begin{axis}[
+    clip=false,axis lines=middle,
+    xmin=-2, xmax=16, xlabel = $\x$,
+    ymin=-3, ymax=1,  ylabel={},
+    xticklabels = {},
+    yticklabels = {},
+    extra x ticks={4},
+    extra x tick style={grid=major,
+        tick label style={anchor=north west}},
+    extra x tick labels={$\ox$},
+    legend style={
+        legend pos=outer north east,
+    },]
+\addplot [xkcdCadetBlue, line width=.4mm, smooth, tension=.9] coordinates {(-2, -2.9) (0,-2.7) (2,-1.6) (4,-1.4) (6,-1.3) (8,-2) (10,-.7) (12,-1.5) (14,-2.3)};
+\addlegendentry{\footnotesize  $\log p(\x;\prm{\Vtheta^{(k)}})$}
+\addplot [xkcdRed, smooth, tension=.9] coordinates {(-2, -3) (0,-3) (2,-2) (4,-1.5) (6,-1.8) (8,-2.5) (10,-2) (12,-2.2) (14,-2.7)};
+\addlegendentry{\footnotesize  $\mL(\func{q^{(k)}},\x, \prm{\Vtheta^{(k)}})$}
+\addplot [xkcdBrownyOrange,smooth, tension=.9] coordinates {(-2, -2.4) (0,-2.7) (2,-2.6) (4,-2.7) (6,-2.1) (8,-1.8) (10,-1.4) (12,-2.1) (14,-2.3)};
+\addlegendentry{\footnotesize  $\mL(\func{q^{(k)}},\x, \prm{\Vtheta'})$}
+\addplot [xkcdFlatGreen,smooth, tension=.9] coordinates {(-2,-2.7) (0,-2.4) (2,-1.7) (4,-.8) (6,-.6) (8,-1.5) (10,-2) (12,-1.7) (14,-2.5)};
+\addlegendentry{\footnotesize  $\mL(\func{q^{(k)}},\x,\prm{\Vtheta^{(k+1)}})$}
+\filldraw (4,-1.5) [xkcdRed]circle (2pt)node{};
+\filldraw (-.5,-1.1) node[left, font=\footnotesize] {$\mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k)}})$};
+\draw[-stealth]  (-.5,-1.1) -- (4,-1.5);
+\filldraw (4,-.8) [xkcdFlatGreen]circle (2pt)node{};
+\filldraw (7.5,-.5) node[right, font=\footnotesize] {$\mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k+1)}})$};
+\draw[-stealth]  (7.5,-.5) -- (4,-.8);
+\filldraw (4,-2.7) [xkcdBrownyOrange]circle (2pt)node{};
+\filldraw (5,-3.2) node[right, font=\footnotesize] {$\mL(\func{q^{(k)}},\ox,\prm{\Vtheta'})$};
+\draw[-stealth]  (5,-3.2) -- (4,-2.7);
+\addplot [xkcdBarneyPurple, line width=.3mm, smooth, tension=.9] coordinates {(-2, -2.5) (0,-2.2) (2,-1.2) (4,-.7) (6,-.3) (8,-1.3) (10,-1.5) (12,-1.6) (14,-2.2)};
+\addlegendentry{\footnotesize  $\log p(\x;\prm{\Vtheta^{(k+1)}})$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\caption{With $\func{q^{(k)}}$ fixed, the ELBO $\mL(\func{q^{(k)}},\x,\Vtheta)$ acts as a
+lower bound on $\log p(\x;\Vtheta)$ for all values of $\Vtheta$. Maximising over $\Vtheta$
+yields $\prm{\Vtheta^{(k+1)}}$, which achieves a higher ELBO value than
+$\prm{\Vtheta^{(k)}}$ and corresponds to a new, generally higher log-likelihood (purple
+curve).}\label{f:elbo2}
+\end{figure}
+
+To summarise, each iteration of this general procedure consists of two steps. In the first
+step, one finds the optimal auxiliary distribution given the current parameters---that is, the
+distribution that maximises the ELBO at the current $\Vtheta$:
+\begin{myequation}
+  \func{q^{(k)}}=\argmax{\vr{q}}{\mL(\vr{q},\ox, \prm{\Vtheta^{(k)}})}\,=\,p(\z|\ox;\prm{\Vtheta^{(k)}}).
+\end{myequation}
+In the second step, one updates the parameters by maximising the ELBO with $q$ now
+fixed at $\func{q^{(k)}}$, which reduces to maximising the expected complete-data
+log-likelihood:
+\begin{myequation}
+  \prm{\Vtheta^{(k+1)}}=\argmax{\vrt}{\mL(\func{q^{(k)}},\ox,\vrt)}=\argmax{\vrt}{Q(\func{q^{(k)}},\ox,\vrt)}.
+\end{myequation}
+This two-step structure---alternating between updating $q$ to tighten the bound and
+updating $\Vtheta$ to maximise it---is the conceptual skeleton of the EM algorithm. The
+first step corresponds to the E-step (Expectation), in which the posterior over latent
+variables is computed; the second corresponds to the M-step (Maximisation), in which the
+parameters are updated. We will make this connection precise in the next section, where
+we also address the question of whether and when this procedure guarantees monotone
+improvement of the observed-data log-likelihood.
+
+\subsection*{Monotonicity and Its Limits}
+
+Having described the two-step iterative procedure, it is natural to ask whether it guarantees
+monotone improvement of the log-likelihood at each iteration---that is, whether
+$\log p(\ox;\prm{\Vtheta^{(k+1)}}) \geq \log p(\ox;\prm{\Vtheta^{(k)}})$ is guaranteed to
+hold. The answer, in the general formulation presented so far, is no, and understanding
+precisely why illuminates the additional ingredient that the EM algorithm contributes.
+
+By construction, the following chain of inequalities holds at each iteration:
+\begin{myalign}
+\log p(\ox;\prm{\Vtheta^{(k)}})&\geq \mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k)}}),\\
+\log p(\ox;\prm{\Vtheta^{(k+1)}})&\geq \mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k+1)}})\geq \mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k)}}).
+\end{myalign}
+The first line states that the ELBO is a lower bound on the log-likelihood at the current
+parameters---this is simply the fundamental bound established earlier. The second line
+combines two facts: the ELBO is a lower bound on the log-likelihood at any parameter
+value (first inequality), and $\prm{\Vtheta^{(k+1)}}$ was chosen to maximise the ELBO
+with $\func{q^{(k)}}$ fixed, so it must achieve at least as high an ELBO value as
+$\prm{\Vtheta^{(k)}}$ (second inequality). Together, these inequalities confirm that the
+ELBO value at $\ox$ has increased from one iteration to the next. However, they do
+\emph{not} in general guarantee that the true log-likelihood has increased, i.e., that
+\begin{myequation}
+\log p(\ox;\prm{\Vtheta^{(k+1)}})\geq \log p(\ox;\prm{\Vtheta^{(k)}}).
+\end{myequation}
+
+The reason is subtle but important. The ELBO at $\prm{\Vtheta^{(k+1)}}$ is only a lower
+bound on $\log p(\ox;\prm{\Vtheta^{(k+1)}})$, not an equality. Even though the ELBO has
+increased, the gap $\mK(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k+1)}}) =
+\dkl{\func{q^{(k)}}(\z)}{p(\z|\ox;\prm{\Vtheta^{(k+1)}})}$ at the new parameters may be
+larger than the gap at the old parameters. If this additional gap is large enough, it could
+more than offset the improvement in the ELBO, leaving the true log-likelihood lower than
+before. This pathological situation is illustrated in Figure~\ref{f:elbo3}: despite the ELBO
+increasing from $\mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k)}})$ to
+$\mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k+1)}})$, the log-likelihood at the new parameters
+$\log p(\ox;\prm{\Vtheta^{(k+1)}})$ is lower than at the old ones.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+\begin{axis}[
+    clip=false,axis lines=middle,
+    xmin=-2, xmax=16, xlabel = $\x$,
+    ymin=-3, ymax=1,  ylabel={},
+    xticklabels = {},
+    yticklabels = {},
+    extra x ticks={4},
+    extra x tick style={grid=major,
+        tick label style={anchor=north west}},
+    extra x tick labels={$\ox$},
+    legend style={
+        legend pos=outer north east,
+    },]
+\addplot [xkcdCadetBlue, line width=.4mm, smooth, tension=.9] coordinates {(-2, -2.9) (0,-2.7) (2,-1.6) (4,-.4) (6,-1.3) (8,-2) (10,-.7) (12,-1.5) (14,-2.3)};
+\addlegendentry{\footnotesize  $\log p(\x;\prm{\Vtheta^{(k)}})$}
+\addplot [xkcdRed, smooth, tension=.9] coordinates {(-2, -3) (0,-3) (2,-2) (4,-1.5) (6,-1.8) (8,-2.5) (10,-2) (12,-2.2) (14,-2.7)};
+\addlegendentry{\footnotesize  $\mL(\func{q^{(k)}},\x,\prm{\Vtheta^{(k)}})$}
+\addplot [xkcdBrownyOrange,smooth, tension=.9] coordinates {(-2, -2.4) (0,-2.7) (2,-2.6) (4,-2.7) (6,-2.1) (8,-1.8) (10,-1.4) (12,-2.1) (14,-2.3)};
+\addlegendentry{\footnotesize  $\mL(\func{q^{(k)}},\x, \prm{\Vtheta'})$}
+\addplot [xkcdFlatGreen,smooth, tension=.9] coordinates {(-2,-2.7) (0,-2.4) (2,-1.7) (4,-.8) (6,-.6) (8,-1.5) (10,-2) (12,-1.7) (14,-2.5)};
+\addlegendentry{\footnotesize  $\mL(\func{q^{(k)}},\x, \prm{\Vtheta^{(k+1)}})$}
+\filldraw (4,-1.5) [xkcdRed]circle (2pt)node{};
+\filldraw (-.5,-1.1) node[left, font=\footnotesize] {$\mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k)}})$};
+\draw[-stealth]  (-.5,-1.1) -- (4,-1.5);
+\filldraw (4,-.8) [xkcdFlatGreen]circle (2pt)node{};
+\filldraw (7.5,-.5) node[right, font=\footnotesize] {$\mL(\func{q^{(k)}},\ox,\prm{\Vtheta^{(k+1)}})$};
+\draw[-stealth]  (7.5,-.5) -- (4,-.8);
+\filldraw (4,-2.7) [xkcdBrownyOrange]circle (2pt)node{};
+\filldraw (5,-3.2) node[right, font=\footnotesize] {$\mL(\func{q^{(k)}},\ox,\prm{\Vtheta'})$};
+\draw[-stealth]  (5,-3.2) -- (4,-2.7);
+\addplot [xkcdBarneyPurple, line width=.4mm, smooth, tension=.9] coordinates {(-2, -2.5) (0,-2.2) (2,-1.2) (4,-.7) (6,-.3) (8,-1.3) (10,-1.5) (12,-1.6) (14,-2.2)};
+\addlegendentry{\footnotesize  $\log p(\x;\prm{\Vtheta^{(k+1)}})$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\caption{An example of an iteration in which the ELBO increases but the log-likelihood does
+not: the gap $\mK$ at the new parameters is sufficiently large to offset the improvement in
+the lower bound.}\label{f:elbo3}
+\end{figure}
+
+Monotone increase of the log-likelihood can be guaranteed if, in the first step, the
+auxiliary distribution is set to the exact posterior $q(\z) = p(\z|\ox;\prm{\Vtheta^{(k)}})$.
+In this case, the gap $\mK$ at the current parameters is exactly zero, meaning the ELBO
+touches the log-likelihood from below at $\prm{\Vtheta^{(k)}}$. Any subsequent increase
+in the ELBO through the M-step then translates directly into an increase in the
+log-likelihood, since the starting point of the comparison is exact---the ELBO and the
+log-likelihood coincide at $\prm{\Vtheta^{(k)}}$, so any improvement in the ELBO at the
+new parameters implies a strictly higher lower bound, which in turn lies below a
+log-likelihood that can only be at least as large. This is precisely the mechanism that the
+EM algorithm exploits, and we will formalise it in the next section.
+
+\subsection*{Extension to a Full Dataset and Amortisation}
+
+The single-observation analysis generalises straightforwardly to a full dataset $\X =
+\{\vlxu,\ldots,\vlxn\}$ of $n$ observations. Since the observations are independent, the
+dataset log-likelihood decomposes as a sum, and the same decomposition into ELBO and
+KL gap applies term-wise. Introducing a separate auxiliary distribution $q_i(\z)$ for each
+observation $\vlxi$, we obtain:
+\begin{myalign}
+\log p(\X ;\Vtheta)&=\sum_{i=1}^n \log p(\vlxi;\Vtheta)\\
+&=\sum_{i=1}^n\ev{q_i(\z)}{\log\frac{p(\vlxi,\dz;\Vtheta)}{p(\dz|\vlxi;\Vtheta)}}\\
+&=\sum_{i=1}^n\mL(q_i,\vlxi, \Vtheta)+\sum_{i=1}^n\mK(q_i,\vlxi, \Vtheta)\\
+&\defeq\mL(\mathbf{q},\vlX,\Vtheta)+\mK(\mathbf{q},\X, \Vtheta),
+\end{myalign}
+where $\mathbf{q}=(q_1,\ldots,q_n)$ is a collection of auxiliary distributions, one for each
+data point. The total ELBO on the dataset log-likelihood is therefore the sum of the
+individual ELBOs. Equality between the total ELBO and the dataset log-likelihood holds if
+and only if each $q_i(\z) = p(\z|\vlxi;\Vtheta)$, i.e., when every auxiliary distribution
+coincides with the corresponding exact posterior.
+
+The iterative procedure extends accordingly. In the first step, one finds the optimal
+distribution $\func{q_i^{(k)}}(\z)$ separately for each observation $\vlxi$ by minimising
+$\mK(\func{q_i^{(k)}},\vlxi,\prm{\Vtheta^{(k)}})$, which again yields the exact posterior
+$p(\z|\vlxi;\prm{\Vtheta^{(k)}})$ as the optimal choice. In the second step, one maximises
+the total ELBO over $\Vtheta$:
+\begin{myequation}
+    \mL(\func{\mathbf{q}^{(k)}}, \X,\Vtheta)=\sum_{i=1}^n\mL(\func{q_i^{(k)}},\vlxi,\Vtheta),
+\end{myequation}
+which, as in the single-observation case, reduces to maximising the total expected
+complete-data log-likelihood under the collection $\func{\mathbf{q}^{(k)}}$.
+
+This multi-observation formulation, while conceptually clean, raises a practical concern of
+considerable importance. Maintaining and optimising a separate distribution $q_i(\z)$ for
+each of the $n$ observations requires memory and computation that scale linearly with the
+dataset size. In large-scale settings---where $n$ may be in the millions---this is
+prohibitive. A practically important and widely adopted simplification is to replace the
+entire collection $\{q_1,\ldots,q_n\}$ with a single shared conditional distribution
+$q(\z|\x)$, setting $q_i(\z) = q(\z|\vlxi)$ for all $i$. Rather than storing and optimising a
+separate distribution for each data point, one learns a single parametric mapping from
+observations to distributions over latent variables. This strategy is known as
+\alert{amortisation}: the inference cost is amortised across all data points by sharing a
+common functional form for $q(\z|\x)$, whose parameters are optimised jointly with those
+of the generative model. The quality of the approximation is then limited by the
+expressiveness of the chosen parametric family for $q(\z|\x)$, rather than by
+computational constraints. This trade-off---sacrificing exact posterior inference for
+scalability---is a defining feature of modern deep generative models. Amortised inference
+of this kind is the foundation of Variational Autoencoders, where $q(\z|\x)$ is
+parameterised by a neural network---the encoder---trained jointly with the decoder network
+that parameterises $p(\x|\z)$. The encoder learns to map any observation directly to the
+parameters of an approximate posterior, enabling both efficient training and fast inference
+at test time.
+
+%\end{document}

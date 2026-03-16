@@ -1,0 +1,857 @@
+% !TEX root = all_beamer.tex
+%
+
+\subtitle{Course of Machine Learning}
+\author{Giorgio Gambosi}
+\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+\date{A.Y. 2025--2026}
+
+\usepackage{tikz}
+\usepackage{tikz-network}
+\usepackage[customcolors]{hf-tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows, decorations.pathmorphing, positioning, backgrounds, fit, shadows, automata, patterns}
+\usetikzlibrary{calc, intersections, through, shapes, scopes, chains, matrix, shapes.arrows, decorations, snakes}
+% ---------- Theme & colours ----------
+\usetheme{Madrid}
+\usecolortheme{whale}
+%\useoutertheme{miniframes}
+\useinnertheme{rounded}
+\setbeamertemplate{navigation symbols}{}
+
+\definecolor{MainBlue}{RGB}{31,56,100}
+\definecolor{AccentBlue}{RGB}{70,130,180}
+\definecolor{AlertRed}{RGB}{160,30,30}
+\definecolor{ExGreen}{RGB}{30,120,60}
+\definecolor{BlockBg}{RGB}{220,232,246}
+\definecolor{torgray}{RGB}{220,225,235}
+
+\setbeamercolor{frametitle}{bg=MainBlue, fg=white}
+\setbeamercolor{title}{bg=MainBlue, fg=white}
+\setbeamercolor{block title}{bg=AccentBlue, fg=white}
+\setbeamercolor{block body}{bg=BlockBg}
+\setbeamercolor{block title alerted}{bg=AlertRed, fg=white}
+\setbeamercolor{block body alerted}{bg=red!8}
+\setbeamercolor{block title example}{bg=ExGreen, fg=white}
+\setbeamercolor{block body example}{bg=green!7}
+\setbeamercolor{structure}{fg=MainBlue}
+
+% ---------- Fonts ----------
+\usefonttheme{professionalfonts}
+\setbeamerfont{frametitle}{size=\normalsize,series=\bfseries}
+\setbeamerfont{block title}{size=\small,series=\bfseries}
+
+% ---------- Packages ----------
+\usepackage{amsmath, amssymb, mathtools, amsthm}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, fit}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{graphicx}
+
+% ---------- Theorem styles ----------
+\setbeamertemplate{theorems}[numbered]
+\newtheorem{mytheorem}{Theorem}
+\newtheorem{mydefinition}{Definition}
+
+% ---------- Macros ----------
+
+\providecommand{\calX}{\mathcal{X}}
+\providecommand{\calY}{\mathcal{Y}}
+\providecommand{\calH}{\mathcal{H}}
+\providecommand{\calT}{\mathcal{T}}
+\providecommand{\calA}{\mathcal{A}}
+\providecommand{\calR}{\mathcal{R}}
+\providecommand{\calF}{\mathcal{F}}
+\providecommand{\barR}{\overline{\mathcal{R}}}
+\providecommand{\pM}{p_M}
+\providecommand{\pC}{p_C}
+\providecommand{\indicator}[1]{\mathbf{1}\!\left[#1\right]}
+\providecommand{\argmax}{\operatorname*{arg\,max}}
+\providecommand{\argmin}{\operatorname*{arg\,min}}
+\providecommand{\vcd}[1]{\operatorname{VCdim}(#1)}
+\providecommand{\Prob}[2]{\mathbb{P}_{#1}\!\left[#2\right]}
+
+\usepackage{xkcdcolors}
+%
+%
+%\definecolor{primary}  {RGB}{31,  56, 100}
+%\definecolor{accent}   {RGB}{46, 117, 182}
+%\definecolor{lightbg}  {RGB}{235,242,252}
+%\definecolor{alertred} {RGB}{180, 30,  30}
+%\definecolor{greentick}{RGB}{0,  128,  64}
+%
+%%% node colours matching the original xkcd names
+\definecolor{nodeblue}  {RGB}{101,140,196}  % xkcdFadedBlue
+%\definecolor{nodered}   {RGB}{198, 42, 86}  % xkcdLipstickRed
+%\definecolor{nodeturq}  {RGB}{  6,194,172}  % xkcdTurquoise
+%\definecolor{nodeorange}{RGB}{249,149, 40}  % xkcdOrange
+%\definecolor{nodeameth} {RGB}{155, 95,192}  % xkcdAmethyst
+%\definecolor{nodeteal}  {RGB}{  2,130,122}  % xkcdTeal
+%\definecolor{nodegrey}  {RGB}{190,190,190}  % xkcdLightGrey
+%
+%\setbeamercolor{palette primary}   {bg=primary,  fg=white}
+%\setbeamercolor{palette secondary} {bg=accent,   fg=white}
+%\setbeamercolor{palette tertiary}  {bg=primary,  fg=white}
+%\setbeamercolor{palette quaternary}{bg=primary,  fg=white}
+%\setbeamercolor{structure}         {fg=primary}
+%\setbeamercolor{section in toc}    {fg=primary}
+%\setbeamercolor{frametitle}        {bg=primary,  fg=white}
+%\setbeamercolor{title}             {fg=white}
+%\setbeamercolor{block title}       {bg=accent,   fg=white}
+%\setbeamercolor{block body}        {bg=lightbg}
+%\setbeamercolor{block title alerted}{bg=alertred, fg=white}
+%\setbeamercolor{block body alerted} {bg=lightbg}
+%\setbeamercolor{block title example}{bg=greentick,fg=white}
+%\setbeamercolor{block body example} {bg=lightbg}
+%\setbeamercolor{alerted text}       {fg=alertred}
+%\setbeamercolor{itemize item}       {fg=accent}
+%\setbeamercolor{itemize subitem}    {fg=primary}
+%
+%\setbeamertemplate{itemize item}   {\small\raise1pt\hbox{$\bullet$}}
+%\setbeamertemplate{itemize subitem}{\small\raise1pt\hbox{$-$}}
+%\setbeamertemplate{navigation symbols}{}
+%\setbeamertemplate{section in toc}[sections numbered]
+%
+%%% ── Packages ────────────────────────────────────────────────────────────────
+%\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+%\usepackage{amsmath,amssymb}
+%\usepackage{array}
+%\usepackage{tikz}
+%\usetikzlibrary{arrows.meta,positioning,calc}
+%
+%%% ── TikZ diagram styles ─────────────────────────────────────────────────────
+%\tikzset{
+%  dnode/.style={
+%    rectangle, draw=black!25, line width=0.4pt,
+%    fill=#1, fill opacity=0.50, text opacity=1,
+%    font=\small, inner sep=4pt, minimum height=7mm
+%  },
+%  darrow/.style={
+%    -{Stealth[length=4pt,width=3pt]},
+%    line width=0.5pt, draw=black!45
+%  },
+%  dlabel/.style={font=\footnotesize\itshape, text=black!55}
+%}
+%
+%%% ── Fonts ───────────────────────────────────────────────────────────────────
+%\setbeamerfont{frametitle}  {size=\large,    series=\bfseries}
+%\setbeamerfont{title}       {size=\Large,    series=\bfseries}
+%\setbeamerfont{block title} {size=\normalsize,series=\bfseries}
+%
+%%% ── Custom math / text commands ─────────────────────────────────────────────
+\providecommand{\term}[1]{\textbf{\color{accent}#1}}
+\providecommand{\Xmat}{\mathbf{X}}
+%\providecommand{\xvec}{\mathbf{x}}
+\providecommand{\wvec}{\mathbf{w}}
+\providecommand{\ind}[1]{\mathbf{1}[#1]}
+\providecommand{\Rr}{\mathcal{R}}
+\providecommand{\Tr}{\mathcal{T}}
+\providecommand{\Hr}{\mathcal{H}} 
+
+%\usepackage[english]{babel}
+%\RequirePackage{etex}
+%
+%\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+%\usepackage{CormorantGaramond}
+%\usepackage{geometry}
+%\usepackage{xcolor}
+%\usepackage{xkcdcolors}
+%\usepackage{graphicx}
+%\usepackage{csquotes}
+%\usepackage{xstring}
+%
+%% --- MATEMATICA AVANZATA E SIMBOLI ---
+%\usepackage{amsmath, amsfonts, amssymb, amsthm, mathtools}
+%\usepackage{dsfont, mathrsfs, relsize, mleftright}
+\usepackage{bm}            % Bold math
+\usepackage{upgreek}       % Greche dritte
+\usepackage{derivative}    % Gestione derivate semplificata
+%\usepackage{siunitx}       % Unità di misura SI
+%\usepackage{textgreek}     % Simboli greci nel testo
+%\usepackage[misc]{ifsym}   % Per \Letter e simboli vari
+%\usepackage{cancel}        % Per barrare termini nelle equazioni
+%\usepackage{centernot}     % Per negazioni centrate
+%\usepackage{annotate-equations}
+%
+%% --- TABELLE E LAYOUT ---
+%\usepackage{booktabs, tabularx, longtable, multirow, colortbl}
+%\usepackage{pdflscape, rotating}
+%\usepackage{multicol}
+%\usepackage{enumitem}
+%\usepackage{subcaption}
+%\usepackage{environ}
+%\usepackage[skins, breakable]{tcolorbox}
+%\usepackage{snotez}        % Per sidenote
+%
+%% --- ALGORITMI E CODICE ---
+%\usepackage[algoruled]{algorithm2e}
+%\usepackage{algorithmic}
+%\usepackage{listings}
+%
+%% --- TIKZ E PGFPLOTS ---
+\usepackage{tikz}
+\usepackage{tikz-network}
+\usepackage[customcolors]{hf-tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows, decorations.pathmorphing, positioning, backgrounds, fit, shadows, automata, patterns}
+\usetikzlibrary{calc, intersections, through, shapes, scopes, chains, matrix, shapes.arrows, decorations, snakes}
+
+\tikzset{
+  >=latex, % for default LaTeX arrow head
+  node/.style={thick,circle,draw=myblue,minimum size=22,inner sep=0.5,outer sep=0.6},
+  node in/.style={node,green!20!black,draw=mygreen!30!black,fill=mygreen!25},
+  node hidden/.style={node,blue!20!black,draw=myblue!30!black,fill=myblue!20},
+  node convol/.style={node,orange!20!black,draw=myorange!30!black,fill=myorange!20},
+  node out/.style={node,red!20!black,draw=myred!30!black,fill=myred!20},
+  connect/.style={thick,mydarkblue}, %,line cap=round
+  connect arrow/.style={-{Latex[length=4,width=3.5]},thick,mydarkblue,shorten <=0.5,shorten >=1},
+  node 1/.style={node in}, % node styles, numbered for easy mapping with \nstyle
+  node 2/.style={node hidden},
+  node 3/.style={node out}
+}
+%
+%% --- CONFIGURAZIONE PAGINA E GEOMETRY ---
+%\geometry{
+%    left=2.5cm,
+%    right=2.5cm,
+%    top=3cm,
+%    bottom=3.5cm,
+%    marginparwidth=0pt,
+%    marginparsep=0pt
+%}
+%
+%%\makeatletter
+%%%\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+%%
+%%\def\ppfooterB{\footnotesize  \@leadauthor\hspace{7pt}|\hspace{7pt}\@title\hspace{7pt}|\hspace{7pt}\thepage\space of\space\pageref{LastPage}}
+%%%\def\ppfooterC{\footnotesize \@leadauthor\hspace{7pt}|\hspace{7pt}\@shorttitle}
+%%\def\ppfooterC{{\footnotesize 
+%%    \ifnum\value{chapter}>0 Cap. \thechapter\hspace{7pt}|\hspace{7pt}\leftmark\fi 
+%%}}
+%%
+%%\lfoot{\ppfooterC}
+%%\rfoot{\ppfooterB}
+%%\preto{\footrule}{\color{MediumGrey}}
+%%
+%%\fancypagestyle{plain}{
+%%    \fancyhf{}
+%%    \fancyfoot[R]{\ppfooterB}
+%%    \fancyfoot[L]{\ppfooterC}
+%%}
+%%\makeatother
+%
+%% --- BIBLIOGRAFIA ---
+%\usepackage[
+%    backend=biber,
+%    style=authoryear,
+%    natbib=true,
+%    hyperref=true,
+%    alldates=year
+%]{biblatex}
+%
+%% --- DEFINIZIONE COLORI (Senza duplicati) ---
+%\definecolor{node}{RGB}{220,220,220}
+%\definecolor{box}{RGB}{240,240,240}
+%\definecolor{ft}{RGB}{210,40,40}
+%\definecolor{bt}{RGB}{54,94,155}
+%\definecolor{nt}{RGB}{90,90,90}
+%\definecolor{mt}{RGB}{168,27,49}
+%\definecolor{at}{RGB}{170,80,80}
+%
+%% Colori specifici Berkeley/Metropolis
+%\definecolor{BerkeleyGold}{RGB}{193,129,45}
+%\definecolor{BerkeleyBlueText}{RGB}{48,99,126}
+%\definecolor{mDarkBrown}{HTML}{604c38}
+%\definecolor{mDarkTeal}{HTML}{23373b}
+%
+%% Configurazione semantica Colorlet
+%\colorlet{pale}{xkcdLightGrey}
+%\colorlet{observed}{xkcdPinkish!60}
+%\colorlet{param}{xkcdLightTan}
+%\colorlet{latent}{xkcdPeriwinkle}
+%\colorlet{evidmath}{xkcdBlack}
+%\colorlet{odata}{xkcdDuskBlue}
+%\colorlet{elat}{xkcdPurplishRed}
+%\colorlet{eparam}{xkcdGreenishBlue}
+%\colorlet{edummy}{xkcdBurntSiena}
+%\colorlet{efunc}{xkcdBurntSiena}
+%\colorlet{evar}{xkcdLightishRed}
+%\colorlet{evidmath}{xkcdBlack}
+%\colorlet{lightmath}{xkcdMediumGrey!80}
+%\colorlet{odata}{xkcdPetrol!80}
+%\colorlet{emath1}{xkcdBrightRed}
+%\colorlet{emath2}{xkcdRichPurple}
+%\colorlet{emath}{xkcdGreenishBlue}
+%\colorlet{edummy}{xkcdBurntSiena}
+%\colorlet{efunc}{xkcdBurntSiena}
+%\colorlet{efunc1}{xkcdNeonPink}
+%\colorlet{evar}{xkcdRuby}
+%\colorlet{eparam}{xkcdDuskBlue}
+%\colorlet{elat}{xkcdPurplishRed}
+%\colorlet{egen}{xkcdAmethyst}
+%
+\colorlet{myred}{red!80!black}
+\colorlet{myblue}{blue!80!black}
+\colorlet{mygreen}{green!60!black}
+\colorlet{myorange}{orange!70!red!60!black}
+\colorlet{mydarkred}{red!30!black}
+\colorlet{mydarkblue}{blue!40!black}
+\colorlet{mydarkgreen}{green!30!black}
+%
+%% --- AMBIENTI PERSONALIZZATI ---
+%\tcbset{enhanced jigsaw, colback=xkcdTeal!5!white, colframe=xkcdTeal!75!black, fonttitle=\bfseries}
+%
+%\newenvironment{notebox}[1]{
+%    \medskip\noindent
+%    \begin{tcolorbox}[breakable, width=\textwidth, boxrule=.1mm, title=#1]
+%    \color{xkcdBattleshipGrey!75!black}
+%}{\end{tcolorbox}}
+%
+%\newenvironment{myequation}{\begin{equation*}\color{evidmath}}{\end{equation*}}
+%\NewEnviron{myalign}{{\color{evidmath}\begin{align*}\BODY\end{align*}}}
+%\newenvironment{myexample}{\bigskip\hrule\medskip\small}{\medskip\hrule\bigskip}
+%
+%\newtheorem{exmp}{Example}[section]
+%%\newtheorem{definition}{Definition}
+%%\renewtheorem{theorem}{Theorem}
+%
+%% --- MACRO ALGEBRA LINEARE (Vettori e Matrici) ---
+\providecommand{\Vbold}[1]{\ifmmode\mathbf{#1}\else\textbf{#1}\fi}
+\providecommand{\Zero}{\Vbold{0}}
+\providecommand{\Vuno}{\Vbold{1}}
+
+% Generazione automatica lettere Maiuscole Bold
+\makeatletter
+% Lista delle maiuscole
+\@for\letter:=A,B,C,D,F,H,I,K,N,P,R,S,T,U,V,W,X,Y,Z\do{%
+  \expandafter\edef\csname\letter\endcsname{\noexpand\Vbold{\letter}}%
+}
+
+% Lista delle minuscole
+\@for\lcase:=a,b,l,n,u,y,w,z,x,t,v\do{%
+  \expandafter\edef\csname\lcase\endcsname{\noexpand\Vbold{\lcase}}%
+}
+\makeatother
+\providecommand{\TT}{\Vbold{T}}
+
+%% Lettere Minuscole Bold
+%
+%
+%% Greche Bold (upgreek/amsmath)
+\providecommand{\VGamma}{\boldsymbol{\Upgamma}}
+\providecommand{\Vlambda}{\boldsymbol{\lambda}}
+\providecommand{\VLambda}{\boldsymbol{\Uplambda}}
+\providecommand{\VSigma}{\boldsymbol{\Upsigma}}
+\providecommand{\Vmu}{\boldsymbol{\mu}}
+\providecommand{\Vtheta}{\boldsymbol{\theta}}
+\providecommand{\VTheta}{\boldsymbol{\Theta}}
+\providecommand{\Vphi}{\boldsymbol{\phi}}
+\providecommand{\VPhi}{\boldsymbol{\Phi}}
+\providecommand{\Vpsi}{\boldsymbol{\psi}}
+\providecommand{\VPsi}{\boldsymbol{\Psi}}
+\providecommand{\Vpi}{\boldsymbol{\pi}}
+\providecommand{\Valpha}{\boldsymbol{\alpha}}
+\providecommand{\Vbeta}{\boldsymbol{\beta}}
+\providecommand{\Vxi}{\boldsymbol{\xi}}
+\providecommand{\Vepsilon}{\boldsymbol{\epsilon}}
+%
+%\providecommand{\oa}{\overline{\a}}
+%\providecommand{\ou}{\overline{\u}}
+%\providecommand{\ov}{\overline{\v}}
+%\providecommand{\ow}{\overline{\w}}
+%\providecommand{\ox}{\overline{\x}}
+%\providecommand{\oy}{\overline{\y}}
+%\providecommand{\oz}{\overline{\z}}
+%\providecommand{\oX}{\overline{\X}}
+%\providecommand{\oVxi}{\overline{\Vxi}}
+%\providecommand{\oVbeta}{\overline{\Vbeta}}
+%\providecommand{\oVgamma}{\overline{\Vgamma}}
+%\providecommand{\oVphi}{\overline{\Vphi}}
+%\providecommand{\oY}{\overline{\Y}}
+%\providecommand{\oBeta}{\overline{\B}}
+%
+%\providecommand{\func}[1]{{\color{efunc}#1}}
+%\providecommand{\prm}[1]{#1}
+%\providecommand{\lat}[1]{{\color{elat}\overline #1}}
+%\providecommand{\val}[1]{#1}
+%\providecommand{\vr}[1]{#1}
+%
+%\providecommand{\vlX}{\X}
+%\providecommand{\vlxi}{\x_i}
+%\providecommand{\vrt}{\Vtheta}
+%\providecommand{\vrp}{\Psi}
+%\providecommand{\lz}{{\color{elat}\overline\z}}
+%\providecommand{\lzi}{\lat{\z_i}}
+%
+%
+%%\providecommand{\ox}{{\color{evidmath}\overline\x}}
+%\providecommand{\vlx}{\ox}
+%\providecommand{\prts}{{\color{eparam}\Vtheta^*}}
+%\providecommand{\prt}{{\color{eparam}\hat\Vtheta}}
+%%\providecommand{\prm}[1]{{\color{eparam}#1}}
+%%\providecommand{\X}{{\color{evidmath}\mathbf{X}}}
+%\providecommand{\vlxu}{{\color{evidmath}\overline\x_1}}
+%%\providecommand{\vlxi}{{\color{evidmath}\overline\x_i}}
+%\providecommand{\vlxn}{{\color{evidmath}\overline\x_n}}
+%%\providecommand{\Z}{{\color{elat}\mathbf{Z}}}
+%\providecommand{\dummy}[1]{{\color{lightmath}#1}}
+%\providecommand{\dz}{\dummy{\z}}
+%
+%
+%\providecommand{\hy}{\hat{y}}
+%\providecommand{\tm}{\tilde{\m}}
+%\providecommand{\ty}{\tilde{y}}
+%\providecommand{\tx}{\tilde{\x}}
+%\providecommand{\tX}{\tilde{\X}}
+%
+%\providecommand{\vx}{\mathbf{x}}
+%\providecommand{\vX}{\mathbf{X}}
+%\providecommand{\vZ}{\mathbf{Z}}
+%\providecommand{\vtheta}{\boldsymbol{\theta}}
+%\providecommand{\vthetastar}{\boldsymbol{\theta}^*}
+%\providecommand{\vxi}{\mathbf{x}_i}
+%
+%% Shortcut Caligrafici
+%\providecommand{\cX}{\mathcal{X}}
+%\providecommand{\cY}{\mathcal{Y}}
+%\providecommand{\cH}{\mathcal{H}}
+%\providecommand{\cXY}{\mathcal{X}\times\mathcal{Y}}
+%\providecommand{\oR}{\overline{\mathcal{R}}}
+%\providecommand{\cA}{\mathcal{A}}
+%\providecommand{\vcd}[1]{\text{VCdim}(#1)}
+%
+%% --- STATISTICA E PROBABILITÀ ---
+%\DeclareMathOperator{\E}{\mathbb{E}}
+%\DeclareMathOperator*{\PP}{\mathds{P}}
+%\DeclareMathOperator*{\EE}{\mathds{E}}
+%
+%\providecommand{\me}[1]{\E \left[ #1 \right]}
+%\providecommand{\med}[2]{\E_{#1}\left[ #2 \right]}
+%\providecommand{\ev}[2]{\EE_{#1}\left[ #2 \right]}
+%\providecommand{\prob}[2]{\PP_{#1}\left[ #2 \right]}
+%
+%\providecommand{\var}[1]{\text{\textit{Var}}[#1]}
+%\providecommand{\cov}[1]{\text{\textit{Cov}}[#1]}
+%\providecommand{\diag}[1]{\text{\textit{diag}}#1}
+%
+%\providecommand{\gaussian}[3]{\frac{1}{\sqrt{2\pi}#3}e^{-\frac{(#1-#2)^{2}}{2#3^{2}}}}
+%\providecommand{\gaussiandistr}[3]{#1\sim{\mathcal{N}}(#2,#3)}
+%
+%% --- OPERATORI E CALCOLO ---
+%\providecommand{\bydef}{\overset{\Delta}{=}}
+%\providecommand{\defeq}{\bydef}
+\providecommand{\Real}{\mathbb{R}}
+%\providecommand{\Integer}{\mathbb{I}}
+%\providecommand{\Natural}{\mathbb{N}}
+%\providecommand{\Complex}{\mathbb{C}}
+%\providecommand{\vnorm}[1]{\left |\left | #1\right |\right |}
+%
+%\providecommand{\subfunc}[3]{\underset{#2}{\textrm{#1}}\:#3}
+%\providecommand{\argmin}[2]{\subfunc{argmin}{#1}{#2}}
+%\providecommand{\argmax}[2]{\subfunc{argmax}{#1}{#2}}
+%
+%\providecommand{\fracpartial}[2]{\pdv{#1}{#2}}
+%\providecommand{\gradient}[2]{\mathlarger{\mathlarger{\nabla}}_{\mathsmaller{#1}} #2}
+%
+%\providecommand{\tset}{{\cal T}}
+%
+%\providecommand{\matr}[1]{\boldsymbol{#1}}
+%
+%%matrice righe
+%\providecommand{\matrighe}[2]{
+% \left(
+%     \begin{array}{ccc}
+%          \mbox{--} &  #1  &  \mbox{--} \\
+%          & \vdots &  \\
+%           \mbox{--} &  #2  &  \mbox{--} 
+%     \end{array}
+%\right)
+%}
+%     
+%%matcolonne
+%\providecommand{\matcolonne}[2]{
+%     \left(
+%     \begin{array}{ccc}
+%          \vert  &  &  \vert \\
+%         #1 & \cdots & #2 \\
+%           \vert  &  &  \vert 
+%     \end{array}
+%     \right)}
+%     
+% \providecommand{\vcol}[2]{
+%\left(
+%     \begin{array}{c}
+%          #1 \\
+%          \vdots \\
+%          #2
+%     \end{array}
+%     \right)}
+%     
+%\providecommand{\vcoll}[3]{
+%\left(
+%     \begin{array}{c}
+%          #1 \\
+%          #2 \\
+%          \vdots \\
+%          #3
+%     \end{array}
+%     \right)}
+%
+%\providecommand{\vriga}[2]{
+%\left(
+%\begin{array}{ccc}
+%#1 & \cdots & #2
+%\end{array}
+%\right)
+%}
+%
+%\providecommand{\vrigal}[3]{
+%\left(
+%\begin{array}{cccc}
+%#1 & #2 & \cdots & #3
+%\end{array}
+%\right)
+%}
+%
+%\providecommand{\cseq}[3]{#1,#2,\ldots ,#3}
+%
+%% somma 1,2,...,n
+%\providecommand{\seq}[4]{#1#4 #2#4\ldots #4#3}
+%
+%% elenco x_1,x_2,...,x_n
+%\providecommand{\iseq}[2]{#1_{1},#1_{2},\ldots ,#1_{#2}}
+%
+%% elenco x_1,...,x_n
+%\providecommand{\iseqq}[2]{#1_{1},\ldots ,#1_{#2}}
+%
+%\providecommand{\tr}[1]{\text{tr}(#1)}
+%% --- INDIPENDENZA STOCASTICA ---
+%\providecommand{\CI}{\mathrel{\text{\scalebox{1.07}{$\perp\mkern-8mu\perp$}}}}
+%\providecommand{\nCI}{\cancel{\CI}}
+%\def\cind#1#2#3{#1\CI #2 \mid #3}
+%\def\ind#1#2{#1\CI #2}
+%
+%% --- MACRO VAE / LATENTI (Colorate) ---
+%%\providecommand{\val}[1]{{\color{odata}{#1}}}
+%%\providecommand{\lat}[1]{{\color{elat}{#1}}}
+%%\providecommand{\prm}[1]{{\color{eparam}{#1}}}
+%
+%%\providecommand{\vlx}{\val{\x}} 
+%%\providecommand{\vlX}{\val{\X}}
+%%\providecommand{\lz}{\lat{\z}} 
+%%\providecommand{\lZ}{\lat{\Z}}
+%%\providecommand{\prt}{\prm{\Vtheta}}
+%%\providecommand{\prp}{\prm{\Vphi}}
+%\DeclareMathOperator*{\HH}{\mathds{H}}
+%\providecommand{\entr}[2]{\HH_{\scalebox{.8}{$\scriptscriptstyle #1$}}\mleft[\,#2\,\mright]}
+%\providecommand{\dkl}[2]{D_{KL} \left({#1} || {#2} \right) }
+%
+%
+%% --- CONFIGURAZIONE LISTINGS (Python) ---
+%\lstset{
+%    language=Python,
+%    basicstyle=\ttfamily\color{xkcdDarkAquamarine},
+%    keywordstyle=\ttfamily\color{xkcdRedOrange},
+%    stringstyle=\color{green!80!black},
+%    showstringspaces=false            
+%}
+%
+%% --- TIKZ NEURAL NETWORKS ---
+%\providecommand\denselyConnectNodes[2]{
+%  \foreach\n [count=\lyrIdx, remember=\lyrIdx as \previdx] in #2 {
+%    \foreach\y in {1,...,\n} {
+%      \ifnum\lyrIdx>1
+%        \foreach\x in {1,...,\prevn}
+%          \draw[->] (#1-\previdx-\x) -- (#1-\lyrIdx-\y);
+%      \fi
+%    }
+%    \xdef\prevn{\n}
+%  }
+%}
+%
+%% Setup Grafica finale
+%\graphicspath{{graphics/}}
+%\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
+%
+%% Importazione comandi esterni (se ancora necessari)
+%%\usepackage{commands} 
+%\definecolor{titlecolor}{named}{xkcdDarkAquamarine}
+%\definecolor{alertcolor}{named}{xkcdDuskyRose}
+%
+%\definecolor{evidmath}{named}{xkcdCadetBlue}
+%\definecolor{lightmath}{named}{xkcdMediumGrey}
+%%\definecolor{emath1}{named}{xkcdRedOrange}
+%\definecolor{emath1}{named}{xkcdPumpkin}
+%\definecolor{emath2}{named}{xkcdIrishGreen}
+%\definecolor{emath3}{named}{xkcdDuskyRose}
+%
+%\providecommand{\gaussiansimplest}[1]{\frac{1}{\sqrt{2\pi}}\textit{exp}\left(-\frac{#1^{2}}{2}\right)}
+%
+%%%gaussiana multivariata
+%\providecommand{\mgaussian}[4]{\frac{1}{(2\pi)^{#4/2}|#3|^{1/2}}\textit{exp}\left(-\frac{1}{2}(#1-#2)^{T}#3^{-1}(#1-#2)\right)}
+%
+%
+%\providecommand{\mL}{\mathcal{L}}
+%\providecommand{\mK}{\mathcal{K}}
+%\providecommand{\mZ}{\mathcal{Z}}
+%\providecommand{\mP}{\mathcal{P}}
+%\providecommand{\mQ}{\mathcal{Q}}
+%
+%\renewcommand{\alert}[1]{{\bf\color{xkcdDuskyRose}#1}}
+%\providecommand{\partitle}[1]{\textcolor{alertcolor}{#1}}
+%\providecommand{\light}[1]{#1}
+%
+%\usepackage{mleftright}
+%\usepackage{dsfont}
+%
+%\providecommand{\vrtr}{{\vr{\Vtheta_r}}}
+%\providecommand{\pdvr}[2]{\frac{\partial }{\partial #2}#1}
+%
+%\providecommand\drawNodes[3]{
+%  % #1 (str): namespace
+%  % #2 (list[list[str]]): list of labels to print in the node of each neuron
+%  \foreach\neurons [count=\lyrIdx] in #2 {
+%    \StrCount{\neurons}{,}[\lyrLength] % use xstring package to save each layer size into \lyrLength macro
+%    \foreach\n [count=\nIdx] in \neurons {
+%      \node[neuron={#3}] (#1-\lyrIdx-\nIdx) at (2*\lyrIdx, \lyrLength/2-1.4*\nIdx) {\n};
+%    }
+%  }
+%}
+%
+%\providecommand{\fq}{\func{q}}
+%\providecommand{\fqi}{\func{q_i}}
+%\providecommand{\fqj}{\func{q}}
+%\providecommand{\fqu}{\func{q_1}}
+%\providecommand{\fqn}{\func{q_n}}
+%\providecommand{\fqmj}{\func{q_{-j}}}
+%\providecommand{\fQ}{\func{\mathcal{Q}}}
+%\providecommand{\um}[1]{\scalebox{0.4}[1.0]{\( - \)}#1}
+%\providecommand{\ELBO}{\mathrm{ELBO}}
+%
+%\providecommand{\va}[1]{\text{\textit{Var}}[#1]}
+%
+%% ---------- Macros ----------
+%
+%\providecommand{\calL}{\mathcal{L}}
+%\providecommand{\calR}{\mathcal{R}}
+%\providecommand{\calT}{\mathcal{T}}
+%\providecommand{\calY}{\mathcal{Y}}
+%\providecommand{\calX}{\mathcal{X}}
+%\providecommand{\calH}{\mathcal{H}}
+%\providecommand{\EmpR}{\overline{\mathcal{R}}}
+%
+%\definecolor{torblue}{RGB}{31,60,110}
+%\definecolor{toraccent}{RGB}{0,112,192}
+%\definecolor{torgray}{RGB}{220,225,235}
+%\definecolor{alertred}{RGB}{180,30,30}
+%\definecolor{exgreen}{RGB}{0,128,64}
+%
+%\definecolor{cerise}{HTML}{DA3A62}
+%\definecolor{teal}{HTML}{029386}
+%\definecolor{slateblue}{HTML}{5B5EA6}
+%\definecolor{orange}{HTML}{F97306}
+
+% ==============================================================================
+
+%\leadauthor{Giorgio Gambosi}
+%\shorttitle{Notes on Machine Learning}
+
+\usepackage{amsmath, amssymb, mathtools}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{graphicx}
+% indicator function via amsmath
+
+% ---------- Macros ----------
+
+\providecommand{\calX}{\mathcal{X}}
+\providecommand{\calY}{\mathcal{Y}}
+\providecommand{\calH}{\mathcal{H}}
+\providecommand{\calT}{\mathcal{T}}
+\providecommand{\calA}{\mathcal{A}}
+\providecommand{\calR}{\mathcal{R}}
+\providecommand{\barR}{\overline{\mathcal{R}}}
+\providecommand{\pM}{p_M}
+\providecommand{\pC}{p_C}
+\providecommand{\indicator}[1]{\mathbf{1}\!\left[#1\right]}
+\providecommand{\argmax}{\operatorname*{arg\,max}}
+\providecommand{\argmin}{\operatorname*{arg\,min}}
+
+\definecolor{cerise}{HTML}{DA3A62}
+\definecolor{teal}{HTML}{029386}
+\definecolor{slateblue}{HTML}{5B5EA6}
+\definecolor{orange}{HTML}{F97306}
+
+% ---------- Macros ----------
+
+\providecommand{\calL}{\mathcal{L}}
+\providecommand{\calR}{\mathcal{R}}
+\providecommand{\calT}{\mathcal{T}}
+\providecommand{\calY}{\mathcal{Y}}
+\providecommand{\calX}{\mathcal{X}}
+\providecommand{\calH}{\mathcal{H}}
+\providecommand{\EmpR}{\overline{\mathcal{R}}}
+
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage{listings}
+\usepackage{array}
+\usepackage{multirow}
+
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\tiny,
+  keywordstyle=\color{MainBlue}\bfseries,
+  commentstyle=\color{gray},
+  frame=single,
+  breaklines=true,
+}
+
+% ---------- Macros ----------
+\providecommand{\bth}{\boldsymbol{\theta}}
+\providecommand{\bx}{\mathbf{x}}
+\providecommand{\bw}{\mathbf{w}}
+\providecommand{\calT}{\mathcal{T}}
+\providecommand{\calL}{\mathcal{L}}
+\providecommand{\Rbar}{\overline{\mathcal{R}}}
+\providecommand{\defeq}{\stackrel{\text{def}}{=}}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes,decorations.pathreplacing,calc,decorations.markings}
+\usepgfplotslibrary{fillbetween}
+\usepackage{booktabs}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{mathtools}
+
+% ── Math macros ──────────────────────────────────────────────────────────────
+
+
+\providecommand{\ow}{\overline{\mathbf{w}}}
+\providecommand{\ox}{\overline{\mathbf{x}}}
+\providecommand{\oX}{\overline{\mathbf{X}}}
+
+\usepackage{amsmath, amssymb, mathtools}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{graphicx}
+% indicator function via amsmath
+
+% ---------- Macros ----------
+
+\providecommand{\calX}{\mathcal{X}}
+\providecommand{\calY}{\mathcal{Y}}
+\providecommand{\calH}{\mathcal{H}}
+\providecommand{\calT}{\mathcal{T}}
+\providecommand{\calA}{\mathcal{A}}
+\providecommand{\calR}{\mathcal{R}}
+\providecommand{\barR}{\overline{\mathcal{R}}}
+\providecommand{\pM}{p_M}
+\providecommand{\pC}{p_C}
+\providecommand{\indicator}[1]{\mathbf{1}\!\left[#1\right]}
+\providecommand{\argmax}{\operatorname*{arg\,max}}
+\providecommand{\argmin}{\operatorname*{arg\,min}}
+
+\usepackage{amsmath,amsfonts,amssymb,mathtools}
+\usepackage{bm}
+\usepackage{upgreek}
+
+% ---- Graphics -------------------------------------------
+\usepackage{graphicx}
+\usepackage{microtype}
+% ---- tcolorbox ------------------------------------------
+\usepackage[skins]{tcolorbox}
+
+\providecommand{\Ii}{\mathbf{I}}
+\providecommand{\bZero}{\mathbf{0}}
+\providecommand{\bX}{\mathbf{X}}
+\providecommand{\bZ}{\mathbf{Z}}
+\providecommand{\btt}{\mathbf{t}}
+\providecommand{\bS}{\mathbf{S}}
+\providecommand{\bx}{\mathbf{x}}
+\providecommand{\bz}{\mathbf{z}}
+\providecommand{\bw}{\mathbf{w}}
+\providecommand{\ox}{\overline{\mathbf{x}}}
+\providecommand{\ow}{\overline{\mathbf{w}}}
+\providecommand{\oX}{\overline{\mathbf{X}}}
+\providecommand{\bPsi}{\boldsymbol{\Psi}}
+\providecommand{\halert}[1]{{\color{AlertRed}\textbf{#1}}}
+
+\providecommand{\SW}{\mathbf{S}_W}
+\providecommand{\SB}{\mathbf{S}_B}
+\providecommand{\ST}{\mathbf{S}_T}
+\providecommand{\Smat}{\mathbf{S}}
+\providecommand{\GX}{G_{\mathbf{X}}}
+
+\definecolor{torred}{RGB}{153,0,0}
+\definecolor{torcyan}{RGB}{0,112,192}
+
+\providecommand{\ow}{\overline{\mathbf{w}}}
+\providecommand{\ox}{\overline{\mathbf{x}}}
+\providecommand{\oX}{\overline{\mathbf{X}}}
+
+\providecommand{\Hmat}{\mathbf{H}}
+
+\providecommand{\mlalert}[1]{{\color{AccentBlue}\textbf{#1}}}
+\providecommand{\mlemph}[1]{{\color{MainBlue}\textit{#1}}}
+
+\setbeamertemplate{theorems}[numbered]
+%\newtheorem{mytheorem}{Theorem}
+%\newtheorem{mydefinition}{Definition}
+
+% ---------- Macros ----------
+
+\providecommand{\calX}{\mathcal{X}}
+\providecommand{\calY}{\mathcal{Y}}
+\providecommand{\calH}{\mathcal{H}}
+\providecommand{\calT}{\mathcal{T}}
+\providecommand{\calA}{\mathcal{A}}
+\providecommand{\calR}{\mathcal{R}}
+\providecommand{\calF}{\mathcal{F}}
+\providecommand{\barR}{\overline{\mathcal{R}}}
+\providecommand{\pM}{p_M}
+\providecommand{\pC}{p_C}
+\providecommand{\indicator}[1]{\mathbf{1}\!\left[#1\right]}
+\providecommand{\vcd}[1]{\operatorname{VCdim}(#1)}
+\providecommand{\Prob}[2]{\mathbb{P}_{#1}\!\left[#2\right]}
+% ---------- Theme ----------
+% ---------- Custom colours (matching PDF model) ----------
+\definecolor{TvDark}{RGB}{30,50,80}        % dark navy for header bar
+\definecolor{TvMid}{RGB}{70,100,140}       % medium blue for blocks
+\definecolor{TvLight}{RGB}{210,220,235}    % pale blue for backgrounds
+\definecolor{TvAlert}{RGB}{160,30,30}      % dark red for alerts / warnings
+\definecolor{TvGreen}{RGB}{20,100,50}      % green for examples
+
+\providecommand{\SW}{\mathbf{S}_W}
+\providecommand{\SB}{\mathbf{S}_B}
+\providecommand{\ST}{\mathbf{S}_T}
+\providecommand{\Smat}{\mathbf{S}}
+\providecommand{\GX}{G_{\mathbf{X}}}
+
+\usepackage{subcaption}
+
+\newcommand{\blankpage}{
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+}

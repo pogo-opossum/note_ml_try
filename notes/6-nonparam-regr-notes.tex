@@ -1,0 +1,548 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+
+\chapter{Nonparametric regression}
+
+\subsection*{Fully bayesian regression}
+We remind that, in fully bayesian regression, no specific model parameters $\overline\w^*$ are identified, to be applied in prediction as 
+\begin{myequation}
+h(\x,\overline\w^*)=\ox^T\overline\w^*
+\end{myequation}
+
+
+Instead the distribution $p(t|\x)$ is derived, under the assumption of gaussianity, with
+
+\begin{myequation}
+p(t|\x, \X,\t, \alpha,\beta)=\mathcal{N}(t|m(\x), \sigma^2(\x))
+\end{myequation}
+
+and
+\begin{myalign}
+m(\x)&=\beta\ox^{T}\S\oX^{T}\t\\
+\sigma^{2}(\x)&=\frac{1}{\beta}+\ox^{T}\S\ox)
+\end{myalign}
+
+where
+\begin{myequation}
+\S=(\alpha\I+\beta\oX^T\oX)^{-1} \in\Real^{(d+1)\times (d+1)}
+\end{myequation}
+
+%\subsection*{Equivalent kernel}
+The prediction $h(\x)$ can be returned here as the expectation of the predictive distribution, that is
+\begin{myequation}
+h(\x)=m(\x)=\beta\ox^{T}\S\oX^{T}\t
+\end{myequation}
+
+Since 
+\begin{myequation}
+\oX^T\t=\left(\begin{array}{ccc}
+1& \cdots & 1\\
+x_{11} & \cdots & x_{n1} \\
+\vdots & \ddots & \vdots \\
+x_{1d} & \cdots & x_{nd}
+\end{array}\right)
+\left(\begin{array}{c}
+t_{1}\\
+t_{2} \\
+\vdots \\
+t_{n}
+\end{array}\right)=
+\left(\begin{array}{c}
+\sum_{i=1}^nt_i\\
+\sum_{i=1}^nx_{i1}t_i\\
+\vdots \\
+\sum_{i=1}^nx_{id}t_i\\
+\end{array}\right)=
+\sum_{i=1}^n\left(\begin{array}{c}
+1\\
+x_{i1} \\
+\vdots \\
+x_{id}
+\end{array}\right)t_i=\sum_{i=1}^n\ox_it_{i}
+\end{myequation}
+
+we may also write
+\begin{myequation}
+h(\x)=\beta\ox^{T}\S\sum_{i=1}^{n}\ox_it_{i}=\sum_{i=1}^{n}\beta\ox^{T}\S\ox_{i}t_{i}
+\end{myequation}
+
+We may note here that the prediction is not computed by referring to a set of parameters derived by optimization of a loss function. Instead, it can be seen as a linear combination of the target values $t_i$ of all items in the training set, with weights dependent from the item values $\x_i$ (and from $\x$).
+
+Let us denote as $\kappa(\x_1,\x_2)=\beta\ox_1^{T}\S\ox_2$ the function which provides the weight associated to target value $t_i$, when its arguments are $\x_i$ and $\x$. Then, 
+\begin{myequation}
+h(\x)=\sum_{i=1}^{n}\kappa(\x,\x_{i})t_{i}
+\end{myequation}
+
+The weight function $\kappa(\x_1,\x_2)$ defined above 
+is said \alert{equivalent kernel}. Note that, in a sense, it provides a measure of how much the values of the targets associated to $\x_1$ and $\x_2$ are dependent from each other. By applying a set $\Vphi$ of base functions, the definition of equivalent kernel can be modified to
+\begin{myequation}
+\kappa(\x_1,\x_2)=\beta\Vphi(\x_1)^{T}\S\Vphi(\x_2)
+\end{myequation}
+
+
+In our framework, $\kappa(\x,\x_i)$ is then a measure of how much the value of the target associated to $\x$, which must be approximated, is related to the target of $\x_i$, which is known.
+
+In the figure below, it is shown on the right a plot on the plane $(x,x_{i})$ of a sample equivalent kernel for the case when only one feature is given, in the case when $\Vphi$ is a set of gaussian base functions.  On the left, a plot of the values of $\kappa(x,x_i)$ as functions of $x$, for three different values of $x_i$.
+
+\medskip
+\centerline{\includegraphics[width=10cm]{equivkernel.pdf}}
+
+In deriving $h(x)$, the equivalent kernel tends to assign greater relevance to the target values $t_i$ corresponding to items $x_i$ near $x$. 
+
+The same localization property holds also for different base functions, as shown in the figure below, where $\kappa(0,x)$ is plotted in the case of $\Vphi$ a polynomial function (left) and a gaussian function (right).
+
+\medskip
+\centerline{\begin{tabular}{rcl}
+\includegraphics[width=5cm]{Figure3-11a.pdf}&
+ \hspace{2mm}&
+\includegraphics[width=5cm]{Figure3-11b.pdf}
+\end{tabular}}
+
+
+Let us finally observe that, instead of introducing base functions which eventually result into an equivalent kernel, we may follow the same approach of predicting by means of a linear combination of target values, with weights computed by a suitable \alert{localized kernel}, defined on a pair of elements (that is on $\Real^d\times\Real^d$) and returning a real value.
+
+
+\subsection*{Kernel regression}
+In kernel regression methods, the  target value corresponding to any item $\x$ is  predicted by referring to items in the training set, and in particular to the items which are closer to $\x$. This is controlled by referring to a predefined \alert{kernel} function $\kappa_h(\x)$, which returns non negligible values only in an interval around $0$.
+
+\medskip
+A possible, common kernel, is the gaussian (or RBF) kernel, plotted below in the case $d=1$ for different values of the hyperparameter $h$. 
+\begin{myequation}
+g(\x)=e^{-\frac{{\left\lVert\x\right\rVert}^2}{2h^2}}
+\end{myequation}
+
+
+\centerline{\includegraphics[width=10cm]{gaussian_kernel.png}}
+ 
+In order to derive the prediction function $h$, we remind that in regression
+our aim is to approximate the conditional expectation
+ \begin{myequation}
+\me{t|\x}=\light{\int t\;p(t|\x)dt=\int t\;\frac{p(\x,t)}{p(\x)}dt=\frac{\displaystyle\int t\;p(\x,t)dt}{p(\x)}=}\frac{\displaystyle\int t\; p(\x,t)dt}{\displaystyle\int p(\x,t)dt}
+ \end{myequation}
+ 
+ \medskip
+Assume now that the joint distribution $p(\x,t)$ is approximated by means of a kernel function as
+
+\begin{myequation}
+ p(\x,t)\approx\frac{1}{n}\sum_{i=1}^n\kappa_h(\x-\x_i)\kappa_h(t-t_i)
+ \end{myequation}
+
+This results into
+ \begin{myequation}
+ h(\x)=\light{\frac{\displaystyle\int t\;\frac{1}{n}\sum_{i=1}^n\kappa_t(\x-\x_i)\kappa_h(t-t_i)dt}{\displaystyle\int\frac{1}{n}\sum_{i=1}^n\kappa_h(\x-\x_i)\kappa_h(t-t_i)dt}=}
+ \frac{\sum_{i=1}^n\kappa_h(\x-\x_i)\displaystyle\int t\;\kappa_h(t-t_i)dt}{\sum_{i=1}^n\kappa_h(\x-\x_i)\displaystyle\int \kappa_h(t-t_i)dt}
+ \end{myequation}
+ 
+If we assume that the kernel $\kappa(x)$ is always non negative, has mean $\displaystyle \int t\kappa_h(x)dx=0$ and area under the curve  $\displaystyle \int\kappa_h(x)dx=1$ (which implies it is a  probability density distribution), we have that $\displaystyle \int\kappa_h(t-t_i)dt=1$ and $\displaystyle \int t\kappa_h(t-t_i)dt=t_i$, and we finally get
+
+ \begin{myequation}
+ h(\x)= \frac{\sum_{i=1}^n\kappa_h(\x-\x_i)t_i}{\sum_{i=1}^n\kappa_h(\x-\x_i)}
+ \end{myequation}
+By setting
+\begin{myequation}
+w_i(\x)=\frac{\kappa_h(\x-\x_i)}{\sum_{j=1}^n\kappa_h(\x-\x_j)}
+\end{myequation}
+we can then write
+\begin{myequation}
+h(\x)=\sum_{i=1}^nw_i(\x)t_i
+\end{myequation}
+that is, the predicted value is computed as a normalized linear combination of all target values, weighted by applying the chosen kernel  (\alert{Nadaraya-Watson}).
+
+Clearly, if base functions are applied, we get 
+\begin{myequation}
+h(\x)=\sum_{i=1}^nw_i(\Vphi(\x))t_i
+\end{myequation}
+with
+\begin{myequation}
+w_i(\x)=\frac{\kappa_h(\Vphi(\x)-\Vphi(\x_i))}{\sum_{j=1}^n\kappa_h(\Vphi(\x)-\Vphi(\x_i))}
+\end{myequation}
+
+
+\subsection*{Locally weighted regression}
+In Nadaraya-Watson model, the prediction is performed by means of a normalized weighted combination of constant values (target values in the training set).
+ 
+ \medskip
+Locally weighted regression (LOESS) improves that approach by referring to a weighted version of the sum of squared differences loss function used in regression. 
+
+\medskip
+If a value $t$ has to be predicted for an item $\x$, a ``local'' version of the loss function is considered, with weight $\psi_i(\x)$. Assuming again base functions $\Vphi$, 
+
+\begin{myequation}
+L(\x)=\sum_{i=1}^n\psi_i(\x)(\ow^T\ox_i-t_i)^2=\sum_{i=1}^n\kappa_h(\x-\x_i)(\ow^T\ox_i-t_i)^2
+\end{myequation}
+
+Weights $\psi_i(\x)$ are dependent from the ``distance'' between $\x$ and $\x_i$, as measured by the kernel function 
+
+\begin{myequation}
+\psi_i(\x)=\kappa_h(\x-\x_i)
+\end{myequation}
+
+The minimization of this loss function 
+\begin{myequation}
+\ow^*(\x)=\argmin{\w}\sum_{i=1}^n\psi_i(\x)(\ow^T\ox_i-t_i)^2
+\end{myequation}
+has solution
+\begin{myequation}
+\ow^*(\x)= (\oX^T\Psi(\x)\oX)^{-1}\oX^T\Psi(\x)\t
+\end{myequation}
+where $\Psi(\x)$ is a diagonal $n\times n$ matrix with $\Psi(\x)_{ii}=\psi_i(\x)$.
+
+\medskip
+The prediction is then performed as usual, as
+\begin{myequation}
+h(\x) = \ow^*(\x)^T\ox
+\end{myequation}
+
+
+
+\subsection*{Local logistic regression}
+The same approach applied in the case of local regression can be applied for classification, by defining a weighted loss function to be minimized, with weights dependent from the item whose target must be predicted.
+
+\medskip
+In this case, a weighted version of the cross entropy function is considered, which has to be maximized
+\begin{myequation}
+L(\x)=\sum_{i=1}^n\kappa_h(\x-\x_i)(t_i\log p_i-(1-t_i)\log(1-p_i))
+\end{myequation}
+with $p_i=\sigma(\ow^T\ox_i)$.%, as usual.
+
+\medskip
+
+\section*{Gaussian processes}
+
+An alternative and equivalent way of reaching identical results to the previous ones is possible by considering inference directly in the space of functions $f:\Real^d\mapsto\Real$. We use a Gaussian process (GP) to describe a distribution over functions.\footnote{For simplicity of notation, we refer here to the original training set points $\x_1,\ldots,\x_n$ instead of using the more general notation $\Vphi(\x_1),\ldots,\Vphi(\x_n)$ with points obtained by applying a set of base functions. All the considerations below clearly apply if $\Vphi(\x)$ is substituted  to $\x$.}
+
+More formally:
+\begin{itemize}
+\item A \alert{stochastic process} $f(\x)$ is a collection of (possibly infinite) random variables, $\{f(\x): \x\in\chi\}$, the values taken by function $f$ on domain $\chi$. Observe that $f$ is completely described by such values.
+\item A stochastic process is a \alert{Gaussian process} if for any finite subset $\X=(\x_1,\ldots,\x_n)$ of $\chi$, the function values $f(\x_1),\ldots,f(\x_n)$  have joint multivariate Gaussian distribution.
+\end{itemize}
+
+ In the most general case, $\chi=\Real^d$, but simpler cases, for example with finite $\lvert\chi\rvert$ can be considered.
+Note that in this case, if $\lvert\chi\rvert=d$, this corresponds to stating that 
+the joint multivariate distribution $\{f(\x_i): i=1,\ldots,d\}$ is a gaussian, from which, by the properties of the gaussian distribution, it derives that the distribution of any subset of points $\{f(\x_i): i\in\I\subset\{1,\ldots,d\}\}$ is itself a gaussian.
+
+Gaussian processes are then a generalization of joint $d$-dimensional multivariate gaussians which extend them to infinite $d$. %Note that an assignment of values to all points  In the case of a finite domain $\chi$, a gaussian process is reduced to a multivariate gaussian on $\Real^{|\chi|}$.
+
+In order to specify the gaussian process in the general case of infinite $\chi$, we must introduce two rules which, for any set of points $\X=(\x_1,\ldots,\x_m)$, define the distribution $p(f(\x_1),\ldots,f(\x_m))$ of the corresponding values.% $y_1,\ldots, y_n=f(\x_1),\ldots,f(\x_n)$.
+
+\begin{itemize}
+\item We already know that, by assumption, the distribution $p(f(\x_1),\ldots,f(\x_m))$ is an $m$-dimensional multivariate normal distribution, which is then characterized by a \alert{mean vector} $\Vmu_{\X}$ and \alert{covariance matrix} $\VSigma_{X}$.%\footnote{Observe that expectations are taken with respect to the random function $f$.}
+
+\item For what regards the mean, we define a function $m(\x)$ that for each point $\x_i$ returns the expectation of the distribution of $f(\x_i)$, which is gaussian since any marginal of a gaussian distribution such as $p(f(\x_1),\ldots,f(\x_m))$ is itself a gaussian. As a consequence, $\Vmu_{\X}=(m(\x_1),\ldots,m(\x_m))$. A possible value for $\Vmu_{\X}$ could be just the set of target values $t_1,\ldots,t_m$, thats is $m(\x_i)=t_i$, that is assuming that the observed value for $f(\x_i)$ (or its approximation) provided by $t_i$ corresponds to the expectation of $p(f(x_i))$.  However, we will see later that  assuming $\Vmu_{\X}=\Zero$ does not limit the prediction capabilities of the approach, since the effect of non zero means can be later taken into account, as a final step.%: we may in fact subtract the dataset mean fro%is indeed a constant independent from $\X$. In particular, it is usually assumed that $\Vmu(\X)=\Zero$.
+
+\item The covariance matrix derives from the application of a predefined \alert{covariance function} $\kappa:\chi\times\chi\mapsto\Real$ which associates a real value to any pair of points in $\chi$ and, in particular, to any pair in $\X$, hence to all elements of $\VSigma_{\X}$
+\end{itemize}
+
+
+The covariance function $\kappa$ is assumed to be a \alert{positive definite kernel}: this means that for any set of distinct points $\x_1,\ldots,\x_n$ it must be 
+\begin{myequation}
+\sum_{i=1}^n\sum_{j=1}^nc_ic_j\kappa(\mathbf{x}_i,\mathbf{x}_j)>0
+\end{myequation} 
+for any choice of the constants $c_1,\ldots,c_n$ such that not all $c_i$ are equal to $0$. 
+
+Equivalently, the square \alert{Gram} matrix $G_{\X}$ defined as 
+\begin{myequation} G_{\X}=
+\begin{pmatrix}\kappa(\x_1,\x_1) & \kappa(\x_1,\x_2) & \cdots & \kappa(\x_1,\x_n)\\ 
+\kappa(\x_2,\x_1) & \kappa(\x_2,\x_2) & \cdots & \kappa(\x_2,\x_n)\\
+ \cdots& \cdots & \cdots & \cdots\\
+ \kappa(\x_n,\x_1) & \kappa(\x_n,\x_2) & \cdots & \kappa(\x_n,\x_n)
+\end{pmatrix}
+\end{myequation}
+ must have positive eigenvalues. 
+ A collection of positive definite kernels is known in the literature and can be constructed by applying suitable rules.
+
+Thus, a Gaussian process can be interpreted as a distribution over functions whose shape (smoothness, ...) is defined by $\kappa$. If points $\x_i$ and $\x_j$ are considered to be similar (that is, $\kappa(\x,_i\x_j)$ is small) the function values at these points, $f(\x_i)$ and $f(\x_j)$, can be expected to be similar too. 
+
+%We may then define the Gaussian process as
+%
+%\begin{myequation}
+%f(\x)\sim\mathcal{GP}(m(\x),\kappa(\x,\x'))
+%\end{myequation}
+
+\subsubsection*{Recap}
+Reassuming, given a gaussian process $p(f)=\mathcal{GP}(m,\kappa)$, for any set  of items $\X=(\x_1,\ldots,\x_n)$, the distribution of $f(\x_1),\ldots,f(\x_n)$ is a gaussian
+\begin{myequation}
+p(f)=p(f(\x_1),\ldots,f(\x_n))=\mathcal{N}(f;\Vmu_{\X}|\VSigma_{\X})
+\end{myequation}
+where 
+\begin{itemize}
+\item $\Vmu_{\X}=(m(\x_1),\ldots,m(\x_n))^T$
+\item $\VSigma_{\X}$ is the Gram matrix $G_{\X}$ wrt  $\x_1,\ldots,\x_n$ of a kernel function $\kappa(\x,\x')$
+\end{itemize}
+
+\medskip
+%As stated before, it is usually assumed that the mean vector is $\Zero$: different processes are then characterized only by their covariance kernel $\kappa$.
+For any finite subset $\X=(\x_1,\ldots,\x_m)$ of $\chi$, we can refer to the definition of gaussian process to obtain the 
+distribution of $(f(\x_1),\ldots,f(\x_m))$. In fact:
+
+\begin{itemize}
+	\item it is gaussian by hypothesis
+	\item it can be seen as the marginalization of the distribution on the infinite vector of variables defined by $\chi$
+\begin{myequation}
+p(f)=\mathcal{N}(f;\Vmu_{\X},\VSigma_{\X})
+\end{myequation}
+where $\Vmu(\X)_i=m(\x_i)$ and
+$\VSigma_{\X}[i,j]=\kappa(\x_i,\x_j)$.
+\end{itemize}
+
+For any finite subset $\X=(\x_1,\ldots,\x_n)$ of $\chi$ it is possible to sample the values of $f(\x_1),\ldots,f(\x_m)$ by sampling from 
+$\mathcal{N}(f;\Vmu_{\X},\VSigma_{\X})$
+
+
+\subsubsection*{Kernels}
+Clearly, different kernels provide different processes: one of the most applied kernel is the RBF kernel
+\begin{myequation}
+\kappa(\x_1,\x_2)=\sigma^2e^{-\frac{||\x_1-\x_2||^2}{2\tau^2}}
+\end{myequation}
+which tends to assign higher covariance between $f(\x_1)$ and $f(\x_2)$ if $\x_1$ and $\x_2$ are nearby points.
+
+Functions drawn from a Gaussian process with RBF kernel tend to be smooth, since values computed for nearby points tend to be similar. Smoothing is larger for larger $\tau$. 
+
+Below, two examples of samples of functions on $\Real$ (indeed approximated on a grid of values) are given: RBF kerenel is assumed, with larger $\tau$ in the first image and smaller $\tau$ in the second one.
+
+
+\medskip
+\centerline{\includegraphics[width=12cm]{rbf1.jpg}}
+
+
+\medskip
+\centerline{\includegraphics[width=12cm]{rbf4.jpg}}
+
+\subsubsection*{Posterior distribution}
+
+The gaussian process $\mathcal{GP}(m(\x),\kappa(\x,\x'))$ can be seen as a distribution $p(f)$ of functions, and it is independent from the actual points in the dataset. In bayesian terms, it is a prior with respect to the observation of actual values $(\x_i,t_i)$, where $t_i$ is by assumption the value which is assumed is actually taken by any function sampled from $p(f)$.
+
+This is in particular true for the set $\X$ of $m$ points in the dataset. Note that here we are not taking into account the target values $\t$.
+
+We have then a gaussian distribution of $m$-dimensional vectors, which can be interpreted as functions from $\X$ to $\Real$.
+\begin{myequation}
+p(f)=\mathcal{N}(f;\Vmu_{\X},\VSigma_{\X})
+\end{myequation}
+
+In the figure below, the red plot is the unknown function $f(x)$ to be approximated, while the thinner, blue ones are fucntions sampled by $p(f)$ ($\X$ is a grid of points on the $x$ axis).
+
+\centerline{\includegraphics[width=12cm]{gp_no_noise.png}}
+
+
+Let us now assume that each target value corresponds exactly to the value associated to point $\x_i$ returned by definition the unknown function $f$ to be approximated, that is $t_i=f(\x_i)$.
+
+In other terms, we assume there is no noise in our observations of the unknown function $f$. Note that in the probabilistic model of regression this is not true, since a (gaussian) error is assumed.
+
+
+By definition of gaussian process, if we now consider an additional set of points
+$\Z=(\z_1,\ldots, \z_r)^T$, the joint distribution of $f(\x_1),\ldots,f(\x_m),f(\z_1),\ldots,f(\z_r)$ is an $(m+r)$-dimensional multivariate gaussian with mean $\Vmu_{(\X,\Z)}=(\Vmu_{\X},\Vmu_{\Z})$ 
+and covariance matrix %$\VSigma_{(\X,\mathbf{Z})}$
+\begin{myalign}
+%\Vmu(\X,\Z)&=(\Vmu(\X), \Vmu(\Z))^T\\
+\VSigma_{(\X,\mathbf{Z})}&=
+\begin{pmatrix}G_{\X} & G_{\mathbf{Z},\X} \\ G_{\mathbf{Z},\X}^T & G_{\mathbf{Z}}\end{pmatrix}
+\end{myalign}
+where 
+\begin{myequation}
+G_{\mathbf{Z},\X}=\begin{pmatrix}
+\kappa(\z_1,\x_1) & \kappa(\z_1,\x_2) &\cdots& \kappa(\z_1,\x_m)\\ 
+\kappa(\z_2,\x_1) & \kappa(\z_2,\x_2) &\cdots& \kappa(\z_2,\x_m)\\
+\vdots& \vdots &\ddots& \vdots\\
+\kappa(\z_r,\x_1) & \kappa(\z_m,\x_2) &\cdots& \kappa(\z_r,\x_m)
+\end{pmatrix}%(\kappa(\x,\x_1),\ldots,\kappa(\x,\x_n))$
+\end{myequation}
+
+
+We wish to derive the predictive distribution of $f(\z_1),\ldots,f(\z_r)$ given $\z_1,\ldots,\z_r$, $\x_1,\ldots,\x_m$, and $t_1,\ldots,t_m$, which by the no noise assumption is equal to $f(\x_1),\ldots,f(\x_m)$. That is, we wish to derive the conditional distribution $p(f(\Z)|\Z,\X,f(\X))$.
+In order to do this, let us first remind some useful properties of multivariate gaussian distributions.
+
+\begin{myexample}
+Recap: some properties of Gaussian distributions
+
+Let  $\x=(x_1,\ldots,x_n)^T$ be a random vector with gaussian distribution $p(\x)=\mathcal{N}(\Vmu,\VSigma)$ and let  $\x=(\x_A,\x_B)$ be a partition of the components $\x$ such that:
+\begin{itemize}
+	\item $\x_A=(x_1,\ldots,x_r)^T$
+	\item $\x_B=(x_{r+1},\ldots,x_n)^T$
+\end{itemize}
+
+\medskip
+ Then, the \alert{marginal} distributions $p(\x_A)$ and $p(\x_B)$ are both gaussian with means $\Vmu_A, \Vmu_B$ and covariance matrices $\VSigma_A, \VSigma_B$ which can be derived from $\Vmu,\VSigma$ by observing that
+ \begin{myequation}
+ \Vmu=(\Vmu_A,\Vmu_B)^T\hspace{2cm}\VSigma=\left(\begin{matrix}
+  \VSigma_{A}&   \VSigma_{AB}\\
+  \VSigma_{AB}^T &  \VSigma_{B}
+\end{matrix}\right)
+ \end{myequation}
+ Clearly, $\Vmu_A\in\Real^r$, $\Vmu_B\in\Real^{n-r}$, $\VSigma_{A}\in\Real^{r\times r}$, $\VSigma_{B}\in\Real^{(n-r)\times (n-r)}$,% $\VSigma_{AB}\in\Real^r\times \Real^{n-r}$
+ 
+%Observe that, for any variable $x_i$ the corresponding mean $\mu_i$ is unchanged and that this also holds for what concerns the covariance $\Sigma_{ij}$ between any pair of variables $x_i,x_j$ belonging to the same partition 
+In the same situation, the conditional distributions $p(\x_A|\x_B)$ and $p(\x_B|\x_A)$ are also gaussian with means
+\begin{myalign}
+	\Vmu_{A|B}&=\Vmu_A+\VSigma_{AB}\VSigma_{B}^{-1}(\x_B-\Vmu_B)\\
+	\Vmu_{B|A}&=\Vmu_B+\VSigma_{BA}\VSigma_{A}^{-1}(\x_A-\Vmu_A)
+\end{myalign}
+
+and covariance matrices
+
+\begin{myalign}
+	\VSigma_{A|B}&=\VSigma_{A}-\VSigma_{AB}\VSigma_{B}^{-1}\VSigma_{BA}\\
+	\VSigma_{B|A}&=\VSigma_{B}-\VSigma_{BA}\VSigma_{A}^{-1}\VSigma_{AB}
+\end{myalign}
+\end{myexample}
+
+From these properties, by setting $\x_A=f(\X)$ and $\x_B=f(\Z)$, it results that 
+\begin{myequation}
+p(f(\Z)|\Z,\X,f(\X))=p(f(\z_1),\ldots,f(\z_r)|\z_1,\ldots,\z_r,\x_1,\ldots,\x_m,f(\x_1),\ldots,f(\x_m))
+\end{myequation}
+is an $r$-dimensional gaussian distribution itself with mean and covariance defined as 
+\begin{myalign}
+\Vmu_{pr}&=\Vmu_{\mathbf{Z}}+G_{\mathbf{\Z},\X}G_{\X}^{-1}(\t-\Vmu_{\X})\\
+\VSigma_{pr}&=G_{\mathbf{Z}}-G_{\mathbf{\Z},\X}G_{\X}^{-1}G_{\mathbf{\Z},\X}^T
+\end{myalign}
+
+Observe that even under the simplifying assumption that $(\Vmu_{\X},\Vmu_{\Z})=\Zero$, that is that $m(\x)$ is assumed 0 for all $\x$ (and $\z$), the mean of 
+the predictive distribution may result to be non zero. In fact, in such a case,
+it would be 
+\begin{myequation}
+\Vmu_{pr}=G_{\mathbf{\Z},\X}G_{\X}^{-1}\t
+\end{myequation}
+
+However, by the first equation above, even in the general case of any definition of $m(\x)$, we may assume that $m(\x)=0$, obtaining $\Vmu_{pr}=G_{\mathbf{\Z},\X}G_{\X}^{-1}\t$, and next modify such value as
+\begin{myequation}
+\Vmu_{pr} = \Vmu_{pr}+\Vmu_{\Z}-G_{\mathbf{\Z},\X}G_{\X}^{-1}\Vmu_{\X}
+\end{myequation}
+to take into account the assumed non zero expectations. This shows that we could have indeed considered the case $m(\x)=0$ in the above considerations without loss of generality.
+
+
+
+Sampling several functions from such the predictive distribution results in the following situation: again, the red plot is the unknown functio $f$ whose values at 5 points are now known, while the blue plot are samples from the posterior distribution $\mathcal{N}(x|\Vmu_{pr},\VSigma_{pr})$. Observe that all such functions have the same values of $f$ at the 5 points.
+
+\medskip
+\centerline{\includegraphics[scale=0.3]{gp_post_sample_no_noise.png}}
+
+The same considerations apply, in particular, for the prediction of a single test point $\z$ given the training set $\X,\t$. 
+According to what shown above, the predictive distribution of $f(\x)$ is a gaussian distribution with mean and variance
+\begin{myalign}
+\mu_{pr}&=G_{\z,\X}G_{\X}^{-1}(\t-\Vmu_{\X})\\
+\sigma^2_{pr}&=\kappa(\z,\z)-G_{\z,\X}G_{\X}^{-1}G_{\z,\X}^T
+\end{myalign}
+
+\smallskip
+In the figure below, the mean value of the predictive distribution of $f(x)$ for each point $x$, given the 5 points shown on the red plot, is shown as a blue plot, with the corresponding variance reported by the yellow interval around such plot.
+
+\centerline{\includegraphics[width=12cm]{gp_predict_no_noise.png}}
+
+As already observed, in this case an \alert{interpolation} of the given values has been performed, namely $f(\x_i)=t_i$ for all possible functions, sampled from $p(f|\X, \t))$.
+
+
+\medskip
+It results, in fact, for all $\x_i\in\X$, 
+
+\begin{myalign}
+\mu(f(\x_i)|\X,\t)&=t_i\\
+\sigma^2&=0
+\end{myalign}
+%\end{itemize}
+
+
+
+
+
+
+
+\subsection*{Gaussian process regression: gaussian noise}
+If we make the more realistic hypothesis that each target value $t_i$ only provides a noisy observation of $f(\x_i)$, we may behave as in the definition of the probabilistic model for linear regression: in particular, we may make the hypothesis of a gaussian noise, hence that $p(t_i|f,\x_i)=\mathcal{N}(f(\x_i),\sigma_f^2)$, while earlier we assumed $t_i=f(\x_i)$.
+
+Then the value $t_i$ observed for variable $\x_i$ differs from the one obtained as $f(\x_i)$ by a gaussian and independent noise
+
+\begin{myequation}
+t_i = f(\x_i)+\varepsilon\hspace{2cm}p(\varepsilon)=\mathcal{N}(\varepsilon;0, \sigma_f^2)
+\end{myequation}
+
+Under these assumptions, for the prior distribution on the noisy observations we have that the variance of $f(\x_i)$ is increased, with respect to the previous case, by the uncertainty derived by the noise, whcih has variance $\sigma^2_f$. As a consequence, we have that:
+\begin{myalign}
+\VSigma_{\X}[i,j]&=\kappa(\x_i,\x_j)\hspace{2cm}\text{if }i\neq j\\
+\VSigma_{\X}[i,i]&=\kappa(\x_i,\x_j)+\sigma_f^2
+%\text{cov}(f(\x_i),f(\x_j)) = \kappa(\x_i,\x_j)+\sigma_f^2\delta_{ij}
+\end{myalign}
+%where $\delta_{ij}$ is the Kronecker delta that is one iff $i=j$ and zero otherwise. 
+As a consequence, the covariance matrix $\VSigma_{\X}$ results
+\begin{myequation}
+\VSigma(\X)=G_{\X}+\sigma^2_f\I
+\end{myequation}
+
+\smallskip
+\centerline{\includegraphics[scale=0.3]{gp_noise.png}}
+
+
+
+\subsection*{Gaussian process regression: gaussian noise}
+Let us now assume that a training set $\X,\t$ is available such that the target values in the training set correspond approximately to the function value $t_i=f(\x_i)+\varepsilon$. 
+
+In this case, for any new set of points $\mathbf{Z}$, the joint distribution of $(f(\X), f(\Z))$ is a multivariate gaussian distribution  with mean $\Vmu_{(\X,\Z)}=(\Vmu_{\X},\Vmu_{\Z})$ 
+and covariance matrix %$\VSigma_{(\X,\mathbf{Z})}$
+\begin{myalign}
+%\Vmu(\X,\Z)&=(\Vmu(\X), \Vmu(\Z))^T\\
+\hat\VSigma_{(\X,\mathbf{Z})}&=
+\begin{pmatrix}
+\hat\VSigma_{\X} & G_{\mathbf{Z},\X} \\ G_{\mathbf{Z},\X}^T & G_{\mathbf{Z}}\end{pmatrix}
+\end{myalign}
+where 
+\begin{myequation}
+\hat\VSigma_{\X} =G_{\X}+\sigma_f^2\I=\begin{pmatrix}
+\kappa(\x_1,\x_1) +\sigma_f^2& \kappa(\x_1,\x_2) &\cdots& \kappa(\x_1,\x_m)\\ 
+\kappa(\x_2,\x_1) & \kappa(\x_2,\x_2)+\sigma_f^2 &\cdots& \kappa(\x_2,\x_m)\\
+\vdots& \vdots &\ddots& \vdots\\
+\kappa(\x_m,\x_1) & \kappa(\x_m,\x_2) &\cdots& \kappa(\x_m,\x_m)+\sigma_f^2
+\end{pmatrix}
+\end{myequation}
+
+
+
+
+The predictive distribution of $f(\z_1),\ldots,f(\z_r)$ given $\z_1,\ldots,\z_r$, $\x_1,\ldots,\x_m$, and $t_1,\ldots,t_m$  can be again derived by the gaussian distribution properties, and, by the same considerations, turns out again to be a gaussian distribution with mean and covariance defined as 
+\begin{myalign}
+\hat\Vmu_{pr}&=\Vmu_{\mathbf{Z}}+G_{\mathbf{\Z},\X}\hat{\VSigma}(\X)^{-1}(\t-\Vmu_{\X})\\
+\hat\VSigma_{pr}&=G_{\mathbf{Z}}-G_{\mathbf{\Z},\X}\hat{\VSigma}(\X)^{-1}G_{\mathbf{\Z},\X}^T
+\end{myalign}
+\smallskip
+\centerline{\includegraphics[scale=0.3]{gp_post_sample_noise.png}}
+
+Again, if we assume zero mean in the prior distribution it results
+\begin{myequation}
+\hat\Vmu_{pr}=G_{\mathbf{\Z},\X}\hat{\VSigma}_{\X}^{-1}\t
+\end{myequation}
+
+In particular, for a single test point $\z$, we have now that the corresponding predictive distribution is again a gaussian with
+\begin{myalign}
+\mu_{pr}&=m(\x)+G_{\z,\X}\hat{\VSigma}_{\X}^{-1}(\t-\Vmu_{\X})\\
+\sigma^2_{pr}&=\kappa_p(\z,\z)-G_{\z,\X}\hat{\VSigma}_{\X}^{-1}G_{\z,\X}^T
+\end{myalign}
+\smallskip
+\centerline{\includegraphics[scale=0.3]{gp_predict_noise.png}}
+
+
+
+
+
+\subsection*{Estimating kernel parameters}
+The predictive performance of gaussian processes depends exclusively on the suitability of the chosen kernel.
+
+\medskip
+Let us consider the case of an RBF kernel. Then, 
+\begin{myequation}
+\kappa(\x_i,\x_j)=\sigma^2_fe^{-\frac{1}{2}(\x_i-\x_j)^T\mathbf{M}(\x_i-\x_j)}+\sigma_y^2\delta_{ij}
+\end{myequation}
+$\mathbf{M}$ can be defined in several ways: the simplest one is $\mathbf{M}=l^{-2}\I$.
+
+\medskip
+Even in this simple case, varying the values of $\sigma_f, \sigma_y, l$ returns quite different results.
+
+\smallskip
+\centerline{\includegraphics[width=12cm]{gp_params.jpg}}
+\noindent
+\footnotesize
+ (figure from K.Murphy ``Machine learning: a probabilistic perspective'' p. 519, 
+ with $(l, \sigma_f, \sigma_y)$ equal to $(1,1,0.1)$, $(0.3, 1.08, 0.00005)$, $(3.0, 1.16, 0.89)$)
+
+
+
+%
+%\clearpage
+%\pagestyle{empty}
+%\end{document}

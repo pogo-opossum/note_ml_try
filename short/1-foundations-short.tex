@@ -1,0 +1,375 @@
+%!TEX program = xelatex
+%!TEX root = ../all_short.tex
+
+\chapter{Foundations of Machine Learning: A Summary}
+
+\section*{Introductory concepts}
+Machine learning is founded on the principle that data contains hidden patterns reflecting the underlying generative process. The goal is to automatically discover these patterns from observations without explicit programming. This discovery happens through learning from examples, constructing mathematical models that capture relationships in the data, which then serve for prediction, understanding, and decision-making on new, unseen data.
+
+\subsection*{Three Paradigms of Learning}
+
+\subsubsection*{Supervised Learning}
+\begin{itemize}
+    \item \textbf{Definition:} Learning from paired data consisting of input feature vectors and corresponding target values.
+    \item \textbf{Goal:} Learn a mapping from observations to targets to predict labels for new inputs.
+    \item \textbf{Formalization:} Define a model as either:
+    \begin{itemize}
+        \item A direct function $y(\mathbf{x})$ that outputs a prediction.
+        \item A probability distribution $p(t|\mathbf{x})$ quantifying uncertainty about the target.
+    \end{itemize}
+    \item \textbf{Types:}
+    \begin{description}
+        \item[Regression:] Target is a continuous real number (e.g., prices, temperatures).
+        \item[Classification:] Target is a discrete category (e.g., spam detection, digit recognition), further divided into binary ($|\mathcal{Y}|=2$) and multi-class ($|\mathcal{Y}|>2$).
+    \end{description}
+\end{itemize}
+
+\subsubsection*{Unsupervised Learning}
+\begin{itemize}
+    \item \textbf{Definition:} Learning from data without explicit target values.
+    \item \textbf{Goal:} Uncover inherent structure, understand data nature, and organize it meaningfully.
+    \item \textbf{Main Forms:}
+    \begin{itemize}
+        \item \alert{Clustering}: Grouping similar items to reveal natural categories.
+        \item \alert{Density estimation}: Modeling the underlying probability distribution that generated the data.
+        \item \alert{Dimensionality reduction}: Projecting high-dimensional data onto lower-dimensional representations while preserving essential information.
+        \item \alert{Generative modeling}: Learning to generate new synthetic data points that appear to come from the same underlying process as training data.
+    \end{itemize}
+    \item \textbf{Applications:} Identify outliers and anomalies, facilitate visualization, provide foundation for feature engineering.
+\end{itemize}
+
+\subsubsection*{Reinforcement Learning}
+\begin{itemize}
+    \item \textbf{Definition:} Learning through dynamic interaction with an environment.
+    \item \textbf{Process:} An agent observes the current \alert{state}, selects an \alert{action}, receives a \alert{reward}, and observes a new state.
+    \item \textbf{Goal:} Discover an optimal \alert{policy} $\pi: S \rightarrow A$ that maximizes expected cumulative reward.
+    \item \textbf{Optimization Objective:}
+    \begin{myequation}
+    \pi^* = \argmax{\pi} \mathbb{E}_{\pi}\left[\sum_{t=0}^{\infty} \gamma^t r_t\right]
+    \end{myequation}
+    where $\gamma \in [0,1]$ is a discount factor.
+    \item \textbf{Key Challenge:} Exploration-exploitation tradeoff.
+    \item \textbf{Note:} This paradigm employs distinct mathematical techniques and will be set aside in favor of supervised and unsupervised learning.
+\end{itemize}
+
+\subsection*{Data Representation}
+\begin{itemize}
+    \item \textbf{Feature Vector:} A collection $\mathbf{x} = (x_1, x_2, \ldots, x_d)$ of $d$ numerical measurements describing an object.
+    \item \textbf{Importance:} Choice of features affects both prediction quality and computational efficiency.
+    \item \textbf{Feature Engineering:} The process of defining new features through functional combinations, selecting the most informative subset, or learning better representations. This is often as important as the choice of the learning algorithm itself.
+\end{itemize}
+
+\subsection*{The Learning Process}
+\begin{itemize}
+    \item \textbf{Training Set:} $\mathcal{T} = (\mathbf{X}, \mathbf{t})$ containing $n$ examples.
+    \begin{itemize}
+        \item Supervised: $\mathcal{T} = \{(\mathbf{x}_1, t_1), \ldots, (\mathbf{x}_n, t_n)\}$.
+        \item Unsupervised: $\mathbf{X} = \{\mathbf{x}_1, \ldots, \mathbf{x}_n\}$.
+    \end{itemize}
+    \item \textbf{Organization:} Feature matrix $\X$ (objects as rows) and target vector $\t$ (corresponding labels).
+    \item \textbf{Core Challenge:} \alert{Generalization} — performing well on new, unseen data, not just on the training set.
+    \item \textbf{Key Concepts:}
+    \begin{itemize}
+        \item \alert{Capacity/Complexity}: Model flexibility; more complex models fit intricate patterns but risk overfitting.
+        \item \alert{Bias-variance tradeoff}: Tension between underfitting (models too simple) and overfitting (models adapting too closely to training noise).
+        \item \alert{Regularization}: Techniques that penalize model complexity to encourage simpler, better-generalizing solutions.
+    \end{itemize}
+\end{itemize}
+
+\section*{Formal Definition of a Supervised Machine Learning Task}
+
+\subsection*{Core Components}
+\begin{itemize}
+    \item \textbf{Domain Set $\mathcal{X}$:} Collection of objects to label or make predictions about. Each object $\x \in \mathcal{X}$ is typically modeled as $\x = (x_1, x_2, \ldots, x_d)$ where $d$ is the \alert{dimensionality}.
+    \item \textbf{Label Set $\mathcal{Y}$:} All possible output values.
+    \begin{itemize}
+        \item $\mathcal{Y}$ continuous $\rightarrow$ \alert{regression}.
+        \item $\mathcal{Y}$ discrete $\rightarrow$ \alert{classification}:
+        \begin{itemize}
+            \item Binary: $|\mathcal{Y}| = 2$.
+            \item Multi-class: $|\mathcal{Y}| > 2$.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Prediction Rule:} A function $h: \mathcal{X} \mapsto \mathcal{Y}$ (classifier or regressor) returned by the learning algorithm $\mathcal{A}$.
+    \item \textbf{Prediction Strategies:}
+    \begin{enumerate}
+        \item Direct target value prediction: $y = h(\x)$.
+        \item Probability distribution prediction: Output $p(y|\x)$; then apply decision rule (e.g., select label with highest probability).
+    \end{enumerate}
+\end{itemize}
+
+\subsection*{Three Approaches to Deriving a Predictor}
+
+\subsubsection*{Direct Prediction Computation}
+\begin{itemize}
+    \item \textbf{Mechanism:} Apply algorithm $A$ at prediction time using the entire training set: $y = h(\x, \mathcal{T})$.
+    \item \textbf{Characteristics:} No explicit learning phase; training examples are stored and referenced during prediction.
+    \item \textbf{Example:} $k$-nearest neighbors — find $k$ closest objects in $\X$ to $\x$, predict majority class. No explicit model of the data.
+    \item \textbf{Visualization:}
+    \begin{center}
+    \begin{tikzpicture}
+    \Vertex[Math, x=.5, y=0, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B0}
+    \Vertex[Math, x=2.5, y=0, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+    \Edge[lw=.5pt, Direct](B0)(B1)
+    \Vertex[Math, x=2.5, y=1.7, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+    \Vertex[Math, x=4, y=0, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=5mm, minimum height=5mm, line width=.1pt}]{C7}
+    \Edge[lw=.5pt, Direct](B01)(B1)
+    \Edge[lw=.5pt, Direct](B1)(C7)
+    \end{tikzpicture}
+    \end{center}
+\end{itemize}
+
+\subsubsection*{Model-Based Learning Approach}
+\begin{itemize}
+    \item \textbf{Mechanism:} Define a \alert{hypothesis class} $\mathcal{H}$ (family of functions $\mathcal{X} \rightarrow \mathcal{Y}$). Learning algorithm $\mathcal{A}$ selects $h_{\mathcal{T}} \in \mathcal{H}$ that best approximates training examples.
+    \item \textbf{Prediction:} Apply $h_{\mathcal{T}}(\x)$.
+    \item \textbf{Parametric Functions:} $\mathcal{H}_{\boldsymbol{\theta}}$ where $\boldsymbol{\theta} = (\theta_1, \ldots, \theta_m)$. Learning finds optimal parameter values.
+    \item \textbf{Example:} Linear regression: $y = \sum_{i=1}^d w_i x_i + w_0 = \w^T \overline{\x}$ where $\w = (w_0, w_1, \ldots, w_d)^T$ and $\overline{\x} = (1, x_1, \ldots, x_d)^T$.
+    \item \textbf{Visualization:}
+    \begin{center}
+    \begin{tikzpicture}
+    \Vertex[Math, x=.5, y=0, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+    \Text[position=left, x=-1, y=0, distance=1.5mm, fontsize=\normalsize]{learning}
+    \Vertex[Math, x=2.5, y=0, color=xkcdAmethyst, opacity=.3, shape=rectangle, label=\mathcal{A}, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+    \Edge[lw=.5pt, Direct](B01)(B1)
+    \Vertex[Math, x=4.5, y=0, color=xkcdLipstickRed, label=A_{\mathcal{T}}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=.1pt}]{C7}
+    \Edge[lw=.5pt, Direct](B1)(C7)
+    \Vertex[Math, x=1, y=-2, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B00}
+    \Text[position=left, x=-1, y=-1.8, distance=1.5mm, fontsize=\normalsize]{predicting}
+    \Vertex[Math, x=2.5, y=-2, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=0.1pt}]{B10}
+    \Edge[lw=.5pt, Direct](B00)(B10)
+    \Vertex[Math, x=3.8, y=-2, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=5mm, minimum height=5mm, line width=.1pt}]{C70}
+    \Edge[lw=.5pt, Direct](B10)(C70)
+    \end{tikzpicture}
+    \end{center}
+\end{itemize}
+
+\subsubsection*{Ensemble Learning Approach}
+\begin{itemize}
+    \item \textbf{Mechanism:} Construct multiple predictors and combine their predictions.
+    \item \textbf{Process:}
+    \begin{enumerate}
+        \item Derive $s$ different predictors $A^{(1)}_{\mathcal{T}}, \ldots, A^{(s)}_{\mathcal{T}}$ from training set.
+        \item Derive weight $w^{(i)}$ for each predictor reflecting its quality.
+        \item For new item $\x$, gather predictions $y^{(i)} = h^{(i)}_{\mathcal{T}}(\x)$ and combine using weights.
+    \end{enumerate}
+    \item \textbf{Combination Methods:}
+    \begin{itemize}
+        \item Regression (weighted average): $h(\x) = \sum_{i=1}^s w^{(i)} h^{(i)}(\x)$ where $\sum_{i=1}^s w^{(i)} = 1$, $w^{(i)} \geq 0$.
+        \item Classification (weighted voting): $h(\x) = \argmax{y \in \mathcal{Y}} \sum_{i=1}^s w^{(i)} \mathds{1}[h^{(i)}(\x) = y]$.
+    \end{itemize}
+    \item \textbf{Fully Bayesian Prediction:} Average predictions over all possible parameter values (integral over parameter space).
+    \item \textbf{Visualization:}
+    \begin{center}
+    \begin{tikzpicture}
+    \Vertex[Math, x=.5, y=0, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+    \Text[position=left, x=-1, y=0, distance=1.5mm, fontsize=\normalsize]{learning}
+    \Vertex[Math, x=2.5, y=0, color=xkcdAmethyst, opacity=.3, shape=rectangle, label=\mathcal{A}, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+    \Edge[lw=.5pt, Direct](B01)(B1)
+    \Vertex[Math, x=4.5, y=-1, color=xkcdLipstickRed, label=A_{\mathcal{T}}^{(s)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C7}
+    \Vertex[Math, x=5.4, y=-1, color=xkcdTeal, label=w^{(s)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C700}
+    \Vertex[Math, x=4.5, y=1, color=xkcdLipstickRed, label=A_{\mathcal{T}}^{(1)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C8}
+    \Vertex[Math, x=5.4, y=1, color=xkcdTeal, label=w^{(1)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C701}
+    \node (D0) at (4.85, 0) {$\vdots$};
+    \Edge[lw=.5pt, Direct](B1)(C7)
+    \Edge[lw=.5pt, Direct](B1)(C8)
+    \Vertex[Math, x=1, y=-3, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B00}
+    \Text[position=left, x=-1, y=-1.8, distance=1.5mm, fontsize=\normalsize]{predicting}
+    \Vertex[Math, x=2.5, y=-2, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}^{(1)}, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B10}
+    \node (D1) at (2.5, -3) {$\vdots$};
+    \Vertex[Math, x=2.5, y=-4, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}^{(s)}, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B11}
+    \Edge[lw=.5pt, Direct](B00)(B10)
+    \Edge[lw=.5pt, Direct](B00)(B11)
+    \Vertex[Math, x=3.8, y=-2, color=xkcdOrange, label=y^{(1)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=9mm, minimum height=8mm, line width=.1pt}]{C70}
+    \Vertex[Math, x=4.8, y=-2, color=xkcdLightGrey, label=\times, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C702}
+    \Vertex[Math, x=5.8, y=-2, color=xkcdTeal, label=w^{(1)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=.9cm, minimum height=.8cm, line width=.1pt}]{C71}
+    \node (D2) at (3.8, -3) {$\vdots$};
+    \Vertex[Math, x=3.8, y=-4, color=xkcdOrange, label=y^{(s)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=9mm, minimum height=8mm, line width=.1pt}]{C80}
+    \Vertex[Math, x=4.8, y=-4, color=xkcdLightGrey, label=\times, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C802}
+    \Vertex[Math, x=5.8, y=-4, color=xkcdTeal, label=w^{(s)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=.9cm, minimum height=.8cm, line width=.1pt}]{C81}
+    \Edge[lw=.5pt, Direct](B10)(C70)
+    \Edge[lw=.5pt, Direct](B11)(C80)
+    \Edge[lw=.5pt, Direct](C70)(C702)
+    \Edge[lw=.5pt, Direct](C80)(C802)
+    \Edge[lw=.5pt, Direct](C71)(C702)
+    \Edge[lw=.5pt, Direct](C81)(C802)
+    \node (D3) at (4.8, -3) {$\vdots$};
+    \Vertex[Math, x=5.8, y=-3, color=xkcdLightGrey, label=+, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C90}
+    \Vertex[Math, x=6.8, y=-3, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=6mm, minimum height=5mm, line width=.1pt}]{C91}
+    \Edge[lw=.5pt, Direct](C702)(C90)
+    \Edge[lw=.5pt, Direct](C802)(C90)
+    \Edge[lw=.5pt, Direct](C90)(C91)
+    \end{tikzpicture}
+    \end{center}
+\end{itemize}
+
+\subsection*{Probabilistic Framework for Machine Learning}
+
+\subsubsection*{Data Generation Assumption}
+\begin{itemize}
+    \item Objects are sampled independently from unknown probability distribution $p_M$ over $\mathcal{X}$.
+    \item Labels arise from conditional probability distribution $p_C(t|\x)$ (captures noise, ambiguity).
+    \item Joint distribution: $p(\x, t) = p_M(\x) p_C(t|\x)$.
+    \item \textbf{Simplification:} Often assume unknown ground truth function $f: \mathcal{X} \to \mathcal{Y}$ with $t = f(\x)$ (deterministic case).
+\end{itemize}
+
+\subsubsection*{Risk and Loss}
+
+\paragraph{Loss Function}
+\begin{itemize}
+    \item \textbf{Definition:} $L: \mathcal{Y} \times \mathcal{Y} \to \mathbb{R}$ quantifies penalty for predicting $y$ when true label is $t$.
+    \item \textbf{Example (0-1 loss for classification):}
+    \begin{myequation}\color{evidmath}
+    L(y, t) = \mathds{1}[y \neq t]
+    \end{myequation}
+\end{itemize}
+
+\paragraph{Prediction Risk (for a single object $\x$)}
+\begin{itemize}
+    \item Deterministic setting (true function $f$):
+    \begin{myequation}\color{evidmath}
+    \mathcal{R}_f(y, \x) \defeq L(y, f(\x))
+    \end{myequation}
+    \item Probabilistic setting (conditional distribution $p_C$):
+    \begin{myequation}\color{evidmath}
+    \mathcal{R}_{p_C}(y, \x) \defeq \ev{t \sim p_C(\cdot|\x)}{L(y, t)} = \int_{\mathcal{Y}} L(y, t) \, p_C(t|\x) \, dt
+    \end{myequation}
+    For discrete $\mathcal{Y}$:
+    \begin{myequation}\color{evidmath}
+    \mathcal{R}_{p_C}(y, \x) \defeq \sum_{t \in \mathcal{Y}} L(y, t) \, p_C(t|\x)
+    \end{myequation}
+\end{itemize}
+
+\paragraph{Expected Risk (True Risk)}
+\begin{itemize}
+    \item Average loss over infinitely many examples from true distribution:
+    \begin{itemize}
+        \item Deterministic:
+        \begin{myequation}\color{evidmath}
+        \mathcal{R}_{p_M, f}(h) \defeq \ev{\x \sim p_M}{L(h(\x), f(\x))} = \int_{\mathcal{X}} L(h(\x), f(\x)) \, p_M(\x) \, d\x
+        \end{myequation}
+        \item Probabilistic:
+        \begin{myequation}\color{evidmath}
+        \mathcal{R}_p(h) \defeq \ev{(\x,t) \sim p}{L(h(\x), t)} = \int_{\mathcal{X}} \int_{\mathcal{Y}} L(h(\x), t) \, p_M(\x) \, p_C(t|\x) \, d\x \, dt
+        \end{myequation}
+    \end{itemize}
+    \item With 0-1 loss:
+    \begin{myequation}\color{evidmath}
+    \mathcal{R}_{p_M, f}(h) = \prob{\x \sim p_M}{h(\x) \neq f(\x)}
+    \end{myequation}
+    \item \textbf{Problem:} True distributions $p_M$ and $p_C$ (or $f$) are unknown; expected risk cannot be directly computed.
+\end{itemize}
+
+\paragraph{Empirical Risk}
+\begin{itemize}
+    \item Estimate based on training set $\mathcal{T}$:
+    \begin{myequation}\color{evidmath}
+    \overline{\mathcal{R}}_{\mathcal{T}}(h) \defeq \frac{1}{|\mathcal{T}|} \sum_{(\x,t) \in \mathcal{T}} L(h(\x), t)
+    \end{myequation}
+    \item With 0-1 loss (error rate):
+    \begin{myequation}\color{evidmath}
+    \overline{\mathcal{R}}_{\mathcal{T}}(h) = \frac{1}{|\mathcal{T}|} \sum_{(\x,t) \in \mathcal{T}} \mathds{1}[h(\x) \neq t] = \frac{\left|\{(\x,t) \in \mathcal{T} \mid h(\x) \neq t\}\right|}{|\mathcal{T}|}
+    \end{myequation}
+\end{itemize}
+
+\subsubsection*{The Learning Problem as Optimization}
+\begin{itemize}
+    \item \textbf{Strategy:} Minimize empirical risk instead of unknown expected risk.
+    \item \textbf{Formalization:} Given hypothesis class $\mathcal{H}$ (inductive bias):
+    \begin{myequation}\color{evidmath}
+    h_{\mathcal{T}} = \argmin{h \in \mathcal{H}} \overline{\mathcal{R}}_{\mathcal{T}}(h)
+    \end{myequation}
+    \item \textbf{Caveat:} Minimizing empirical risk does not guarantee good performance on unseen data (overfitting).
+    \item \textbf{Interpretation:} The probabilistic framework transforms "learning from data" into finding a function in a specified class that best explains observed data according to a chosen loss function, while acknowledging this is only a proxy for minimizing expected risk on future data.
+\end{itemize}
+
+\subsection*{Inductive Bias}
+
+\subsubsection*{Definition and Importance}
+\begin{itemize}
+    \item \textbf{Inductive Bias:} The set of assumptions embodied in the choice of hypothesis class $\mathcal{H}$ about what kind of predictor is likely to work well.
+    \item \textbf{Core Tradeoff:}
+    \begin{itemize}
+        \item If $\mathcal{H}$ is too small: Risk excluding the true underlying function (underfitting).
+        \item If $\mathcal{H}$ is too large: Risk finding a function that fits training data perfectly but performs poorly on new data (overfitting).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Overfitting}
+\begin{itemize}
+    \item \textbf{Definition:} Phenomenon where predictor fits training set perfectly but performs poorly on new examples.
+    \item \textbf{Example:} Binary classification with $p_C(t=1|\x) = \frac{1}{2}$ for all objects. Choose $\mathcal{H}$ as all possible functions $\mathcal{X} \rightarrow \{0,1\}$. Define memorizer:
+    \begin{myequation}\color{evidmath}
+    h_{\mathcal{T}}(\x) = \begin{cases}
+    1 & \text{if } \x = \x_i \in \X \text{ and } t_i = 1 \\
+    0 & \text{otherwise}
+    \end{cases}
+    \end{myequation}
+    \item \textbf{Analysis:}
+    \begin{itemize}
+        \item Empirical risk on $\mathcal{T}$ = 0 (perfect training accuracy).
+        \item For new objects (not in training set), $h_{\mathcal{T}}$ outputs 0, predicting minority class.
+        \item Since classes equally likely, expected risk $\approx \frac{1}{2}$ (random guessing).
+    \end{itemize}
+    \item \textbf{Cause:} $\mathcal{H}$ is so large that algorithm can find functions achieving perfect empirical risk despite high expected risk.
+\end{itemize}
+
+\subsubsection*{Underfitting}
+\begin{itemize}
+    \item \textbf{Definition:} Phenomenon where hypothesis class is too restrictive to capture the true relationship.
+    \item \textbf{Example:} True function is highly nonlinear, but $\mathcal{H}$ restricted to linear predictors.
+    \item \textbf{Consequence:} Both training and test errors remain unacceptably high; no gap between them because predictor is too rigid to memorize.
+\end{itemize}
+
+\subsubsection*{The Bias-Variance Tradeoff}
+
+\paragraph{Setup}
+\begin{itemize}
+    \item Consider generating different training sets $\mathcal{T}_1, \mathcal{T}_2, \ldots$ from true distribution $p_M$ and training algorithm $\mathcal{A}$ on each.
+    \item Each yields different predictors $h_{\mathcal{T}_1}, h_{\mathcal{T}_2}, \ldots$.
+\end{itemize}
+
+\paragraph{Bias}
+\begin{itemize}
+    \item \textbf{Definition:} Measures how far the average predictor (averaged over many training sets) is from the true underlying function.
+    \item \textbf{Interpretation:} Systematic error; predictors tend to be systematically wrong in the same direction.
+    \item \textbf{Cause:} Restrictive hypothesis classes that cannot represent complex patterns.
+    \item \textbf{Example:} Linear model applied to highly nonlinear problem has high bias regardless of data amount.
+\end{itemize}
+
+\paragraph{Variance}
+\begin{itemize}
+    \item \textbf{Definition:} Measures how much the learned predictor fluctuates depending on which particular training set was received.
+    \item \textbf{Interpretation:} Sensitivity to specific noise and quirks of training data; signature of overfitting.
+    \item \textbf{Cause:} Large, flexible hypothesis classes where small variations in training set lead to dramatically different learned functions.
+\end{itemize}
+
+\paragraph{The Tradeoff}
+\begin{itemize}
+    \item \textbf{Small, restrictive $\mathcal{H}$:} Reduces variance (class not flexible enough to chase noise) but increases bias (cannot represent true function).
+    \item \textbf{Large, expressive $\mathcal{H}$:} Reduces bias (can approximate almost any function) but increases variance (can fit training noise).
+    \item \textbf{Optimal Hypothesis Class:} Balances these concerns; size depends on:
+    \begin{itemize}
+        \item Complexity of true underlying function.
+        \item Amount of training data available.
+        \item Noise in observations.
+    \end{itemize}
+    \item \textbf{Manifestation:}
+    \begin{itemize}
+        \item Small datasets: Flexible models may perform well if they capture true pattern before noise.
+        \item Large datasets: Flexible models begin to overfit (memorize different noise patterns).
+        \item Restrictive models: May never fit training data well regardless of data amount.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Computational and Statistical Considerations}
+\begin{itemize}
+    \item Even if true function lies in $\mathcal{H}$, finding the predictor that minimizes empirical risk may be computationally intractable.
+    \item Some hypothesis classes lead to NP-hard optimization problems.
+    \item \textbf{Practical Consequence:} May deliberately choose smaller/different $\mathcal{H}'$ to make learning solvable in reasonable time.
+    \item \textbf{Implication:} Inductive bias reflects both statistical beliefs about the problem and computational pragmatism.
+\end{itemize}
+
+%\clearpage
+%\pagestyle{empty}
+\end{document}

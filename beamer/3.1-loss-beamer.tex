@@ -1,0 +1,1314 @@
+%!TEX program = xelatex
+%!TEX root = ../all_beamer.tex
+
+%% ============================================================
+%%  Foundations of Machine Learning
+%%  Chapter 3 – Loss Functions & Training
+%%  Beamer Presentation
+%%  Giorgio Gambosi – University of Rome "Tor Vergata"
+%%  A.Y. 2025–2026
+%% ============================================================
+%%\input{header-beamer.tex}
+%\documentclass[aspectratio=169, 10pt]{beamer}
+%
+%% ---------- Theme & colours ----------
+%\usetheme{Madrid}
+%\usecolortheme{whale}
+%\useinnertheme{rounded}
+%\setbeamertemplate{navigation symbols}{}
+%
+%\definecolor{MainBlue}{RGB}{31,56,100}
+%\definecolor{AccentBlue}{RGB}{70,130,180}
+%\definecolor{AlertRed}{RGB}{160,30,30}
+%\definecolor{ExGreen}{RGB}{30,120,60}
+%\definecolor{BlockBg}{RGB}{220,232,246}
+%\definecolor{torgray}{RGB}{220,225,235}
+%
+%\setbeamercolor{frametitle}{bg=MainBlue, fg=white}
+%\setbeamercolor{title}{bg=MainBlue, fg=white}
+%\setbeamercolor{block title}{bg=AccentBlue, fg=white}
+%\setbeamercolor{block body}{bg=BlockBg}
+%\setbeamercolor{block title alerted}{bg=AlertRed, fg=white}
+%\setbeamercolor{block body alerted}{bg=red!8}
+%\setbeamercolor{block title example}{bg=ExGreen, fg=white}
+%\setbeamercolor{block body example}{bg=green!7}
+%\setbeamercolor{structure}{fg=MainBlue}
+%
+%% ---------- Fonts ----------
+%\usefonttheme{professionalfonts}
+%\setbeamerfont{frametitle}{size=\normalsize,series=\bfseries}
+%\setbeamerfont{block title}{size=\small,series=\bfseries}
+
+%\input{header-beamer.tex}
+% ---------- Packages ----------
+%\usepackage{amsmath,amssymb,bm}
+%\usepackage{mathtools}
+%\usepackage{pgfplots}
+%\pgfplotsset{compat=1.18}
+%\usepackage{tikz}
+%\usetikzlibrary{arrows.meta,shapes,positioning}
+%\usepackage{booktabs}
+%% indicator function via mathbb
+%\usepackage{microtype}
+%\usepackage{xcolor}
+%\usepackage{graphicx}
+
+% ---------- Custom colours for plots ----------
+%\definecolor{cerise}{HTML}{DA3A62}
+%\definecolor{teal}{HTML}{029386}
+%\definecolor{slateblue}{HTML}{5B5EA6}
+%\definecolor{orange}{HTML}{F97306}
+%
+%% ---------- Macros ----------
+%
+%\newcommand{\calL}{\mathcal{L}}
+%\newcommand{\calR}{\mathcal{R}}
+%\newcommand{\calT}{\mathcal{T}}
+%\newcommand{\calY}{\mathcal{Y}}
+%\newcommand{\calX}{\mathcal{X}}
+%\newcommand{\calH}{\mathcal{H}}
+%\newcommand{\EmpR}{\overline{\mathcal{R}}}
+
+% ---------- Beamer settings ----------
+%\setbeamertemplate{navigation symbols}{}
+%\setbeamertemplate{footline}{%
+%  \leavevmode%
+%  \hbox{%
+%    \begin{beamercolorbox}[wd=.4\paperwidth,ht=2.25ex,dp=1ex,left]{section in head/foot}%
+%      \hspace{1em}\insertshortauthor
+%    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=.4\paperwidth,ht=2.25ex,dp=1ex,center]{section in head/foot}%
+%      Foundations of Machine Learning
+%    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=.2\paperwidth,ht=2.25ex,dp=1ex,right]{section in head/foot}%
+%      A.Y.\ 2025–2026\hspace{0.5em}\insertframenumber\,/\,\inserttotalframenumber\hspace{0.5em}
+%    \end{beamercolorbox}}%
+%}
+%
+%\setbeamertemplate{itemize item}{\textbullet}
+%\setbeamertemplate{itemize subitem}{--}
+
+% ---------- Title ----------
+\title[Loss functions]{Loss functions}
+%\subtitle{Course of Machine Learning}
+%\author{Giorgio Gambosi}
+%\institute{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+%\date{A.Y.\ 2025–2026}
+%
+%% ============================================================
+%\begin{document}
+%% ============================================================
+
+% --- Title frame ---
+\begin{frame}
+  \maketitle
+\end{frame}
+
+% --- Outline ---
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+% ============================================================
+\section{Loss Functions}
+% ============================================================
+
+% ---- 1 ----
+\begin{frame}{The Loss Function — Concept}
+  \begin{block}{Definition}
+    The \textbf{loss function} $\mathcal{L}:\mathcal{Y}\times\mathcal{Y}\to\Real$
+    measures the \alert{cost} of predicting $y$ when the true target is $t$.
+  \end{block}
+
+  \vspace{.5em}
+  \begin{itemize}
+    \item Both $y$ (prediction) and $t$ (target) belong to the output space $\calY$.
+    \item $\calY$ can be: real numbers (regression), class labels (classification), structured outputs.
+    \item For a single input $\x$ with true output $t$, the pointwise quality is:
+      \[
+        \calR(\x, t) = L\!\left(h(\x),\, t\right)
+      \]
+    \item The loss function drives the \emph{definition} of what "good predictions" means.
+  \end{itemize}
+\end{frame}
+
+% ---- 2 ----
+\begin{frame}{Empirical Risk}
+  \begin{block}{Definition}
+    The \textbf{empirical risk} aggregates the loss over the training set $\calT$:
+    \[
+      \EmpR_{\calT}(h)
+      = \frac{1}{|\calT|}\sum_{(\x,t)\in\calT} L\!\left(h(\x), t\right)
+    \]
+  \end{block}
+
+  \vspace{.5em}
+  \begin{itemize}
+    \item Measures the \emph{average} error of $h$ on the available data.
+    \item Lower value $\Rightarrow$ better fit to training data.
+    \item \alert{Caveat}: minimising empirical risk $\neq$ minimising generalisation error.
+    \item True goal: perform well on \emph{unseen} data (generalisation).
+  \end{itemize}
+\end{frame}
+
+% ---- 3 ----
+\begin{frame}{Parametric Models \& Overall Loss}
+  \begin{itemize}
+    \item In practice, $h = h_{\Vtheta}$ where $\Vtheta = (\theta_0,\ldots,\theta_d)$ are learned parameters.
+    \item Training = searching for the $\Vtheta$ minimising:
+      \[
+        \calL(\Vtheta;\calT) = \sum_{i=1}^{n} L_i(\Vtheta)
+        \quad \text{where}\quad L_i = L(\Vtheta;\x_i,t_i)
+      \]
+    \item The overall loss sums individual contributions from each example.
+  \end{itemize}
+
+  \vspace{.5em}
+  \begin{exampleblock}{Interpretation}
+    Each data point $(\x_i, t_i)$ contributes a term $L_i(\Vtheta)$ that penalises
+    the model for predicting incorrectly on that specific example.
+    Training adjusts $\Vtheta$ to reduce this total penalty.
+  \end{exampleblock}
+\end{frame}
+
+% ============================================================
+\section{Optimisation of the Loss}
+% ============================================================
+
+% ---- 4 ----
+\begin{frame}{Goal: Finding a Global Minimum}
+  \begin{itemize}
+    \item We seek a \alert{global minimum} of $\calL(\Vtheta;\calT)$ over the parameter space.
+    \item A global minimum is a point where the loss is \emph{lower than at every other point}.
+  \end{itemize}
+
+  \vspace{.4em}
+  \begin{block}{Calculus Approach}
+    At any minimum (local or global), the gradient must vanish:
+    \[
+      \nabla \calL(\Vtheta;\calT) = \Zero
+    \]
+    i.e., each partial derivative satisfies:
+    \[
+      \frac{\partial}{\partial \theta_i}\calL(\Vtheta;\calT) = 0 \quad \forall\, i
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item \textbf{Gradient} $\nabla f$ at a point: vector of steepest ascent.
+    \item \textbf{Negative gradient} $-\nabla f$: direction of steepest descent.
+  \end{itemize}
+\end{frame}
+
+% ---- 5 ----
+\begin{frame}{Challenges of Analytical Solutions}
+  Setting $\nabla \calL = \Zero$ has several \alert{critical limitations}:
+
+  \vspace{.4em}
+  \begin{itemize}
+    \item \textbf{Multiple solutions}: critical points include minima, maxima, \emph{and} saddle points.
+    \item \textbf{Analytical intractability}: complex models (e.g.\ neural networks) rarely admit closed-form solutions.
+    \item \textbf{Non-linearity}: deep networks compose many non-linear functions — no algebraic formula exists.
+  \end{itemize}
+
+  \vspace{.5em}
+  \begin{alertblock}{Consequence}
+    In most practical settings we must resort to \textbf{iterative numerical methods}.
+  \end{alertblock}
+\end{frame}
+
+% ============================================================
+\section{Gradient Descent}
+% ============================================================
+
+% ---- 6 ----
+\begin{frame}{Gradient Descent — Principle}
+  \begin{block}{Core idea}
+    Move iteratively in the direction of \alert{steepest descent} of the empirical risk.
+  \end{block}
+
+  \vspace{.4em}
+  \begin{itemize}
+    \item Initialise parameters: $\Vtheta^{(0)} = (\theta_0^{(0)}, \ldots, \theta_d^{(0)})$ (often random).
+    \item At each iteration $i$, update \emph{every} parameter:
+      \[
+        \theta_j^{(i)} \leftarrow \theta_j^{(i-1)}
+        - \eta\,\frac{\partial}{\partial \theta_j}
+          \EmpR_{\calT}(\Vtheta)\Big|_{\Vtheta^{(i-1)}}
+      \]
+    \item $\eta > 0$ is the \textbf{learning rate}: controls the step size.
+  \end{itemize}
+\end{frame}
+
+% ---- 7 ----
+\begin{frame}{Gradient Descent — Matrix Form}
+  In compact matrix notation, the update becomes:
+  \[
+    \Vtheta^{(i)} \leftarrow \Vtheta^{(i-1)}
+    - \frac{\eta}{|\calT|}\sum_{(\x,t)\in\calT}
+      \nabla L\!\left(h_{\Vtheta}(\x), t\right)\Big|_{\Vtheta^{(i-1)}}
+  \]
+
+  \vspace{.4em}
+  \begin{itemize}
+    \item All parameters are updated \emph{simultaneously}.
+    \item The gradient is evaluated on the \emph{entire} training set at each step.
+    \item This variant is called \textbf{batch gradient descent}.
+  \end{itemize}
+
+  \vspace{.4em}
+  \begin{exampleblock}{Intuition}
+    Think of a ball rolling down a landscape: at each step it moves in the direction
+    the slope is steepest, eventually settling in a valley.
+  \end{exampleblock}
+\end{frame}
+
+% ---- 8 ----
+\begin{frame}{The Learning Rate $\eta$}
+  \begin{columns}[T]
+    \column{.5\textwidth}
+    \begin{block}{Too small $\eta$}
+      \begin{itemize}
+        \item Very slow convergence.
+        \item Reliable but impractical for large models.
+      \end{itemize}
+    \end{block}
+    \vspace{.3em}
+    \begin{block}{Too large $\eta$}
+      \begin{itemize}
+        \item May overshoot the minimum.
+        \item Can oscillate or diverge.
+      \end{itemize}
+    \end{block}
+
+    \column{.5\textwidth}
+    \begin{block}{Challenges in practice}
+      \begin{itemize}
+        \item Many local minima in non-convex landscapes.
+        \item Saddle points: gradient $= \Zero$, yet not a minimum.
+        \item Convergence speed depends on curvature and $\eta$.
+        \item Modern solutions: momentum, adaptive rates (Adam, RMSProp).
+      \end{itemize}
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% ============================================================
+\section{Convexity}
+% ============================================================
+
+% ---- 9 ----
+\begin{frame}{Convex Sets}
+  \begin{block}{Definition}
+    A set $S\subset\Real^d$ is \textbf{convex} if for any $\x_1,\x_2\in S$ and $\lambda\in(0,1)$:
+    \[
+      \lambda\x_1 + (1-\lambda)\x_2 \in S
+    \]
+  \end{block}
+
+  \vspace{.3em}
+  \begin{itemize}
+    \item Any point on the \emph{segment} joining $\x_1$ and $\x_2$ must lie in $S$.
+    \item Convex sets have no holes or indentations.
+  \end{itemize}
+
+  \vspace{.3em}
+  \begin{center}
+  \begin{tikzpicture}[scale=.45]
+    \draw [fill=torgray] plot [mark=none, smooth cycle] coordinates
+      {(-6.5,4) (-2.5,2.5) (1,1.7) (3,1.591) (7.312,3)
+       (6.7,7.668) (4.264,10.821) (0.948,10.904) (-5.973,5.294)};
+    \coordinate (g) at (3,7);
+    \fill (g) circle (2.5pt) node [right] {\small$\x_2$};
+    \coordinate (p) at (-3,5);
+    \fill (p) circle (2.5pt) node [below] {\small$\x_1$};
+    \draw [dashed] (p) -- (g);
+    \coordinate (e) at (1,6.33);
+    \fill (e) circle (2.5pt)
+      node [below right] {\tiny$\lambda\x_1{+}(1{-}\lambda)\x_2$};
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ---- 10 ----
+\begin{frame}{Convex Functions}
+  \begin{block}{Definition}
+    $f:\Real^d\to\Real$ is \textbf{convex} if for all $\x_1,\x_2$ and $\lambda\in(0,1)$:
+    \[
+      f\!\left(\lambda\x_1+(1-\lambda)\x_2\right) \leq
+      \lambda f(\x_1)+(1-\lambda) f(\x_2)
+    \]
+    It is \textbf{strictly convex} if the inequality is strict for $\x_1\neq\x_2$.
+  \end{block}
+
+  \vspace{.3em}
+  \begin{itemize}
+    \item Geometric view: the chord between any two graph points lies \emph{above} the graph.
+  \end{itemize}
+
+  \vspace{.3em}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.7]
+    \begin{axis}[
+      axis x line=bottom, axis y line=left,
+      ticks=none, xmin=-2.2, xmax=1.2, ymin=-.5, ymax=3.5,
+      width=6cm, height=4cm]
+      \addplot [cerise, thick, domain=-2:1, samples=101]{x^2};
+      \addplot [slateblue, thick, domain=-2.1:1, samples=101]{-x+.75};
+      \addplot [dashed, domain=-1.5:.5, samples=2] coordinates {(-1.5,2.25)(.5,0.25)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ---- 11 ----
+\begin{frame}{Why Convexity Matters}
+  \begin{alertblock}{Key theorem}
+    If $f$ is \textbf{convex}, any local minimum is also a \textbf{global minimum}.\\
+    If $f$ is \textbf{strictly convex}, the global minimum is \textbf{unique}.
+  \end{alertblock}
+
+  \vspace{.5em}
+  \begin{itemize}
+    \item For a convex loss, solving $\nabla\calL(\Vtheta;\calT)=\Zero$ \emph{guarantees} a global minimum.
+    \item Gradient descent will converge to the optimum regardless of initialisation.
+    \item \textbf{Sum rule}: a (positively) weighted sum of convex functions is convex.
+    \item As a consequence, if each $L(\Vtheta;\x_i,t_i)$ is convex, so is $\EmpR_{\calT}{(h_{\Vtheta})}$.
+  \end{itemize}
+
+  \vspace{.5em}
+  \begin{exampleblock}{Practical implication}
+    Designing \emph{convex} loss functions makes optimisation reliable and predictable.
+    Non-convex losses (e.g.\ in deep networks) require more sophisticated strategies.
+  \end{exampleblock}
+\end{frame}
+
+% ---- 12 ----
+\begin{frame}{Convexity in Practice}
+  \begin{columns}[T]
+    \column{.5\textwidth}
+    \begin{block}{Favourable cases}
+      \begin{itemize}
+        \item Linear regression + quadratic loss: \emph{strictly convex}, closed-form solution.
+        \item Logistic regression + log loss: \emph{strictly convex}.
+        \item Linear SVM + hinge loss: \emph{convex}.
+      \end{itemize}
+    \end{block}
+
+    \column{.5\textwidth}
+    \begin{block}{Unfavourable cases}
+      \begin{itemize}
+        \item Deep neural networks: \emph{highly non-convex}.
+        \item Many saddle points; many local minima.
+        \item Training requires careful initialisation and adaptive optimisers.
+      \end{itemize}
+    \end{block}
+  \end{columns}
+
+  \vspace{.5em}
+  \begin{itemize}
+    \item When convexity cannot be guaranteed, we use advanced methods:
+      momentum, second-order approximations, learning-rate schedules, etc.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Common Loss Functions for Regression}
+% ============================================================
+
+% ---- 13 ----
+\begin{frame}{Overview: Loss Functions for Regression}
+  \begin{itemize}
+    \item In regression, both $t$ and $h(\x)$ are \emph{real-valued}.
+    \item Error = some distance between prediction and target.
+    \item Different distances $\Rightarrow$ different loss functions with different properties.
+  \end{itemize}
+
+  \vspace{.5em}
+  \begin{center}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Loss} & \textbf{Formula} & \textbf{Property} \\
+    \midrule
+    Quadratic ($L_2$) & $(y-t)^2$ & Smooth, sensitive to outliers \\
+    Absolute ($L_1$)  & $|y-t|$   & Robust, non-smooth at 0 \\
+    Huber             & piecewise & Best of both worlds \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+% ---- 14 ----
+\begin{frame}{Quadratic Loss (Squared Error)}
+  \begin{block}{Definition}
+    \[
+      L(y,t) = (y-t)^2
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Errors penalised \emph{quadratically}: doubling the error quadruples the loss.
+    \item Empirical risk $\Rightarrow$ \textbf{Mean Squared Error} (MSE):
+      \[
+        \EmpR_{\calT}(h)=\frac{1}{|\calT|}\sum_{(\x,t)\in\calT}(h(\x)-t)^2
+      \]
+    \item For \textbf{linear regression} $h(\x)=\w^T\x+b$:
+      \begin{itemize}
+        \item Loss is \emph{strictly convex} in $(\w,b)$.
+        \item Gradient is \emph{linear} $\Rightarrow$ closed-form solution (normal equations).
+      \end{itemize}
+    \item \alert{Weakness}: very sensitive to outliers.
+  \end{itemize}
+\end{frame}
+
+% ---- 15 ----
+\begin{frame}{Quadratic Loss — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={0}, yticklabels={$0$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$y$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-1.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=-2:2, samples=201]{x^2};
+      \addplot [slateblue, thick, domain=-2:2, samples=201]{2*x};
+      \addplot [dotted, domain=-3:3, samples=2] coordinates {(-3,0)(3,0)};
+      \legend{loss, loss gradient}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \vspace{-0.3em}
+  {\small Quadratic loss function and its gradient.
+  Note the parabolic shape and the linear gradient.}
+\end{frame}
+
+% ---- 16 ----
+\begin{frame}{Quadratic Loss — Gradients for Linear Regression}
+  For $h(\x) = \w^T\x + b$, the gradients are:
+  \[
+    \frac{\partial}{\partial w_i}\calL =
+    \sum_{(\x,t)\in\calT}(\w^T\x+b-t)\,x_i
+    \qquad
+    \frac{\partial}{\partial b}\calL =
+    \sum_{(\x,t)\in\calT}(\w^T\x+b-t)
+  \]
+
+  \begin{itemize}
+    \item Gradients are \emph{linear} in the parameters.
+    \item Setting both to zero yields a system of linear equations: the \textbf{normal equations}.
+    \item Exact, analytical solution — no iteration required.
+  \end{itemize}
+
+  \vspace{.4em}
+  \begin{alertblock}{Limitation}
+    A single large outlier can dominate the sum and distort the entire fitted model.
+  \end{alertblock}
+\end{frame}
+
+% ---- 17 ----
+\begin{frame}{Absolute Loss ($L_1$)}
+  \begin{block}{Definition}
+    \[
+      L(y,t) = |y-t|
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Errors penalised \emph{linearly}: doubling the error doubles the loss.
+    \item Much more \textbf{robust to outliers} than quadratic loss.
+    \item Gradient: piecewise constant, $\pm 1$ — steps of uniform size during GD.
+    \item Convex but \emph{not} strictly convex; gradient undefined at $y=t$.
+    \item Multiple optimal solutions possible; handled via \textbf{subgradient methods}.
+  \end{itemize}
+\end{frame}
+
+% ---- 18 ----
+\begin{frame}{Absolute Loss — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={-1,0,1}, yticklabels={$-1$,$0$,$1$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$y$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-1.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=-2:0, samples=201]{-x};
+      \addplot [cerise, thick, domain=0:2, samples=201]{x};
+      \addplot [slateblue, thick, domain=-2:0, samples=201]{-1};
+      \addplot [slateblue, thick, domain=0:2, samples=201]{1};
+      \addplot [dotted, domain=-3:3, samples=2] coordinates {(-3,0)(3,0)};
+      \legend{loss, loss gradient}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  {\small Absolute loss function and its gradient.
+  The V-shape is characteristic, with constant gradient magnitude.}
+\end{frame}
+
+% ---- 19 ----
+\begin{frame}{Huber Loss}
+  \begin{block}{Definition}
+    \[
+      L(t,y)=
+      \begin{cases}
+        \tfrac{1}{2}(t-y)^2 & |t-y|\leq\delta \\[4pt]
+        \delta\!\left(|t-y|-\tfrac{\delta}{2}\right) & |t-y|>\delta
+      \end{cases}
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item \textbf{Quadratic} for small errors $\Rightarrow$ smooth gradients, efficient optimisation.
+    \item \textbf{Linear} for large errors $\Rightarrow$ robust to outliers.
+    \item $\delta$ is a hyperparameter controlling the transition point.
+    \item Combines the best properties of $L_2$ and $L_1$.
+  \end{itemize}
+\end{frame}
+
+% ---- 20 ----
+\begin{frame}{Huber Loss — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={-1,0,1}, yticklabels={$-\delta$,$0$,$\delta$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$y$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-1.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=-1:1, samples=201]{x^2/2};
+      \addplot [cerise, thick, domain=-2:-1, samples=201]{-x-1/2};
+      \addplot [cerise, thick, domain=1:2, samples=201]{x-1/2};
+      \addplot [slateblue, thick, domain=-1:1, samples=201]{x};
+      \addplot [slateblue, thick, domain=-3:-1, samples=201]{-1};
+      \addplot [slateblue, thick, domain=1:3, samples=201]{1};
+      \addplot [dotted, domain=-3:3, samples=2] coordinates {(-3,0)(3,0)};
+      \legend{loss, loss gradient}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  {\small Huber loss combines quadratic behaviour near zero with linear growth for large errors.}
+\end{frame}
+
+% ---- 21 ----
+\begin{frame}{Comparison: Regression Losses}
+  \begin{center}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lccc}
+    \toprule
+    & \textbf{$L_2$} & \textbf{$L_1$} & \textbf{Huber} \\
+    \midrule
+    Formula & $(y-t)^2$ & $|y-t|$ & piecewise \\
+    Convexity & strictly & convex & strictly \\
+    Smoothness & everywhere & not at $y=t$ & everywhere \\
+    Outlier robustness & \alert{low} & high & high \\
+    Gradient descent & direct & subgradient & direct \\
+    Closed-form (linear) & \checkmark & $\times$ & $\times$ \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+% ============================================================
+\section{Loss Functions for Classification}
+% ============================================================
+
+% ---- 22 ----
+\begin{frame}{Classification — Setup}
+  \begin{itemize}
+    \item Goal: assign inputs to \emph{discrete} classes.
+    \item Focus on \textbf{binary classification}: $t \in \{-1, +1\}$.
+    \item Classifier outputs a real value $y = h(\x)$:
+      \begin{itemize}
+        \item $\text{sign}(y)$ determines the predicted class.
+        \item $|y|$ encodes prediction confidence.
+      \end{itemize}
+    \item Two approaches:
+  \end{itemize}
+
+  \vspace{.3em}
+  \begin{columns}[T]
+    \column{.49\textwidth}
+    \begin{block}{Direct prediction}
+      Returns a class label $\hat t$.\\
+      Error if $\hat t \neq t$.
+    \end{block}
+    \column{.49\textwidth}
+    \begin{block}{Probabilistic prediction}
+      Returns $p(t|\x)$ for each class.\\
+      Error measured via distribution divergence.
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% ---- 23 ----
+\begin{frame}{0/1 Loss}
+  \begin{block}{Definition}
+    \[
+      L(t,y) = \mathbb{1}[ty < 0]
+      \quad\Leftrightarrow\quad
+      L(t,y)=\begin{cases} 1 & \text{sgn}(y)\neq t \\ 0 & \text{sgn}(y)=t \end{cases}
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Directly minimises classification error rate. Intuitive.
+    \item \alert{Critical problems}:
+      \begin{itemize}
+        \item \textbf{Non-convex}: many local minima; no optimality guarantee.
+        \item \textbf{Non-smooth}: discontinuous jump at $ty=0$.
+        \item \textbf{Zero gradient almost everywhere}: gradient descent cannot progress.
+        \item \textbf{NP-hard}: minimising $\EmpR$ for linear classifiers is computationally intractable.
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% ---- 24 ----
+\begin{frame}{0/1 Loss — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      ytick={0,1}, yticklabels={$0$,$1$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$ty$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=-2:0, samples=201]{1};
+      \addplot [cerise, thick, domain=0:2, samples=201]{0};
+      \addplot [dotted, domain=-3:3, samples=2] coordinates {(-3,0)(3,0)};
+      \addplot [dotted, domain=-3:3, samples=2] coordinates {(-3,1)(3,1)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  {\small The 0/1 loss is a step function that assigns uniform cost to all errors.}
+\end{frame}
+
+% ---- 25 ----
+\begin{frame}{Convex Surrogate Loss Functions}
+  \begin{block}{Motivation}
+    0/1 loss is ideal but intractable. We replace it with a \textbf{surrogate} that is:
+  \end{block}
+
+  \vspace{.3em}
+  \begin{enumerate}
+    \item \textbf{Upper bound} on 0/1 loss:
+      $L_{\text{surr}}(t,y) \geq \mathbb{1}[ty<0]$
+    \item \textbf{Convex} in $y$ (and in parameters).
+    \item \textbf{Smooth}: well-defined derivatives almost everywhere.
+  \end{enumerate}
+
+  \vspace{.5em}
+  \begin{exampleblock}{Key surrogates}
+    Perceptron loss, Hinge loss, Log loss (cross-entropy), Squared loss (classification), Exponential loss.
+  \end{exampleblock}
+
+  \vspace{.3em}
+  Minimising a surrogate $\Rightarrow$ tends to minimise classification error indirectly.
+\end{frame}
+
+% ---- 26 ----
+\begin{frame}{Perceptron Loss}
+  \begin{block}{Definition}
+    \[
+      L(t,y) = \max(0,\,-ty)
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item \textbf{Correctly classified} ($ty>0$): loss $= 0$. No penalty for correct predictions.
+    \item \textbf{Misclassified} ($ty<0$): loss $= |ty|$. Severity grows with confidence of error.
+    \item Continuous; gradient defined almost everywhere.
+    \item Convex but \emph{not} strictly convex.
+    \item \alert{Not a proper surrogate}: does not always upper-bound 0/1 loss.
+    \item Historical significance: underlies the \textbf{classical Perceptron algorithm} (1950s).
+  \end{itemize}
+\end{frame}
+
+% ---- 27 ----
+\begin{frame}{Hinge Loss}
+  \begin{block}{Definition}
+    \[
+      L(t,y) = \max(0,\,1-ty)
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Loss $= 0$ only when $ty \geq 1$ (correct \emph{and} confident).
+    \item $0 < ty < 1$: correct but not confident — still penalised.
+    \item $ty < 0$: misclassified — loss grows linearly.
+    \item Properties: continuous, convex, proper surrogate (upper-bounds 0/1 loss).
+    \item \alert{Not differentiable} at $ty=1$ (corner); handled via \textbf{subgradients}.
+    \item Foundation of \textbf{Support Vector Machines (SVM)}.
+  \end{itemize}
+\end{frame}
+
+% ---- 28 ----
+\begin{frame}{Hinge Loss — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={0,1}, yticklabels={$0$,$1$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$ty$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=1:2, samples=201]{0};
+      \addplot [cerise, thick, domain=-2:1, samples=201]{1-x};
+      \addplot [teal, thick, domain=-2:0, samples=201]{1};
+      \addplot [teal, thick, domain=0:2, samples=201]{0};
+      \addplot [dotted, domain=-3:3, samples=2] coordinates {(-3,0)(3,0)};
+      \addplot [dotted, domain=-3:3, samples=2] coordinates {(-3,1)(3,1)};
+      \legend{Hinge loss, 0/1 loss}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ============================================================
+\section{Subgradients}
+% ============================================================
+
+% ---- 29 ----
+\begin{frame}{Non-Differentiable Losses — The Problem}
+  Hinge loss: $L_H(t,y)=\max(0,1-ty)$
+
+  \[
+    \frac{\partial}{\partial y}L_H =
+    \begin{cases}
+      -t & ty < 1 \\
+      0  & ty > 1 \\
+      \text{undefined} & ty = 1
+    \end{cases}
+  \]
+
+  \begin{itemize}
+    \item The gradient is \alert{undefined} at the corner $ty=1$.
+    \item Standard gradient descent cannot be applied directly.
+    \item Same issue arises for absolute loss at $y=t$ and perceptron loss at $ty=0$.
+  \end{itemize}
+
+  \vspace{.4em}
+  \begin{block}{Solution: subgradients}
+    Generalise the gradient to non-smooth points using a \emph{set} of valid linear bounds.
+  \end{block}
+\end{frame}
+
+% ---- 30 ----
+\begin{frame}{Subgradients — Definition}
+  For a convex function $f$, at a differentiable point $x$:
+  \[
+    f(x') \geq f(x) + \nabla f|_x \cdot (x'-x) \quad \forall\, x'
+  \]
+  (Gradient defines a tangent lower bound.)
+
+  \vspace{.5em}
+  \begin{block}{Subgradient}
+    A vector $\bar\nabla f|_x$ is a \textbf{subgradient} at $x$ if:
+    \[
+      f(x') \geq f(x) + \bar\nabla f|_x \cdot (x'-x) \quad \forall\, x'
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item At differentiable points: the subgradient is unique and equals the gradient.
+    \item At non-differentiable points: there is a \emph{set} of valid subgradients.
+    \item Any element of this set can be used in place of the gradient in GD.
+  \end{itemize}
+\end{frame}
+
+% ---- 31 ----
+\begin{frame}{Subgradient of Hinge Loss}
+  At the corner $ty=1$, valid slopes lie between $-t$ and $0$.
+
+  \vspace{.3em}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={0,1}, yticklabels={$0$,$1$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$ty$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=3, ymin=-.9, ymax=3.5,
+      width=8cm, height=4.5cm]
+      \addplot [cerise, thick, domain=1:3]{0};
+      \addplot [cerise, thick, domain=-2:1]{1-x};
+      \addplot [orange, dashed, domain=-2:3]{.5-.5*x};
+      \addplot [slateblue, dashed, domain=-2:3]{.3-.3*x};
+      \addplot [dotted, domain=-3:4] coordinates {(-3,0)(4,0)};
+      \addplot [dotted, domain=-3:4] coordinates {(-3,1)(4,1)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+
+  A common choice: set the subgradient to $0$ at $ty=1$, giving:
+  \[
+    \bar\nabla_y L_H =
+    \begin{cases}
+      -t & ty < 1 \\
+      0  & ty \geq 1
+    \end{cases}
+  \]
+\end{frame}
+
+% ---- 32 ----
+\begin{frame}{Squared Loss for Classification}
+  \begin{block}{Definition}
+    \[
+      L(t,y) = (1-ty)^2
+    \]
+  \end{block}
+
+  \begin{columns}[T]
+    \column{.5\textwidth}
+    \begin{block}{Advantages}
+      \begin{itemize}
+        \item Infinitely differentiable.
+        \item Convex, well-defined gradient.
+        \item No corners or undefined points.
+      \end{itemize}
+    \end{block}
+    \column{.5\textwidth}
+    \begin{alertblock}{Disadvantages}
+      \begin{itemize}
+        \item \emph{Not} a proper surrogate: does not upper-bound 0/1 loss.
+        \item Sensitive to outliers (quadratic growth).
+        \item Penalises \emph{very confident correct} predictions.
+      \end{itemize}
+    \end{alertblock}
+  \end{columns}
+
+  \vspace{.4em}
+  \begin{itemize}
+    \item Rarely the preferred choice in classification practice.
+  \end{itemize}
+\end{frame}
+
+% ---- 33 ----
+\begin{frame}{Squared Loss for Classification — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={0,1}, yticklabels={$0$,$1$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$ty$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=-2:2]{(1-x)^2};
+      \addplot [teal, thick, domain=-2:0]{1};
+      \addplot [teal, thick, domain=0:2]{0};
+      \addplot [dotted, domain=-3:3] coordinates {(-3,0)(3,0)};
+      \addplot [dotted, domain=-3:3] coordinates {(-3,1)(3,1)};
+      \legend{Square loss, 0/1 loss}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ============================================================
+\section{Log Loss and Information Theory}
+% ============================================================
+
+% ---- 34 ----
+\begin{frame}{Log Loss (Cross-Entropy Loss)}
+  \begin{block}{Definition}
+    \[
+      L(t,y) = \frac{1}{\log 2}\log\!\left(1+e^{-ty}\right)
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Also called \textbf{logistic loss} or \textbf{cross-entropy loss}.
+    \item Standard loss for probabilistic classification and logistic regression.
+    \item Smooth approximation to hinge loss (no corner).
+    \item For large negative $ty$: grows approximately linearly.
+    \item For large positive $ty$: approaches 0 asymptotically (never reaches it).
+  \end{itemize}
+\end{frame}
+
+% ---- 35 ----
+\begin{frame}{Log Loss — Properties}
+  \begin{columns}[T]
+    \column{.55\textwidth}
+    \begin{block}{Mathematical properties}
+      \begin{itemize}
+        \item Infinitely differentiable everywhere.
+        \item \textbf{Strictly convex}: unique global minimum.
+        \item Proper surrogate: upper-bounds 0/1 loss.
+        \item Gradient continuous and well-defined.
+      \end{itemize}
+    \end{block}
+    \column{.45\textwidth}
+    \begin{alertblock}{Caution}
+      \begin{itemize}
+        \item Grows unboundedly for $ty\to-\infty$.
+        \item Sensitive to severely mislabelled examples.
+        \item Growth is \emph{logarithmic}, so more robust than squared loss.
+      \end{itemize}
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ---- 36 ----
+\begin{frame}{Log Loss — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={0,1}, yticklabels={$0$,$1$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$ty$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=-2:2, samples=200]{ln(1+exp(-x))/ln(2)};
+      \addplot [teal, thick, domain=-2:0]{1};
+      \addplot [teal, thick, domain=0:2]{0};
+      \addplot [dotted, domain=-3:3] coordinates {(-3,0)(3,0)};
+      \addplot [dotted, domain=-3:3] coordinates {(-3,1)(3,1)};
+      \legend{Log loss, 0/1 loss}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ---- 37 ----
+\begin{frame}{Information Theory Background}
+  \begin{columns}[T]
+    \column{.33\textwidth}
+    \begin{block}{Entropy $H(p)$}
+      \[
+        H(p) = -\mathbb{E}_{x\sim p}[\log p(x)]
+      \]
+      Uncertainty / information content of $p$.\\
+      Min.\ avg.\ bits to encode from $p$.
+    \end{block}
+    \column{.33\textwidth}
+    \begin{block}{Cross-entropy $\mathrm{H}(p,q)$}
+      \[
+        \mathrm{H}(p,q) = -\mathbb{E}_{x\sim p}[\log q(x)]
+      \]
+      Avg.\ bits using code for $q$, when true dist.\ is $p$.
+    \end{block}
+    \column{.33\textwidth}
+    \begin{block}{KL divergence}
+      \[
+        \mathrm{KL}(p\|q) = \mathrm{H}(p,q)-H(p)
+      \]
+      Extra bits wasted by using $q$ instead of $p$.\\
+      Always $\geq 0$; $=0$ iff $p=q$.
+    \end{block}
+  \end{columns}
+
+  \vspace{.5em}
+  \begin{itemize}
+    \item $\mathrm{KL}(p\|q)=0 \Leftrightarrow p=q$ (almost everywhere).
+    \item Minimising cross-entropy $\equiv$ minimising KL divergence (since $H(p)$ is fixed).
+  \end{itemize}
+\end{frame}
+
+% ---- 38 ----
+\begin{frame}{Cross-Entropy for Binary Classification}
+  Let $p(\x)\in\{0,1\}$ be the true label, $y(\x)\in[0,1]$ the predicted probability for class $C_1$.
+
+  \begin{block}{Empirical cross-entropy}
+    \[
+      \mathrm{CE}(\calT)
+      = -\frac{1}{|\calT|}\sum_{(\x,t)\in\calT}
+        \Big[t\log y(\x) + (1-t)\log(1-y(\x))\Big]
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item For each example: $\log$ probability assigned to the \emph{correct} class, averaged.
+    \item The negative sign converts high probability (good) into low loss.
+  \end{itemize}
+
+  \vspace{.3em}
+  Separating by class:
+  \[
+    \mathrm{CE}(\calT)
+    = -\frac{1}{|\calT|}
+      \left(\sum_{(\x,t)\in C_1}\!\!\log y(\x)
+            +\sum_{(\x,t)\in C_0}\!\!\log(1-y(\x))\right)
+  \]
+\end{frame}
+
+% ---- 39 ----
+\begin{frame}{Log Loss $\equiv$ Cross-Entropy (Logistic Regression)}
+  For logistic regression: $y(\x)=\sigma(\w^T\x+b)=\dfrac{1}{1+e^{-(\w^T\x+b)}}$
+
+  \vspace{.5em}
+  Substituting into cross-entropy, using $t\in\{-1,+1\}$:
+  \[
+    \mathrm{CE}(\calT)
+    = \frac{1}{|\calT|}\sum_{(\x,t)\in\calT}\log\!\left(1+e^{-t(\w^T\x+b)}\right)
+  \]
+
+  \begin{block}{Connection to log loss}
+    \[
+      \EmpR_{\calT}(h)
+      = \frac{1}{|\calT|\log 2}\sum_{(\x,t)\in\calT}\log\!\left(1+e^{-t(\w^T\x+b)}\right)
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Minimising log loss $\equiv$ minimising cross-entropy.
+    \item Strong information-theoretic justification for using log loss in classification.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Exponential Loss}
+% ============================================================
+
+% ---- 40 ----
+\begin{frame}{Exponential Loss}
+  \begin{block}{Definition}
+    \[
+      L(t,y) = e^{-ty}
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Prominent in \textbf{boosting} algorithms, especially \textbf{AdaBoost}.
+    \item Penalises wrong predictions more aggressively than log loss: exponential growth.
+    \item Infinitely differentiable everywhere.
+    \item Strictly convex $\Rightarrow$ unique global minimum.
+    \item Proper surrogate: upper-bounds 0/1 loss.
+    \item \alert{Sensitive to outliers}: very large penalty for confident misclassifications.
+  \end{itemize}
+\end{frame}
+
+% ---- 41 ----
+\begin{frame}{Exponential Loss — Plot}
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      legend style={at={(1.5,1)},anchor=north east,draw=none,fill=none},
+      ytick={0,1}, yticklabels={$0$,$1$},
+      xticklabels={,,},
+      axis x line=bottom, axis y line=left,
+      xlabel={$ty$},
+      x label style={at={(axis description cs:0.99,0)},anchor=north},
+      xmin=-2, xmax=2, ymin=-.1, ymax=3.5,
+      width=8cm, height=5cm]
+      \addplot [cerise, thick, domain=-2:2, samples=200]{exp(-x)};
+      \addplot [teal, thick, domain=-2:0]{1};
+      \addplot [teal, thick, domain=0:2]{0};
+      \addplot [dotted, domain=-3:3] coordinates {(-3,0)(3,0)};
+      \addplot [dotted, domain=-3:3] coordinates {(-3,1)(3,1)};
+      \legend{Exponential loss, 0/1 loss}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ---- 42 ----
+\begin{frame}{Comparison: Classification Losses}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.35}
+  \begin{center}
+  \begin{tabular}{l|ccccc}
+    \toprule
+    & \textbf{0/1} & \textbf{Perceptron} & \textbf{Hinge} & \textbf{Log} & \textbf{Exp.} \\
+    \midrule
+    Upper-bounds 0/1 & --- & partial & \checkmark & \checkmark & \checkmark \\
+    Convex           & \alert{No}  & Yes & Yes & Yes & Yes \\
+    Strictly convex  & No  & No  & No  & \checkmark & \checkmark \\
+    Smooth           & No  & No  & No  & \checkmark & \checkmark \\
+    Outlier robust   & ---  & medium & medium & medium & \alert{low} \\
+    Use case         & ideal & Perceptron & SVM & Logistic Reg. & AdaBoost \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+% ============================================================
+\section{Stochastic Gradient Descent}
+% ============================================================
+
+% ---- 43 ----
+\begin{frame}{Stochastic Gradient Descent (SGD)}
+  \begin{block}{Motivation}
+    Batch GD computes the gradient over the \emph{entire} training set at each step.
+    This is expensive when $|\calT|$ is large.
+  \end{block}
+
+  \vspace{.4em}
+  \begin{block}{SGD idea}
+    Use a \alert{single randomly chosen example} $(\x_i, t_i)$ to estimate the gradient:
+    \[
+      \Vtheta^{(i)} \leftarrow \Vtheta^{(i-1)}
+      - \eta\,\nabla L\!\left(h_{\Vtheta}(\x_i), t_i\right)\Big|_{\Vtheta^{(i-1)}}
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item Noisy gradient estimate, but very fast per step.
+    \item Noise can \emph{help} escape local minima.
+    \item Widely used in deep learning practice.
+  \end{itemize}
+\end{frame}
+
+% ---- 44 ----
+\begin{frame}{Mini-Batch Gradient Descent}
+  \begin{block}{Compromise}
+    Use a \textbf{mini-batch} $\mathcal{B} \subset \calT$ of $m$ randomly chosen examples:
+    \[
+      \Vtheta^{(i)} \leftarrow \Vtheta^{(i-1)}
+      - \frac{\eta}{m}\sum_{(\x,t)\in\mathcal{B}}
+        \nabla L\!\left(h_{\Vtheta}(\x), t\right)\Big|_{\Vtheta^{(i-1)}}
+    \]
+  \end{block}
+
+  \vspace{.4em}
+  \begin{center}
+  \renewcommand{\arraystretch}{1.2}
+  \begin{tabular}{lccc}
+    \toprule
+    & \textbf{Batch} & \textbf{Mini-batch} & \textbf{SGD} \\
+    \midrule
+    Gradient quality & exact & good estimate & noisy \\
+    Speed per step   & slow  & moderate & fast \\
+    Memory use       & full  & moderate & minimal \\
+    Typical use      & small $n$ & deep learning & large $n$ \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+% ---- 45 ----
+\begin{frame}{SGD — Key Properties}
+  \begin{columns}[T]
+    \column{.5\textwidth}
+    \begin{block}{Advantages}
+      \begin{itemize}
+        \item Each update is $O(d)$ — independent of $n$.
+        \item Can process data in a streaming fashion.
+        \item Noise helps escape poor local minima.
+        \item Enables learning from very large datasets.
+      \end{itemize}
+    \end{block}
+    \column{.5\textwidth}
+    \begin{alertblock}{Challenges}
+      \begin{itemize}
+        \item High variance in gradient estimates.
+        \item May not converge to exact minimum.
+        \item Learning rate tuning more critical.
+        \item Convergence guarantees are weaker.
+      \end{itemize}
+    \end{alertblock}
+  \end{columns}
+
+  \vspace{.5em}
+  \begin{exampleblock}{Modern practice}
+    Almost all deep learning uses mini-batch SGD with adaptive learning rates
+    (Adam, RMSProp, AdaGrad).
+  \end{exampleblock}
+\end{frame}
+
+% ============================================================
+\section{Summary}
+% ============================================================
+
+% ---- 46 ----
+\begin{frame}{Summary — Loss Functions}
+  \begin{block}{Core definitions}
+    \begin{itemize}
+      \item \textbf{Loss} $L(y,t)$: pointwise prediction penalty.
+      \item \textbf{Empirical risk} $\EmpR_\calT(h)$: average loss over training set.
+      \item \textbf{Training} $\equiv$ minimising $\EmpR_\calT(h_{\Vtheta})$ over parameters $\Vtheta$.
+    \end{itemize}
+  \end{block}
+
+  \vspace{.4em}
+  \begin{block}{Regression losses}
+    \begin{itemize}
+      \item Quadratic ($L_2$): smooth, convex, sensitive to outliers.
+      \item Absolute ($L_1$): robust, requires subgradients.
+      \item Huber: best of both; controlled by $\delta$.
+    \end{itemize}
+  \end{block}
+
+  \vspace{.4em}
+  \begin{block}{Classification losses}
+    \begin{itemize}
+      \item 0/1: intuitive but NP-hard to optimise.
+      \item Surrogates (Hinge, Log, Exponential): convex, tractable.
+      \item Log loss $\equiv$ cross-entropy: information-theoretic grounding.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+% ---- 47 ----
+%\begin{frame}{Summary — Optimisation}
+%  \begin{block}{Gradient descent}
+%    \begin{itemize}
+%      \item Iteratively follow the negative gradient.
+%      \item Learning rate $\eta$ controls step size.
+%      \item Converges to a local minimum (global if loss is convex).
+%    \end{itemize}
+%  \end{block}
+%
+%  \vspace{.4em}
+%  \begin{block}{Convexity}
+%    \begin{itemize}
+%      \item Convex loss: every local minimum is global.
+%      \item Strictly convex: unique global minimum.
+%      \item Sum of convex functions is convex $\Rightarrow$ empirical risk inherits convexity.
+%    \end{itemize}
+%  \end{block}
+%
+%  \vspace{.4em}
+%  \begin{block}{Variants}
+%    \begin{itemize}
+%      \item Mini-batch / SGD: practical for large-scale learning.
+%      \item Subgradients: extend GD to non-smooth losses.
+%    \end{itemize}
+%  \end{block}
+%\end{frame}
+
+% ---- 48 — final message ----
+\begin{frame}{Central Message}
+  \begin{center}
+    \Large
+    \textbf{The loss function encodes what ``good predictions'' means.}
+  \end{center}
+
+  \vspace{.5em}
+  \begin{itemize}
+    \item Choosing the right loss is as important as choosing the model.
+    \item \textbf{Regression}: prefer $L_2$ for smooth data, $L_1$/Huber for outliers.
+    \item \textbf{Classification}: use convex surrogates; log loss has the strongest theoretical backing.
+    \item \textbf{Optimisation}: exploit convexity when possible; use SGD variants in practice.
+    \item The interplay of loss, optimiser, and model defines the entire learning procedure.
+  \end{itemize}
+
+%  \vspace{.8em}
+%  \begin{center}
+%    \textcolor{torblue}{\rule{.6\textwidth}{.4pt}}\\[.3em]
+%    {\small Giorgio Gambosi — Foundations of Machine Learning — A.Y.\ 2025–2026}
+%  \end{center}
+\end{frame}
+
+%\end{document}

@@ -1,0 +1,923 @@
+% ============================================================
+%  Beamer presentation: Nonparametric Classification
+%  Course of Machine Learning – Master Degree in CS
+%  University of Rome "Tor Vergata" – A.Y. 2025-2026
+%  Author: Giorgio Gambosi
+% ============================================================
+
+\input{header-beamer.tex}
+
+\definecolor{tvrblue}{RGB}{31,73,125}
+\definecolor{tvrlightblue}{RGB}{173,198,224}
+\definecolor{tvrdark}{RGB}{20,40,70}
+\definecolor{tvrred}{RGB}{150,20,20}
+\definecolor{tvrgreen}{RGB}{0,100,60}
+\definecolor{tvrgray}{RGB}{245,245,245}
+
+% Frame title
+%\setbeamercolor{frametitle}{bg=tvrblue,fg=white}
+%\setbeamercolor{framesubtitle}{fg=tvrlightblue}
+%\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+%\setbeamerfont{framesubtitle}{size=\small,series=\normalfont}
+%
+%% Title page
+%\setbeamercolor{title}{fg=white}
+%\setbeamercolor{subtitle}{fg=tvrlightblue}
+%\setbeamercolor{author}{fg=white}
+%\setbeamercolor{institute}{fg=tvrlightblue}
+%\setbeamercolor{date}{fg=tvrlightblue}
+%\setbeamertemplate{title page}{%
+%  \begin{tikzpicture}[remember picture,overlay]
+%    \fill[tvrblue] (current page.north west) rectangle (current page.south east);
+%    \node[anchor=center,text width=0.9\paperwidth,align=center]
+%      at ([yshift=1.5cm]current page.center) {%
+%        {\usebeamerfont{title}\usebeamercolor[fg]{title}\inserttitle}\\[0.5em]
+%        {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle}};
+%    \node[anchor=center,text width=0.9\paperwidth,align=center]
+%      at ([yshift=-1.5cm]current page.center){%
+%        {\usebeamerfont{author}\usebeamercolor[fg]{author}\insertauthor}\\[0.3em]
+%        {\usebeamerfont{institute}\usebeamercolor[fg]{institute}\insertinstitute}\\[0.3em]
+%        {\usebeamerfont{date}\usebeamercolor[fg]{date}\insertdate}};
+%  \end{tikzpicture}%
+%}
+%
+%% Header / footline
+%\setbeamertemplate{headline}{}
+%\setbeamertemplate{footline}{%
+%  \leavevmode%
+%  \hbox{%
+%    \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.4ex,dp=1.2ex,leftskip=4pt]{author in head/foot}%
+%      {\tiny\color{white}\insertshortauthor\ (\insertshortinstitute)}%
+%    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=.35\paperwidth,ht=2.4ex,dp=1.2ex,center]{title in head/foot}%
+%      {\tiny\color{white}\insertshorttitle}%
+%    \end{beamercolorbox}%
+%    \begin{beamercolorbox}[wd=.15\paperwidth,ht=2.4ex,dp=1.2ex,right,rightskip=4pt]{date in head/foot}%
+%      {\tiny\color{white}\insertshortdate\quad\insertframenumber/\inserttotalframenumber}%
+%    \end{beamercolorbox}}%
+%  \vskip0pt%
+%}
+%\setbeamercolor{author in head/foot}{bg=tvrblue}
+%\setbeamercolor{title in head/foot}{bg=tvrblue}
+%\setbeamercolor{date in head/foot}{bg=tvrblue}
+%
+%% Navigation symbols off
+%\setbeamertemplate{navigation symbols}{}
+%
+%% Block colours
+%\setbeamercolor{block title}{bg=tvrblue,fg=white}
+%\setbeamercolor{block body}{bg=tvrgray,fg=black}
+%\setbeamercolor{block title alerted}{bg=tvrred,fg=white}
+%\setbeamercolor{block body alerted}{bg=red!5,fg=black}
+%\setbeamercolor{block title example}{bg=tvrgreen,fg=white}
+%\setbeamercolor{block body example}{bg=green!5,fg=black}
+%
+%% Itemize bullets
+%\setbeamertemplate{itemize item}{\color{tvrblue}$\bullet$}
+%\setbeamertemplate{itemize subitem}{\color{tvrblue}$\circ$}
+%\setbeamertemplate{enumerate item}{\color{tvrblue}\textbf{\insertenumlabel.}}
+%
+%% Section page (like outline slide)
+%\AtBeginSection[]{%
+%  \begin{frame}{Outline}
+%    \tableofcontents[currentsection,hideothersubsections]
+%  \end{frame}
+%}
+%
+% ---- Packages ----------------------------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,shapes,positioning,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{mathtools}
+
+% ---- Macros ------------------------------------------------
+\newcommand{\argmax}[1]{\underset{#1}{\operatorname{arg\,max}}}
+\newcommand{\kh}{\kappa_h}
+
+% ============================================================
+\title{Nonparametric Classification}
+\subtitle{Course of Machine Learning}
+\author{Giorgio Gambosi}
+\institute[Tor Vergata]{Master's Degree in Computer Science\\University of Rome ``Tor Vergata''}
+\date{A.Y.\ 2025--2026}
+
+% ============================================================
+\begin{document}
+
+% --- Title --------------------------------------------------
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+% --- TOC ----------------------------------------------------
+\begin{frame}{Outline}
+  \tableofcontents[hideallsubsections]
+\end{frame}
+
+% ============================================================
+\section{Parametric vs.\ Nonparametric Approaches}
+% ============================================================
+
+\begin{frame}{Overview}
+  \framesubtitle{Two families of probabilistic classifiers}
+  \begin{block}{Core idea}
+    Most probabilistic classifiers estimate (explicitly or implicitly)\\
+    posterior class probabilities $p(C_k\mid\mathbf{x})$, then predict:
+    \[
+      \hat{C} = \argmax{k}\; p(C_k\mid\mathbf{x}).
+    \]
+  \end{block}
+  \bigskip
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \textbf{\color{tvrblue}Parametric}
+      \begin{itemize}
+        \item Fixed functional form; finite parameter vector $\boldsymbol\theta$.
+        \item Learn $\boldsymbol\theta$ from data.
+        \item Compact, computationally efficient.
+        \item Risk: misspecification $\Rightarrow$ biased predictions.
+      \end{itemize}
+    \column{0.47\textwidth}
+      \textbf{\color{tvrblue}Nonparametric}
+      \begin{itemize}
+        \item Minimal shape assumptions.
+        \item Model complexity grows with $n$.
+        \item Flexible; consistent under mild conditions.
+        \item Risk: curse of dimensionality; high compute cost.
+      \end{itemize}
+  \end{columns}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Parametric Approaches}
+  \framesubtitle{Discriminative vs.\ generative}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{block}{Discriminative}
+        Directly model $p(C_k\mid\mathbf{x};\boldsymbol\theta)$.\\[4pt]
+        \emph{Example:} Softmax regression.\\[4pt]
+        Training: maximize log-likelihood or minimize cross-entropy.
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{block}{Generative}
+        Model class-conditional densities $p(\mathbf{x}\mid C_k;\boldsymbol\theta_k)$\\
+        plus priors $p(C_k)$.\\[4pt]
+        Posterior via Bayes:
+        \[p(C_k\mid\mathbf{x})\propto p(\mathbf{x}\mid C_k)\,p(C_k).\]
+        Also supports sampling, missing data.
+      \end{block}
+  \end{columns}
+  \bigskip
+  \textbf{Parameter estimation strategies:}
+  \begin{itemize}
+    \item \textbf{ML} – maximize likelihood of observed data.
+    \item \textbf{MAP} – add prior over $\boldsymbol\theta$.
+    \item \textbf{Bayesian} – maintain full posterior; average predictions.
+  \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Nonparametric Approaches}
+  \framesubtitle{Flexibility and its costs}
+  \begin{block}{Key idea}
+    Do \emph{not} commit to a fixed parametric family.\\
+    Estimate the distribution \emph{directly} from data.\\
+    Number of effective parameters increases with $n$.
+  \end{block}
+  \bigskip
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \textbf{\color{tvrgreen}Strengths}
+      \begin{itemize}
+        \item Adapt to arbitrary distributional shapes.
+        \item Capture multimodality, skewness.
+        \item Consistent as $n\to\infty$ (with proper tuning).
+      \end{itemize}
+    \column{0.47\textwidth}
+      \textbf{\color{tvrred}Limitations}
+      \begin{itemize}
+        \item \textbf{Curse of dimensionality:} sparse neighborhoods in high $d$.
+        \item High computational cost at prediction time.
+        \item Sensitive to smoothing hyperparameters ($h$, $k$).
+      \end{itemize}
+  \end{columns}
+\end{frame}
+
+% ============================================================
+\section{Kernel Density Estimation (Parzen Windows)}
+% ============================================================
+
+\begin{frame}{Motivation: Density from Local Counts}
+  \framesubtitle{The fundamental identity}
+  \begin{block}{Local counting principle}
+    Let $\mathcal{R}(\mathbf{x})$ be a region around $\mathbf{x}$ with volume $V$.\\
+    Probability mass in the region:
+    \[
+      P_\mathbf{x} = \int_{\mathcal{R}(\mathbf{x})} p(\mathbf{z})\,d\mathbf{z}.
+    \]
+  \end{block}
+  \begin{itemize}
+    \item With $n$ i.i.d.\ samples, let $k$ = number of samples in $\mathcal{R}(\mathbf{x})$.
+    \item $k \sim \text{Binomial}(n, P_\mathbf{x})$, so $E[k] = nP_\mathbf{x}$.
+    \item Empirical approximation: $P_\mathbf{x} \approx k/n$.
+    \item If $p$ is approximately constant within $\mathcal{R}$: $P_\mathbf{x}\approx p(\mathbf{x})\cdot V$.
+  \end{itemize}
+  \begin{alertblock}{Fundamental density estimate}
+    \[
+      p(\mathbf{x}) \approx \frac{k}{nV}
+    \]
+    Density is large where many points fall into a \emph{small} region.
+  \end{alertblock}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Two Strategies from the Same Identity}
+  \framesubtitle{Volume fixed vs.\ count fixed}
+  \[
+    p(\mathbf{x}) \approx \frac{k}{nV}
+  \]
+  \bigskip
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{block}{Fix $V$ $\Rightarrow$ Kernel Density Estimation}
+        \begin{itemize}
+          \item Set a region of fixed volume.
+          \item Count how many samples fall in.
+          \item $k$ varies with the data.
+          \item Also called \emph{Parzen window} method.
+        \end{itemize}
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{block}{Fix $k$ $\Rightarrow$ $k$-Nearest Neighbors}
+        \begin{itemize}
+          \item Fix the number of neighbors.
+          \item Let the region expand until $k$ points are inside.
+          \item $V$ varies with local data density.
+          \item Automatically adapts to density.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{KDE: Fixed-Volume Estimation}
+  \framesubtitle{Parzen window with a hypercube kernel}
+  \begin{itemize}
+    \item Center a hypercube of side $h$ (volume $V = h^d$) at $\mathbf{x}$.
+    \item Indicator kernel:
+    \[
+      k(\mathbf{z}) =
+      \begin{cases}
+        1 & \text{if } |z_i| \le \tfrac{1}{2},\ \forall\, i,\\
+        0 & \text{otherwise.}
+      \end{cases}
+    \]
+    \item Number of points inside: $\displaystyle k = \sum_{i=1}^n k\!\left(\frac{\mathbf{x}-\mathbf{x}_i}{h}\right)$.
+  \end{itemize}
+  \begin{block}{Parzen density estimate}
+    \[
+      p_n(\mathbf{x}) = \frac{1}{n h^d}\sum_{i=1}^{n} k\!\left(\frac{\mathbf{x}-\mathbf{x}_i}{h}\right)
+    \]
+  \end{block}
+  \begin{itemize}
+    \item Non-negative; integrates to 1.
+    \item Interpretation: sum of ``bumps'' of mass $1/n$ centered at each data point.
+  \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{The Bandwidth Parameter $h$}
+  \framesubtitle{Bias–variance trade-off in KDE}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{alertblock}{$h$ too large}
+        \begin{itemize}
+          \item Region contains many points.
+          \item Estimate is \textbf{smooth} (low variance).
+          \item May wash out structure: \textbf{high bias}.
+        \end{itemize}
+      \end{alertblock}
+    \column{0.47\textwidth}
+      \begin{alertblock}{$h$ too small}
+        \begin{itemize}
+          \item Region contains few points.
+          \item Estimate follows random fluctuations.
+          \item \textbf{High variance}, noisy.
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
+  \bigskip
+  \begin{block}{Optimal $h$}
+    Selecting $h$ = choosing a \textbf{bias–variance compromise}.\\
+    Same tension as model complexity in supervised learning.
+  \end{block}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Histogram Illustration of Bandwidth Effect}
+  \framesubtitle{Varying $h$ changes the smoothness of the density estimate}
+  % Reproduce the tikz histogram from the notes (simplified for beamer)
+  \begin{center}
+  \begin{tikzpicture}[scale=0.52]
+    % Axes for h=2 (top)
+    \draw[->,>=stealth](-5,8)--(5,8);
+    \draw[->,>=stealth](-5,8)--(-5,9);
+    % data dots
+    \foreach \x in {-3.5,-3,-2.5,-2.5,-2.5,-2,-1.5,-1.5,-1,-1,-1,0,0,.5,.5,.5,.5,1,1,1.5,1.5,2,2,2,2.5,3.5,3.5,4,4,4.5}{
+      \fill (\x,8.1) circle(0.04);}
+    \node[left] at (-5.2,8.5) {\footnotesize $h=2$};
+
+    % Axes for h=1 (middle)
+    \draw[->,>=stealth](-5,5.5)--(5,5.5);
+    \draw[->,>=stealth](-5,5.5)--(-5,6.5);
+    \node[left] at (-5.2,6) {\footnotesize $h=1$};
+    % Schematic histogram bars (h=1)
+    \draw[red,thick](-5,5.5)--(-3,5.5)--(-3,5.7)--(-2,5.7)--(-2,5.9)--(-1,5.9)--(-1,6.1)--(0,6.1)--(0,6.3)--(1,6.3)--(1,6.1)--(2,6.1)--(2,5.9)--(3,5.9)--(3,5.7)--(4,5.7)--(4,5.5)--(5,5.5);
+
+    % Axes for h=0.5 (bottom)
+    \draw[->,>=stealth](-5,3)--(5,3);
+    \draw[->,>=stealth](-5,3)--(-5,4);
+    \node[left] at (-5.2,3.5) {\footnotesize $h=\varepsilon$};
+    % Schematic spiky histogram (h=small)
+    \draw[red,thick](-5,3)--(-3.5,3)--(-3.5,3.3)--(-3,3.3)--(-3,3)--(-2.5,3)--(-2.5,3.6)--(-2,3.6)--(-2,3.2)--(-1.5,3.2)--(-1.5,3.5)--(-1,3.5)--(-1,3)--(-0.5,3)--(-0.5,3.4)--(0,3.4)--(0,3.7)--(0.5,3.7)--(0.5,3.5)--(1,3.5)--(1,3.8)--(1.5,3.8)--(1.5,3.3)--(2,3.3)--(2,3.6)--(2.5,3.6)--(2.5,3)--(3,3)--(3,3.3)--(3.5,3.3)--(3.5,3.5)--(4,3.5)--(4,3.1)--(4.5,3.1)--(4.5,3)--(5,3);
+  \end{tikzpicture}
+  \end{center}
+  \vspace{-0.3em}
+  {\small
+  \begin{itemize}
+    \item \textbf{Top} ($h$ large): over-smoothed, structure washed out (high bias).
+    \item \textbf{Bottom} ($h$ small): noisy, follows random fluctuations (high variance).
+    \item Choosing the right $h$ is the central challenge of KDE.
+  \end{itemize}}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Smooth Kernels and the Parzen Window}
+  \framesubtitle{Beyond the histogram kernel}
+  \begin{itemize}
+    \item Histogram kernel: discontinuous, equal weight inside the region.
+    \item \textbf{Smooth kernels} give \emph{higher} weight to nearby samples.
+  \end{itemize}
+  \medskip
+  \begin{block}{Valid kernel requirements}
+    $\displaystyle\int \kappa_h(\mathbf{u})\,d\mathbf{u} = 1$,\quad
+    $\displaystyle\int \mathbf{u}\,\kappa_h(\mathbf{u})\,d\mathbf{u} = \mathbf{0}$,\quad
+    $\displaystyle\int \|\mathbf{u}\|^2\kappa_h(\mathbf{u})\,d\mathbf{u} > 0$.
+  \end{block}
+  \medskip
+  \begin{block}{Parzen window estimate (smooth kernel)}
+    \[
+      p(\mathbf{x}) = \frac{1}{n}\sum_{i=1}^{n}\kappa_h(\mathbf{x}-\mathbf{x}_i)
+    \]
+    Each training point contributes a ``bump'' of mass $1/n$.
+  \end{block}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Common Kernel Functions}
+  \framesubtitle{Box, Gaussian, and Epanechnikov}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}
+      \begin{block}{Box / Histogram}
+        \[k(\mathbf{u}) = \begin{cases}1 & |u_i|\le\tfrac{1}{2}\;\forall i\\0 & \text{o.w.}\end{cases}\]
+        Discontinuous; equal weights.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{Gaussian}
+        \[\kappa_h(\mathbf{u})=\frac{e^{-\|\mathbf{u}\|^2/2h^2}}{(\sqrt{2\pi}h)^d}\]
+        Infinitely smooth; infinite support.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{Epanechnikov}
+        \[\kappa_h(u)=\frac{3}{4h}\!\left(1-\frac{u^2}{h^2}\right)\]
+        for $|u|\le h$, else $0$.\\
+        Compact support; efficient.
+      \end{block}
+  \end{columns}
+  \bigskip
+  \begin{itemize}
+    \item Choice of kernel affects \textbf{smoothness} and \textbf{computation}.
+    \item Bandwidth $h$ governs the effective resolution regardless of kernel type.
+    \item Gaussian and Epanechnikov are the most commonly used in practice.
+  \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Kernel Shape Comparison}
+  \framesubtitle{Visual comparison of common kernels for Parzen window estimation}
+  \begin{columns}[c]
+    \column{0.32\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.65]
+        \fill[red!40](-1,0)--(-1,1)--(1,1)--(1,0)--cycle;
+        \draw[thick](-1,0)--(-1,1)--(1,1)--(1,0);
+        \draw[very thin,gray](-1,-0.1) grid (1,1.1);
+        \draw[->](-1.5,0)--(1.5,0) node[right]{\tiny$u$};
+        \draw[->](0,0)--(0,1.5) node[above]{\tiny$k(u)$};
+        \node at (0,-0.5){\footnotesize\textbf{Box}};
+      \end{tikzpicture}
+    \column{0.32\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.65,domain=-1:1]
+        \fill[green!40] plot[samples=50](\x,{1/(0.3*sqrt(2*3.14159))*exp(-\x*\x/(2*0.09))*0.28})--cycle;
+        \draw[thick,samples=50,domain=-1:1] plot(\x,{1/(0.3*sqrt(2*3.14159))*exp(-\x*\x/(2*0.09))*0.28});
+        \draw[very thin,gray](-1,-0.1) grid (1,1.1);
+        \draw[->](-1.5,0)--(1.5,0) node[right]{\tiny$u$};
+        \draw[->](0,0)--(0,1.5) node[above]{\tiny$\kappa(u)$};
+        \node at (0,-0.5){\footnotesize\textbf{Gaussian}};
+      \end{tikzpicture}
+    \column{0.32\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.65,domain=-1:1]
+        \fill[blue!40] plot[samples=50](\x,{0.75*(1-\x*\x)})--cycle;
+        \draw[thick,samples=50,domain=-1:1] plot(\x,{0.75*(1-\x*\x)});
+        \draw[very thin,gray](-1,-0.1) grid (1,1.1);
+        \draw[->](-1.5,0)--(1.5,0) node[right]{\tiny$u$};
+        \draw[->](0,0)--(0,1.5) node[above]{\tiny$\kappa(u)$};
+        \node at (0,-0.5){\footnotesize\textbf{Epanechnikov}};
+      \end{tikzpicture}
+  \end{columns}
+  \vspace{0.6em}
+  {\small Common kernel functions for Parzen window density estimation.\\
+  Left: flat (box) kernel; Center: Gaussian kernel; Right: Epanechnikov kernel.}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Bandwidth Selection}
+  \framesubtitle{Heuristics and cross-validation}
+  \begin{block}{Bandwidth = central hyperparameter of KDE}
+    Too large $\Rightarrow$ biased. \quad Too small $\Rightarrow$ unstable.
+  \end{block}
+  \medskip
+  \textbf{Rule of thumb} (Gaussian reference):
+  \[
+    h^* = 1.06\,\hat{\sigma}\,n^{-1/5}
+  \]
+  where $\hat{\sigma}$ is the sample standard deviation.
+  \medskip
+  \begin{block}{Cross-validation (leave-one-out log-likelihood)}
+    \[
+      h^* = \argmax{h}\;\frac{1}{n}\sum_{i=1}^{n}\log p_{-i}(\mathbf{x}_i)
+    \]
+    $p_{-i}(\mathbf{x}_i)$: density estimate at $\mathbf{x}_i$ \emph{excluding} that point.\\
+    Directly measures predictive performance on unseen data.
+  \end{block}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Classification via KDE}
+  \framesubtitle{Nonparametric generative classifier}
+  \begin{itemize}
+    \item Apply KDE \textbf{class-wise}: estimate $p(\mathbf{x}\mid C_i)$ for each class.
+    \item Use only training points with label $C_i$:
+    \[
+      p(\mathbf{x}\mid C_i) = \frac{1}{n_i}\sum_{j:\,t_j=i}\kappa_h(\mathbf{x}-\mathbf{x}_j).
+    \]
+    \item Empirical class prior: $p(C_i) = n_i/n$.
+  \end{itemize}
+  \begin{block}{Decision rule (Bayes posterior)}
+    \[
+      \hat{C} = \argmax{i}\; p(\mathbf{x}\mid C_i)\,p(C_i)
+    \]
+  \end{block}
+  \begin{itemize}
+    \item Nonparametric analogue of \emph{generative classification}.
+    \item No assumption on the shape of $p(\mathbf{x}\mid C_i)$.
+    \item Number of ``parameters'' grows with $n$.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{$k$-Nearest Neighbors}
+% ============================================================
+
+\begin{frame}{The $k$-NN Principle}
+  \framesubtitle{Fixed count, variable volume}
+  \begin{block}{Same starting point as KDE: $p(\mathbf{x})\approx k/(nV)$}
+    But now: \textbf{fix} $k$, \textbf{let} $V$ adapt.
+  \end{block}
+  \begin{itemize}
+    \item Let $r_k(\mathbf{x})$ = distance from $\mathbf{x}$ to its $k$-th nearest neighbor.
+    \item Use a $d$-dimensional ball of radius $r_k(\mathbf{x})$: $V = c_d\,r_k(\mathbf{x})^d$.
+    \item Density estimate:
+    \[
+      p(\mathbf{x}) \approx \frac{k}{n\cdot c_d\cdot r_k(\mathbf{x})^d}.
+    \]
+  \end{itemize}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \textbf{Dense region:}\\
+      $r_k(\mathbf{x})$ small $\Rightarrow$ high density estimate.
+    \column{0.47\textwidth}
+      \textbf{Sparse region:}\\
+      $r_k(\mathbf{x})$ large $\Rightarrow$ low density estimate.
+  \end{columns}
+  \medskip
+  \begin{alertblock}{}
+    $k$-NN \textbf{automatically adapts} neighborhood to local data density.
+  \end{alertblock}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{$k$-NN Classification: Majority Vote Rule}
+  \framesubtitle{Probabilistic derivation}
+  \begin{itemize}
+    \item Given query $\mathbf{x}$: find its $k$ nearest training points.
+    \item Let $k_i$ = number of those $k$ neighbors in class $C_i$.
+  \end{itemize}
+  \begin{block}{Posterior via local counting}
+    \[
+      p(\mathbf{x}\mid C_i)=\frac{k_i}{n_i V},\qquad
+      p(\mathbf{x})=\frac{k}{nV},\qquad
+      p(C_i)=\frac{n_i}{n}.
+    \]
+    Bayes' rule gives:
+    \[
+      p(C_i\mid\mathbf{x})
+      = \frac{p(\mathbf{x}\mid C_i)\,p(C_i)}{p(\mathbf{x})}
+      = \frac{\tfrac{k_i}{n_i V}\cdot\tfrac{n_i}{n}}{\tfrac{k}{nV}}
+      = \frac{k_i}{k}.
+    \]
+  \end{block}
+  \begin{alertblock}{Decision rule: majority vote}
+    \[
+      \hat{C} = \argmax{i}\; k_i
+    \]
+    Posterior = fraction of neighbors in each class.
+  \end{alertblock}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{The Role of $k$: Smoothness Control}
+  \framesubtitle{Small $k$ vs.\ large $k$}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{alertblock}{Small $k$ (e.g.\ $k=1$)}
+        \begin{itemize}
+          \item Highly local boundaries.
+          \item Each training point = prototype.
+          \item Risk of \textbf{overfitting}.
+          \item High variance.
+        \end{itemize}
+      \end{alertblock}
+    \column{0.47\textwidth}
+      \begin{block}{Large $k$}
+        \begin{itemize}
+          \item Smoother decision boundary.
+          \item Averages over more samples.
+          \item Risk of \textbf{underfitting}.
+          \item Higher bias.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \bigskip
+  \begin{block}{Choosing $k$ in practice}
+    \begin{itemize}
+      \item Cross-validation is the principled approach.
+      \item Heuristic: $k \approx \sqrt{n}$.
+      \item Optimal $k$ depends on noise level, class overlap, and $d$.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{$k$-NN Decision Boundaries: Illustration}
+  \framesubtitle{Effect of varying $k$ on the decision boundary (2-D dataset)}
+  \begin{columns}[c]
+    \column{0.32\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.9]
+        % Schematic: k=1 jagged boundary
+        \fill[blue!20] (0,0) rectangle (2,2);
+        \fill[red!20] (0,0) -- (0.5,0) -- (0.5,0.5) -- (1,0.5) -- (1,1) -- (1.5,1) -- (1.5,1.5) -- (2,1.5) -- (2,2) -- (0,2) -- cycle;
+        \draw[thick,blue!70!black] (0.5,0) -- (0.5,0.5) -- (1,0.5) -- (1,1) -- (1.5,1) -- (1.5,1.5) -- (2,1.5);
+        \draw[->](0,0)--(2.2,0) node[right]{\tiny$x_1$};
+        \draw[->](0,0)--(0,2.2) node[above]{\tiny$x_2$};
+        \node[below] at (1,-0.2) {\small $k=1$};
+      \end{tikzpicture}
+    \column{0.32\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.9]
+        % Schematic: k=5 smoother boundary
+        \fill[blue!20] (0,0) rectangle (2,2);
+        \fill[red!20] (0,0) -- (2,0) -- (2,1) .. controls (1.5,1.2) and (1,1.3) .. (0,2) -- cycle;
+        \draw[thick,blue!70!black] (2,1) .. controls (1.5,1.2) and (1,1.3) .. (0,2);
+        \draw[->](0,0)--(2.2,0) node[right]{\tiny$x_1$};
+        \draw[->](0,0)--(0,2.2) node[above]{\tiny$x_2$};
+        \node[below] at (1,-0.2) {\small $k=5$};
+      \end{tikzpicture}
+    \column{0.32\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.9]
+        % Schematic: k=15 very smooth boundary
+        \fill[blue!20] (0,0) rectangle (2,2);
+        \fill[red!20] (0,0) -- (2,0) -- (2,1.2) .. controls (1,1.4) .. (0,1.8) -- cycle;
+        \draw[thick,blue!70!black] (2,1.2) .. controls (1,1.4) .. (0,1.8);
+        \draw[->](0,0)--(2.2,0) node[right]{\tiny$x_1$};
+        \draw[->](0,0)--(0,2.2) node[above]{\tiny$x_2$};
+        \node[below] at (1,-0.2) {\small $k=15$};
+      \end{tikzpicture}
+  \end{columns}
+  \vspace{0.5em}
+  {\small Schematic of decision boundaries for a 2-D two-class problem.\\
+  Left: $k=1$ gives jagged, overfit boundaries.\ Center: $k=5$ balances.\ Right: $k=15$ is smooth but may underfit.}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Theoretical Properties of $k$-NN}
+  \framesubtitle{Asymptotic guarantees and finite-sample caveats}
+  \begin{block}{Asymptotic consistency}
+    With $k=k(n)$ chosen so that $k\to\infty$ and $k/n\to 0$ as $n\to\infty$:\\
+    \[
+      \text{Error}_{k\text{-NN}} \;\longrightarrow\; \text{Bayes error}\quad(n\to\infty).
+    \]
+    \emph{No assumption on the underlying distribution shape.}
+  \end{block}
+  \bigskip
+  \textbf{Finite-sample considerations:}
+  \begin{itemize}
+    \item $k=1$: very local; overfits; each training point = prototype.
+    \item Optimal $k$ depends on noise level, class overlap, and dimensionality.
+    \item Cross-validation is the standard method for selecting $k$.
+  \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Distance Metrics in $k$-NN}
+  \framesubtitle{Critical design choice}
+  \begin{alertblock}{$k$-NN is entirely distance-based}
+    Feature scaling and metric choice can \textbf{dramatically} affect results.
+  \end{alertblock}
+  \medskip
+  \textbf{Common distance metrics:}
+  \begin{itemize}
+    \item \textbf{Euclidean:} $\|\mathbf{x}-\mathbf{y}\|_2$ — default; affected by scale.
+    \item \textbf{Manhattan:} $\|\mathbf{x}-\mathbf{y}\|_1$ — robust to outliers.
+    \item \textbf{Mahalanobis:} accounts for feature correlations.
+    \item \textbf{Cosine:} often used for text / high-dimensional sparse data.
+  \end{itemize}
+  \medskip
+  \begin{block}{High-dimensional challenge}
+    As $d$ increases, distances between points \textbf{concentrate}.\\
+    All neighbors become equally distant $\Rightarrow$ notion of ``nearest'' weakens.\\
+    One manifestation of the \textbf{curse of dimensionality}.
+  \end{block}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Computational Aspects: Lazy Learning}
+  \framesubtitle{Training vs.\ prediction cost}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{block}{Training phase}
+        \begin{itemize}
+          \item Minimal computation.
+          \item Store the entire dataset.
+          \item $O(nd)$ storage.
+        \end{itemize}
+        $k$-NN is a \textbf{lazy learner}: no explicit model is built.
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{block}{Prediction phase}
+        \begin{itemize}
+          \item Nearest-neighbor search required.
+          \item Naive: $O(nd)$ per query.
+          \item Acceleration: KD-trees, ball trees.
+          \item Benefits diminish as $d$ grows.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \bigskip
+  \begin{itemize}
+    \item All computation is \emph{deferred} to test time.
+    \item Suitable when training data change frequently.
+    \item Costly when $n$ and $d$ are both large.
+  \end{itemize}
+\end{frame}
+
+% ============================================================
+\section{KDE vs.\ $k$-NN: Comparison}
+% ============================================================
+
+\begin{frame}{KDE vs.\ $k$-NN: Side-by-Side}
+  \framesubtitle{Two sides of the same local counting principle}
+  \begin{center}
+  \begin{tabular}{lcc}
+    \toprule
+    & \textbf{KDE / Parzen Window} & \textbf{$k$-NN} \\
+    \midrule
+    Fixed quantity & Volume $V$ & Count $k$ \\
+    Varying quantity & Count $k$ & Volume $V$ \\
+    Locality scale & Bandwidth $h$ & Neighborhood size \\
+    Adaptation & Fixed scale everywhere & Adapts to local density \\
+    Output & Smooth density & Posterior probability \\
+    Continuity & Smooth (smooth kernel) & Piecewise constant \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \bigskip
+  \begin{itemize}
+    \item KDE: convenient when a natural scale $h$ is available or tunable.
+    \item $k$-NN: advantageous in heterogeneous datasets with varying density.
+    \item Both become more expressive as $n$ grows.
+  \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Bias–Variance in KDE and $k$-NN}
+  \framesubtitle{The same fundamental trade-off, different knobs}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{block}{KDE}
+        \begin{itemize}
+          \item $h$ large $\Rightarrow$ high bias, low variance.
+          \item $h$ small $\Rightarrow$ low bias, high variance.
+          \item Tuning: rule-of-thumb or CV.
+        \end{itemize}
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{block}{$k$-NN}
+        \begin{itemize}
+          \item $k$ large $\Rightarrow$ high bias, low variance.
+          \item $k$ small $\Rightarrow$ low bias, high variance.
+          \item Tuning: cross-validation.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \bigskip
+  \begin{center}
+  \begin{tikzpicture}[scale=0.85]
+    \begin{axis}[
+      xlabel={Complexity (small $h$ or small $k$)},
+      ylabel={Error},
+      xmin=0,xmax=10,ymin=0,ymax=1.2,
+      width=8cm,height=4.5cm,
+      xtick=\empty,ytick=\empty,
+      axis lines=left,
+      legend style={at={(0.97,0.97)},anchor=north east,font=\small}
+    ]
+      \addplot[blue,thick,domain=0.5:9.5,samples=50]{0.8*exp(-0.4*x)+0.05};
+      \addlegendentry{Bias$^2$}
+      \addplot[red,thick,domain=0.5:9.5,samples=50]{0.05+0.07*x};
+      \addlegendentry{Variance}
+      \addplot[black,thick,domain=0.5:9.5,samples=50]{0.8*exp(-0.4*x)+0.05+0.07*x};
+      \addlegendentry{Total error}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ============================================================
+\section{Curse of Dimensionality}
+% ============================================================
+
+\begin{frame}{Curse of Dimensionality}
+  \framesubtitle{Why locality fails in high dimensions}
+  \begin{alertblock}{The fundamental problem}
+    As $d$ increases, data become \textbf{sparse}:
+    local neighborhoods either contain too few points or span an enormous fraction of the space.
+  \end{alertblock}
+  \bigskip
+  \textbf{Concrete example:} To capture 10\% of the data volume in $d$ dimensions, one needs a hypercube of side:
+  \[
+    l = 0.1^{1/d}.
+  \]
+  \begin{center}
+  \begin{tikzpicture}
+    \begin{axis}[
+      xlabel={Dimension $d$},
+      ylabel={Side length $l$},
+      xmin=1,xmax=20,ymin=0,ymax=1,
+      width=7cm,height=4cm,
+      axis lines=left,ytick={0,0.5,0.8,1},
+      xtick={1,5,10,15,20},
+      grid=major,grid style={dotted}
+    ]
+      \addplot[tvrblue,thick,domain=1:20,samples=50]{0.1^(1/x)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  {\small As $d$ grows, capturing a fixed fraction of data requires a neighborhood that spans almost the whole space.}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Manifestations of the Curse}
+  \framesubtitle{Practical consequences for nonparametric methods}
+  \begin{itemize}
+    \item \textbf{Data sparsity:} exponentially more data needed to maintain density.
+    \item \textbf{Distance concentration:} all pairwise distances become similar.
+      \[\frac{\max_i d(\mathbf{x},\mathbf{x}_i) - \min_i d(\mathbf{x},\mathbf{x}_i)}{\min_i d(\mathbf{x},\mathbf{x}_i)} \to 0 \quad (d\to\infty).\]
+    \item \textbf{Neighborhood size:} must grow to contain enough points, destroying locality.
+    \item \textbf{Computational cost:} naive search cost grows with $n$ and $d$.
+  \end{itemize}
+  \medskip
+  \begin{block}{Practical mitigations}
+    \begin{itemize}
+      \item Dimensionality reduction (PCA, autoencoders, \ldots).
+      \item Feature selection — use only informative features.
+      \item Metric learning — learn a task-adapted distance.
+      \item Modern acceleration structures (FAISS, HNSW) for large-scale $k$-NN.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+% ============================================================
+\section{Summary}
+% ============================================================
+
+\begin{frame}{Summary: Key Concepts}
+  \framesubtitle{Nonparametric classification at a glance}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{block}{Kernel Density Estimation}
+        \begin{itemize}
+          \item Fix volume $V = h^d$.
+          \item $p(\mathbf{x}) = \frac{1}{n}\sum_i \kappa_h(\mathbf{x}-\mathbf{x}_i)$.
+          \item Bandwidth $h$: bias–variance knob.
+          \item Extend to classification class-wise.
+        \end{itemize}
+      \end{block}
+      \vspace{4pt}
+      \begin{block}{$k$-NN Classification}
+        \begin{itemize}
+          \item Fix count $k$; let $V$ adapt.
+          \item $p(C_i\mid\mathbf{x}) = k_i/k$.
+          \item Decision: majority vote.
+          \item $k$: bias–variance knob.
+        \end{itemize}
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{block}{Shared Properties}
+        \begin{itemize}
+          \item Both implement a \emph{locality principle}.
+          \item Both consistent as $n\to\infty$.
+          \item Both suffer from the curse of dimensionality.
+          \item Both require careful hyperparameter tuning.
+        \end{itemize}
+      \end{block}
+      \vspace{4pt}
+      \begin{alertblock}{Key difference}
+        KDE: fixed scale, varying count.\\
+        $k$-NN: fixed count, varying scale.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% -----------------------------------------------------------
+\begin{frame}{Key Formulas at a Glance}
+  \framesubtitle{}
+  \renewcommand{\arraystretch}{1.5}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Concept} & \textbf{Formula / Statement} \\
+    \midrule
+    Fundamental identity & $p(\mathbf{x}) \approx k/(nV)$ \\
+    KDE estimate (smooth kernel) & $p(\mathbf{x}) = \frac{1}{n}\sum_i\kappa_h(\mathbf{x}-\mathbf{x}_i)$ \\
+    Parzen (box kernel) & $p_n(\mathbf{x}) = \frac{1}{nh^d}\sum_i k\!\left(\frac{\mathbf{x}-\mathbf{x}_i}{h}\right)$ \\
+    Rule-of-thumb bandwidth & $h^* = 1.06\,\hat\sigma\,n^{-1/5}$ \\
+    $k$-NN density & $p(\mathbf{x})\approx k/(n c_d r_k(\mathbf{x})^d)$ \\
+    $k$-NN posterior & $p(C_i\mid\mathbf{x}) = k_i/k$ \\
+    KDE classification & $\hat C = \arg\max_i\; p(\mathbf{x}\mid C_i)\,p(C_i)$ \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+%% -----------------------------------------------------------
+%\begin{frame}{The Big Picture}
+%  \framesubtitle{Where nonparametric methods fit}
+%  \begin{center}
+%  \begin{tikzpicture}[
+%    node distance=1.4cm and 2.2cm,
+%    box/.style={draw,rounded corners,fill=tvrgray,minimum width=2.8cm,minimum height=0.8cm,align=center,font=\small},
+%    arrow/.style={->,>=stealth,thick}
+%  ]
+%    \node[box,fill=tvrblue!20](data){Training data\\$\{\mathbf{x}_i,t_i\}$};
+%    \node[box,right=of data](local){Locality\\principle};
+%    \node[box,above right=0.6cm and 1.8cm of local](kde){KDE\\(fix $V$)};
+%    \node[box,below right=0.6cm and 1.8cm of local](knn){$k$-NN\\(fix $k$)};
+%    \node[box,right=2.2cm of kde](kde_class){Class-wise\\density est.};
+%    \node[box,right=2.2cm of knn](knn_class){Majority\\vote};
+%    \node[box,fill=tvrgreen!30,right=1.8cm of kde_class,yshift=-0.7cm](dec){Decision\\$\hat{C}$};
+%
+%    \draw[arrow](data)--(local);
+%    \draw[arrow](local)--(kde);
+%    \draw[arrow](local)--(knn);
+%    \draw[arrow](kde)--(kde_class);
+%    \draw[arrow](knn)--(knn_class);
+%    \draw[arrow](kde_class)--(dec);
+%    \draw[arrow](knn_class)--(dec);
+%  \end{tikzpicture}
+%  \end{center}
+%  \vspace{0.5em}
+%  Both KDE and $k$-NN are \textbf{nonparametric}, \textbf{instance-based} classifiers that use
+%  the locality principle to estimate class probabilities without assuming a parametric form.
+%\end{frame}
+
+\end{document}

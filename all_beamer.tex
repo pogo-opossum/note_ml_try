@@ -1,0 +1,68 @@
+%!TEX program = xelatex
+
+\documentclass[aspectratio=169, 10pt]{beamer}
+\input{header-beamer_old}
+
+%\title{beamer on Machine Learning}
+%\class{Course of Machine Learning}
+%\course{Master Degree in Computer Science}
+%\university{University of Rome ``Tor Vergata''}
+%\acyear{2025-2026}
+%\author{Giorgio Gambosi}
+
+% Nel preambolo.tex
+\newcommand{\includechapter}[1]{\include{beamer/#1}}
+\newcommand{\includeonlychapter}[1]{\includeonly{beamer/#1}}
+
+\graphicspath{{./figs/}{./figs1/}{./figures/}}
+%\includeonlychapter{1-foundations-beamer}
+%\includeonlychapter{2-slt-beamer}
+
+\begin{document}
+
+%\maketitle
+\includechapter{1-foundations-beamer}
+\blankpage
+\includechapter{2-slt-beamer}
+\blankpage
+\includechapter{3.1-loss-beamer}
+\blankpage
+%\includechapter{3.2-gd-beamer}
+%\blankpage
+%\includechapter{4-probabilistic-learning-beamer}
+%\blankpage
+%\includechapter{5-linregr-beamer}
+%\blankpage
+%\includechapter{6-nonparam-regr-beamer}
+%\blankpage
+%\includechapter{7-linclass-beamer}
+%\blankpage
+%\includechapter{8-probclass-gen-beamer}
+%\blankpage
+%\includechapter{9-probclass-discr-beamer}
+%\blankpage
+%\includechapter{10-nonparam-class-beamer}
+%\blankpage
+%\includechapter{11-svm-beamer}
+%\blankpage
+%\includechapter{12-mlp-beamer}
+%\blankpage
+%\includechapter{13-dectrees-beamer}
+%\blankpage
+%\includechapter{14-ensemble-beamer}
+%\blankpage
+%\includechapter{15-clustering-beamer}
+%%\includechapter{16-dimred-beamer}
+%%\includechapter{17-cooccur-beamer}
+%%\includechapter{18-latent-variable-beamer}
+%%\includechapter{19-em-beamer}
+%%\includechapter{20-probabilistic-dimred-beamer}
+%%\includechapter{21-variational-beamer}
+%%\includechapter{22-sampling-beamer}
+%%\includechapter{A-probability_recall-beamer}
+%%\includechapter{B-linear_algebra_recall-beamer}
+%%\includechapter{C-lagrange_multipliers_recall-beamer}
+
+\clearpage
+\pagestyle{empty}
+\end{document}

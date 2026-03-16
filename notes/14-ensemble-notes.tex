@@ -1,0 +1,952 @@
+%!TEX program = xelatex
+%!TEX root = ../all.tex
+\chapter{Ensemble methods}
+
+Ensemble methods are based on a simple but far-reaching idea: instead of relying on a single predictive model, we build \emph{several} models and then combine their outputs in order to obtain a final predictor that is more accurate, more stable, or both. The motivation is that a single model is often limited by the particular sample on which it was trained or by the inductive biases of its hypothesis class. By aggregating multiple models, we can reduce the impact of these limitations, much like averaging repeated measurements reduces noise.
+
+From a probabilistic viewpoint, an ensemble can be interpreted as a way to reduce uncertainty. Each individual learner provides a plausible rule for mapping inputs to outputs, but each rule is affected by sampling variability and model misspecification. Combining multiple learners can therefore act as a form of ``error correction'': idiosyncratic mistakes made by one model may be compensated by other models, while consistent patterns across models are reinforced.
+
+\medskip
+
+There are several ways to construct and combine multiple learners, but two paradigms are particularly central in practice and in theory. The first constructs a \emph{committee} of $L$ models trained independently on perturbed versions of the data and then aggregates their predictions; this is the logic behind \alert{bagging}. The second constructs models \emph{sequentially}, so that each new model is trained to address the shortcomings of the current ensemble; this is the logic behind \alert{boosting}. Although both approaches produce an ensemble, they differ in how diversity is created and in what aspect of error they primarily target.
+
+\section*{Bootstrap}
+
+The \alert{bootstrap} is a fundamental resampling tool in statistics, whose purpose is to
+approximate sampling uncertainty when the true data-generating distribution is unknown. The
+starting point is a simple but profound observation: in most realistic problems, the
+underlying distribution $\mathcal{F}$ from which the data are drawn cannot be accessed
+directly. We observe one dataset, and we would like to understand how much our conclusions
+depend on the particular random sample we happened to collect. The bootstrap proposes an
+elegant substitute: treat the observed dataset itself as a proxy for $\mathcal{F}$, and
+resample from it repeatedly to mimic the act of collecting new data. In doing so, it
+converts a hard problem---reasoning about the sampling distribution of a statistic under an
+unknown distribution---into a computational one that can be addressed by simulation.
+
+\subsection*{The empirical distribution and the plug-in principle}
+
+Assume we have training data $(\x_i, t_i)$ for $i = 1, \ldots, n$, drawn independently and
+identically from some unknown joint distribution $\mathcal{F}$ over $(\x, t)$. The bootstrap
+replaces $\mathcal{F}$ with the \emph{empirical distribution} $\hat{\mathcal{F}}$, which
+assigns equal probability mass $1/n$ to each observed training pair. Formally, the empirical
+probability mass function is
+\begin{myequation}
+\hat{p}(\x, t) =
+\begin{cases}
+\dfrac{1}{n} & \text{if } \exists\, i : (\x, t) = (\x_i, t_i), \\
+0            & \text{otherwise.}
+\end{cases}
+\end{myequation}
+This is a discrete distribution supported entirely on the observed sample: it encodes the
+judgment that, absent any further information about the population, each of the $n$ observed
+points is equally plausible as a representative draw from the underlying process. As $n$
+grows, $\hat{\mathcal{F}}$ becomes an increasingly faithful approximation of $\mathcal{F}$
+by the Glivenko--Cantelli theorem, which guarantees that the empirical distribution function
+converges uniformly to the true distribution function with probability one.
+
+The conceptual justification of the bootstrap rests on what is known as the
+\alert{plug-in principle}. Suppose we are interested in some population quantity
+\begin{myequation}
+\theta = T(\mathcal{F}),
+\end{myequation}
+where $T$ is a functional of the distribution $\mathcal{F}$. The functional $T$ can
+represent essentially any quantity of interest: the mean of a marginal distribution, a
+variance, a quantile, the coefficient of a regression model, the bias of an estimator, or
+any other feature of the population. Since $\mathcal{F}$ is unknown, $T(\mathcal{F})$ cannot
+be computed directly. The plug-in idea is to replace $\mathcal{F}$ with its empirical
+estimate $\hat{\mathcal{F}}$, obtaining the estimator
+\begin{myequation}
+\hat{\theta} = T(\hat{\mathcal{F}}).
+\end{myequation}
+For many common functionals, this produces familiar estimators: plugging in $\hat{\mathcal{F}}$
+for the mean functional gives the sample mean, for the variance functional gives the sample
+variance (possibly with a degrees-of-freedom correction), and for a quantile functional gives
+the corresponding sample quantile. The plug-in principle thus provides a unified rationale
+for a wide family of estimators.
+
+A closely related and practically even more important goal is to approximate the
+\emph{sampling distribution} of an estimator. If $\hat{\theta} = s(\x_1, \ldots, \x_n)$ is
+a statistic computed from the original sample, its sampling distribution---the distribution
+of values $\hat{\theta}$ would take across all possible datasets of size $n$ drawn from
+$\mathcal{F}$---is typically intractable because $\mathcal{F}$ is unknown. The bootstrap
+approximates this sampling distribution by the distribution of
+\begin{myequation}
+\hat{\theta}^* = s(\x_1^*, \ldots, \x_n^*),
+\end{myequation}
+where $(\x_1^*, \ldots, \x_n^*)$ is a bootstrap sample drawn from $\hat{\mathcal{F}}$.
+The logic is transparent: conditional on the observed dataset, the variability induced by
+resampling from $\hat{\mathcal{F}}$ mimics the variability we would observe if we could
+repeatedly draw fresh datasets from $\mathcal{F}$. The bootstrap distribution of
+$\hat{\theta}^*$ is therefore used as a surrogate for the true sampling distribution of
+$\hat{\theta}$.
+
+\subsection*{Bootstrap samples: construction and properties}
+
+A \alert{bootstrap sample} of size $m$ is a new dataset
+\begin{myequation}
+(\x_i^*, t_i^*), \qquad i = 1, \ldots, m,
+\end{myequation}
+constructed by drawing each $(\x_i^*, t_i^*)$ uniformly at random from the original
+observations $(\x_1, t_1), \ldots, (\x_n, t_n)$, \alert{with replacement}. Equivalently,
+this is precisely $m$ independent draws from $\hat{\mathcal{F}}$. The phrase ``with
+replacement'' is crucial and deserves emphasis: it means that any single observation may
+appear multiple times in a given bootstrap dataset, while other observations may not appear
+at all. Far from being a defect, this mechanism is precisely what creates variability among
+bootstrap samples and allows the bootstrap to emulate the randomness inherent in sampling
+from $\mathcal{F}$.
+
+In practice, the most common choice is $m = n$, producing bootstrap samples of the same
+size as the original dataset. Each such bootstrap sample can be thought of as an
+``alternate version'' of the training set: a dataset that might have been observed had we
+repeated the data collection process under the same conditions. The original observations
+that appear multiple times correspond to instances that, by chance, were drawn more than
+once in the hypothetical re-collection; the absent ones correspond to instances that, by
+chance, were not drawn at all.
+
+The statistical properties of bootstrap samples are worth examining carefully, as they
+underpin many of the method's applications. Fix a particular observation $(\x_i, t_i)$.
+The probability that it is \emph{not} selected on any single draw is $1 - 1/n$.  Since
+we draw $n$ times independently with replacement, the probability that it is never
+selected across all $n$ draws is
+\begin{myequation}
+\left(1 - \frac{1}{n}\right)^n.
+\end{myequation}
+This quantity has a well-known limit: as $n \to \infty$,
+\begin{myequation}
+\left(1 - \frac{1}{n}\right)^n \to e^{-1} \approx 0.368.
+\end{myequation}
+The convergence is rapid, and the approximation is already accurate to three decimal places
+for $n \geq 20$. Consequently, the probability that a given observation appears at least
+once in the bootstrap sample is
+\begin{myequation}
+1 - \left(1 - \frac{1}{n}\right)^n \approx 1 - e^{-1} \approx 0.632.
+\end{myequation}
+This means that, on average, each bootstrap sample of size $n$ contains approximately
+$63.2\%$ of the distinct original observations, with the remaining $36.8\%$ absent. This
+fraction is remarkably stable: it holds approximately for any sample size larger than a few
+dozen, making it a useful rule of thumb regardless of the specific dataset. The absent
+observations play an important role in certain applications of the bootstrap, as we discuss
+below in the context of out-of-bag estimation.
+
+Turning to the number of times each observation appears, let $N_i$ denote the number of
+times observation $i$ is included in a bootstrap sample of size $n$. Since each draw
+independently selects observation $i$ with probability $1/n$, we have
+$N_i \sim \mathrm{Binomial}(n, 1/n)$, with
+\begin{myequation}
+\mathbb{E}[N_i] = n \cdot \frac{1}{n} = 1 \qquad \text{and} \qquad \mathrm{Var}(N_i) = n \cdot \frac{1}{n} \cdot \left(1 - \frac{1}{n}\right) = 1 - \frac{1}{n} \approx 1.
+\end{myequation}
+Each observation thus appears once on average, but with variance approximately equal to
+one, so there is substantial spread: some observations appear two, three, or more times,
+while others are omitted entirely. It is this random reweighting of the original data---
+some points counted more, others not at all---that creates the variability across bootstrap
+replicates that the method exploits.
+
+\subsection*{Consistency of the bootstrap}
+
+Under suitable regularity conditions, the bootstrap is \alert{consistent}: as
+$n \to \infty$, the bootstrap distribution of a wide class of statistics converges to the
+true sampling distribution. The intuition is direct: as the sample size grows,
+$\hat{\mathcal{F}}$ becomes an increasingly accurate approximation of $\mathcal{F}$, and therefore resampling from
+$\hat{\mathcal{F}}$ becomes an increasingly accurate surrogate for resampling from
+$\mathcal{F}$. For smooth functionals of the distribution---roughly, statistics whose
+behavior changes continuously as the distribution changes---the bootstrap is known to
+provide a consistent approximation of the sampling distribution, and in many cases it
+provides a higher-order accurate approximation that outperforms first-order methods such as
+the normal approximation based on the central limit theorem.
+
+It is important to note, however, that the bootstrap is not universally consistent: there
+exist statistics and distributional settings for which it fails. Classical examples include
+statistics that depend on the extremes of the distribution (such as the sample maximum),
+where the bootstrap approximation breaks down because the tails of $\hat{\mathcal{F}}$ are
+determined by only a handful of observed points and cannot reliably approximate the
+behavior of extreme order statistics. Modified bootstrap procedures---such as the
+$m$-out-of-$n$ bootstrap, which draws samples of size $m \ll n$---can restore consistency
+in some of these cases, at the cost of requiring the choice of a tuning parameter.
+
+\subsection*{Bootstrap estimation in practice}
+
+To estimate the variability of a statistic or to build confidence intervals, one typically
+generates many bootstrap replicates. The practical procedure is straightforward: draw $B$
+bootstrap samples $\{(\x_i^{*(b)}, t_i^{*(b)})\}_{i=1}^n$ for $b = 1, \ldots, B$, compute
+the statistic of interest $\hat{\theta}^{*(b)}$ on each resample, and use the empirical
+distribution of $\{\hat{\theta}^{*(b)}\}_{b=1}^B$ to approximate the sampling distribution
+of $\hat{\theta}$. The number of replicates $B$ is typically chosen between a few hundred
+and several thousand, depending on the desired accuracy and the available computational
+budget; for confidence interval estimation, $B = 1000$ is a common starting point, while
+for more precise tail probability estimates $B = 10{,}000$ or more may be warranted.
+
+The bootstrap standard error of $\hat{\theta}$ is estimated as the standard deviation of $\yhwidehat{xyw}$
+the bootstrap distribution:
+\begin{myequation}
+\yhwidehat{\mathrm{se}}_B(\hat{\theta}) = \sqrt{\frac{1}{B-1} \sum_{b=1}^B \left(\hat{\theta}^{*(b)} - \bar{\theta}^*\right)^2},
+\end{myequation}
+where $\bar{\theta}^* = \frac{1}{B} \sum_{b=1}^B \hat{\theta}^{*(b)}$ is the mean of the
+bootstrap replicates. This estimate converges to the ideal bootstrap standard error (the
+standard deviation of the full bootstrap distribution) as $B \to \infty$, and it converges
+to the true standard error of $\hat{\theta}$ as $B \to \infty$ and $n \to \infty$ jointly,
+under the consistency conditions discussed above.
+
+Confidence intervals can be constructed from the bootstrap distribution in several ways,
+which differ in their theoretical properties and computational requirements. The simplest is
+the \emph{percentile interval}: the $\alpha/2$ and $1 - \alpha/2$ quantiles of the
+bootstrap distribution of $\hat{\theta}^*$ are used directly as the endpoints of a
+$(1-\alpha)$ confidence interval. This approach has the virtue of simplicity and
+automatically respects any constraints on $\theta$ (such as positivity or boundedness), but
+it relies on a symmetry assumption that may not hold in finite samples. A refinement is the
+\emph{basic bootstrap interval} (also called the reflected interval), which constructs the
+interval as $[2\hat{\theta} - q_{1-\alpha/2}^*, 2\hat{\theta} - q_{\alpha/2}^*]$, where
+$q_p^*$ denotes the $p$-th quantile of the bootstrap distribution. This corrects for
+location bias but still assumes a symmetric error distribution. More sophisticated
+alternatives include the \emph{bias-corrected and accelerated} (BCa) interval, which adjusts
+for both bias and skewness in the bootstrap distribution and generally provides better
+coverage in finite samples, at the cost of additional computation involving influence
+function estimates.
+
+\subsection*{The out-of-bag estimator}
+
+The observation that approximately $36.8\%$ of training instances are absent from any given
+bootstrap sample has a practically important consequence. The instances not included in the
+$b$-th bootstrap sample are called the \emph{out-of-bag} (OOB) observations for that
+replicate. If a model is trained on the $b$-th bootstrap sample, the OOB observations are
+genuinely held-out data for that model: they were not used in training and can be used for
+validation without any additional data splitting.
+
+This gives rise to the \emph{out-of-bag estimator} of generalization error. For each
+training instance $(\x_i, t_i)$, let $\mathcal{B}(i)$ denote the set of bootstrap replicates
+for which $(\x_i, t_i)$ is out-of-bag. The OOB prediction for instance $i$ is obtained by
+averaging (or voting, in classification) the predictions made by all models trained on
+bootstrap samples that did not include instance $i$:
+\begin{myequation}
+\hat{t}_i^{\text{OOB}} = \frac{1}{|\mathcal{B}(i)|} \sum_{b \in \mathcal{B}(i)} \hat{f}^{(b)}(\x_i),
+\end{myequation}
+where $\hat{f}^{(b)}$ is the model trained on the $b$-th bootstrap sample. The OOB error
+estimate is then computed as the average loss of these OOB predictions:
+\begin{myequation}
+\yhwidehat{Err}^{\text{OOB}} = \frac{1}{n} \sum_{i=1}^n L\left(t_i,\, \hat{t}_i^{\text{OOB}}\right),
+\end{myequation}
+for some loss function $L$. The out-of-bag estimator is particularly valuable because it
+provides a nearly unbiased estimate of the generalization error without requiring a separate
+validation set or cross-validation procedure. Each OOB prediction is made by a model that
+has not seen the instance in question, so it genuinely reflects out-of-sample performance.
+In the context of ensemble methods---especially random forests, where bootstrap sampling is
+used to generate the training set for each tree---the OOB error is routinely used as a
+computationally free substitute for cross-validation, and empirical studies have shown it
+to be a reliable and nearly unbiased estimator of test error.
+
+%\subsection*{The bootstrap in the context of ensemble methods}
+%
+%Beyond its role as a tool for uncertainty quantification, the bootstrap plays a central
+%structural role in several important ensemble learning methods. In \emph{bagging}
+%(Bootstrap AGGregatING), introduced by Breiman, one trains $B$ copies of an unstable base
+%learner (such as a decision tree) on $B$ different bootstrap samples drawn from the training
+%data, and then combines their predictions by averaging (for regression) or majority voting
+%(for classification). The key insight is that averaging reduces variance without increasing
+%bias substantially: if the base learner has low bias but high variance---as is typical for
+%deep, unpruned decision trees---then averaging $B$ bootstrap replicates of the learner
+%yields an ensemble with approximately $B$ times lower variance (assuming the predictions are
+%uncorrelated), while the bias remains unchanged. In practice, predictions from trees trained
+%on different bootstrap samples are positively correlated, so the variance reduction is less
+%than $B$-fold, but it is still substantial. Bagging is the conceptual foundation of random
+%forests, which add an additional source of randomization by restricting each split to a
+%random subset of features, thereby reducing the correlation between trees further and
+%amplifying the variance-reduction benefit.
+%
+%The bootstrap thus serves two distinct but complementary roles in modern machine learning:
+%as a diagnostic tool for assessing the uncertainty of any estimator through resampling
+%simulation, and as a constructive mechanism for building high-performance ensembles through
+%the deliberate introduction of training-data variability. Both roles rest on the same
+%foundational idea---that resampling from $\hat{\mathcal{F}}$ is a computationally tractable
+%and statistically principled substitute for the unobservable act of resampling from
+%$\mathcal{F}$---and both have proven to be indispensable in the practice of statistical
+%learning.
+
+\section*{Bagging: Bootstrap Aggregating}
+
+The same resampling idea that underlies the bootstrap in classical statistics also motivates one of the most influential ensemble-learning methods in machine learning: \alert{bagging}, an acronym for Bootstrap AGGregatING. To appreciate why bagging was introduced and why it works, it is helpful to start from a diagnosis of a specific weakness that affects many learning algorithms, and that is particularly pronounced in decision trees: \alert{high variance}.
+
+A high-variance learner is, in a precise sense, an unstable one. Instability here means that small perturbations of the training set --- removing or duplicating a handful of observations, say --- can lead to large and qualitatively different changes in the fitted model. For decision trees, this instability has a transparent structural explanation. A tree is built by greedily choosing splits one at a time, and the earliest splits, near the root, are the most consequential because they determine the partition of the feature space for all subsequent nodes. If a slight change in the training data causes the root split to select a different variable or threshold, the entire downstream structure of the tree may reorganize. This sensitivity to early decisions is precisely what makes trees high-variance learners, even when they achieve low training error.
+
+Bagging counteracts this instability through a simple but powerful idea: rather than training a single model on the original dataset, we construct many perturbed versions of the training set through bootstrap resampling, train a separate predictor on each perturbed dataset, and then combine their predictions by aggregation. The intuition is that each individual predictor is still unstable, but the idiosyncratic errors that arise from the peculiarities of a specific bootstrap sample tend to average out when many such predictors are combined. The result is a more stable ensemble whose generalization error is typically substantially lower than that of any single component.
+
+\paragraph{The Bagging Algorithm.}
+
+Given a training set $(\mathbf{x}_i, y_i)$ for $i = 1, \ldots, n$, bagging proceeds by iterating the following bootstrap-and-fit cycle for $b = 1, \ldots, B$. At each iteration, one draws a bootstrap sample $\{(\mathbf{x}_i^{*(b)}, y_i^{*(b)})\}_{i=1}^n$ by sampling $n$ observations with replacement from the original training data. Because the sampling is done with replacement, some observations will appear multiple times in the bootstrap sample while others will be entirely absent --- on average, each bootstrap sample contains approximately $63.2\%$ of the original observations, with the remaining $36.8\%$ excluded. A predictor $\hat{f}^{*(b)}$ is then trained on this bootstrap replicate exactly as one would train on the original data. After $B$ such cycles, we have a collection of $B$ predictors, each trained on a slightly different version of the data, and the final bagged predictor is obtained by aggregating their outputs.
+
+The form of aggregation naturally depends on the type of prediction task. For classification, the standard approach is majority voting: each predictor casts a vote for a class label, and the bagged prediction is the class that receives the most votes,
+\begin{myequation}
+\hat{y}(\mathbf{x}) = \operatorname{mode}\{\hat{f}^{*(1)}(\mathbf{x}), \ldots, \hat{f}^{*(B)}(\mathbf{x})\}.
+\end{myequation}
+For regression, where predictions are real numbers, the natural aggregation is arithmetic averaging,
+\begin{myequation}
+\hat{y}(\mathbf{x}) = \frac{1}{B} \sum_{b=1}^B \hat{f}^{*(b)}(\mathbf{x}).
+\end{myequation}
+A more refined version of classification aggregation is available when the base learners are capable of outputting class probabilities rather than hard labels. If $\hat{p}_k^{*(b)}(\mathbf{x})$ denotes the estimated probability of class $k$ assigned by the $b$-th predictor, the bagged probability estimate is
+\begin{myequation}
+\hat{p}_k(\mathbf{x}) = \frac{1}{B} \sum_{b=1}^B \hat{p}_k^{*(b)}(\mathbf{x}),
+\end{myequation}
+and one then predicts the class with the highest average probability. This soft-voting approach is generally preferred over hard majority voting when probability estimates are reasonably calibrated, because it retains more information about the confidence of individual classifiers before making a discrete decision.
+
+\medskip
+
+Why does bagging work? The concise answer is that averaging reduces variance, and bootstrap sampling provides the diversity necessary for averaging to be effective. The detailed analysis looks somewhat different in classification and regression, but the underlying principle is the same in both cases: the ensemble is less sensitive to the specific accidents of any single training dataset.
+
+\paragraph{Classification: a ``wisdom of crowds'' argument.}
+
+To build intuition for the classification case, consider a binary problem where the true class at some input $\mathbf{x}$ is $1$. Suppose we have $B$ classifiers that make errors independently, each with misclassification probability $e < 0.5$. Let $B_0$ denote the number of classifiers that incorrectly predict class $0$. Under the independence assumption,
+\begin{myequation}
+B_0 \sim \operatorname{Binomial}(B, e).
+\end{myequation}
+The bagged classifier makes an error precisely when the majority of votes are incorrect, that is, when $B_0 > B/2$. Therefore,
+\begin{myequation}
+P(\text{bagged error}) = P\!\left(B_0 > \frac{B}{2}\right) = \sum_{k=\lceil B/2 \rceil + 1}^{B} \binom{B}{k} e^k (1-e)^{B-k}.
+\end{myequation}
+By the law of large numbers, if $e < 0.5$ this probability converges to $0$ as $B \to \infty$: with enough independent voters who are each individually better than random, the majority decision becomes arbitrarily reliable. The result is striking. For instance, with $e = 0.4$ and $B = 25$ voters, the bagged error rate drops to roughly $0.18$, a substantial improvement over the individual error rate of $0.40$.
+
+This ``wisdom of crowds'' calculation, while idealized, reveals the two requirements for bagging to help in classification: base classifiers must each be better than random ($e < 0.5$), and their errors must be as weakly correlated as possible. The independence assumption is never exactly satisfied in practice, since all bootstrap samples are drawn from the same original dataset and therefore share structure. However, bootstrap sampling introduces enough variability in unstable learners, such as deep trees, to reduce correlation substantially and to make the ensemble materially beneficial even when full independence is absent.
+
+\paragraph{Regression: variance reduction through averaging.}
+
+In the regression setting, the benefit of averaging can be made quantitatively precise through a direct algebraic argument. Let $y_i(\mathbf{x})$ denote the prediction of the $i$-th model and let $h(\mathbf{x})$ be the true target function. Define the prediction error of model $i$ at $\mathbf{x}$ as
+\begin{myequation}
+\varepsilon_i(\mathbf{x}) = y_i(\mathbf{x}) - h(\mathbf{x}).
+\end{myequation}
+The expected squared error of a single model, averaged over the input distribution, is then simply $\mathbb{E}_{\mathbf{x}}[\varepsilon_i(\mathbf{x})^2]$, and the average of these errors across the $B$ ensemble members is
+\begin{myequation}
+E_{\mathrm{av}} = \frac{1}{B} \sum_{i=1}^{B} \mathbb{E}_{\mathbf{x}}[\varepsilon_i(\mathbf{x})^2].
+\end{myequation}
+The committee (bagged) predictor averages the individual predictions, so its expected squared error is
+\begin{myequation}
+E_c = \mathbb{E}_{\mathbf{x}}\!\left[\left(\frac{1}{B} \sum_{i=1}^{B} y_i(\mathbf{x}) - h(\mathbf{x})\right)^2\right] = \mathbb{E}_{\mathbf{x}}\!\left[\left(\frac{1}{B} \sum_{i=1}^{B} \varepsilon_i(\mathbf{x})\right)^2\right].
+\end{myequation}
+Expanding the square gives
+\begin{myequation}
+E_c = \mathbb{E}_{\mathbf{x}}\!\left[\frac{1}{B^2} \sum_{i=1}^{B} \varepsilon_i(\mathbf{x})^2 + \frac{1}{B^2} \sum_{i \neq j} \varepsilon_i(\mathbf{x})\,\varepsilon_j(\mathbf{x})\right].
+\end{myequation}
+In the idealized scenario where errors are uncorrelated across models, meaning $\mathbb{E}_{\mathbf{x}}[\varepsilon_i(\mathbf{x})\,\varepsilon_j(\mathbf{x})] = 0$ for $i \neq j$, all cross-terms vanish and one obtains the idealized variance-reduction formula
+\begin{myequation}
+E_c = \frac{1}{B}\,E_{\mathrm{av}}.
+\end{myequation}
+This is a remarkable result: if the $B$ predictors err independently and with equal average magnitude, then the ensemble error is a factor of $B$ smaller than the error of a typical individual predictor. It is worth pausing to appreciate what this says: by simply averaging, and without any additional modelling effort, we can in principle make the error arbitrarily small by increasing $B$.
+
+In reality, however, bootstrap samples are not independent. Each is drawn with replacement from the same original dataset of size $n$, which means that two different bootstrap samples share a substantial number of observations --- on average, roughly $37\%$ of observations appear in a given bootstrap sample and are absent from it. As a consequence, the predictors trained on overlapping bootstrap samples are themselves correlated in their predictions and in their errors. To quantify this, define the pairwise correlation between the errors of models $i$ and $j$ as
+\begin{myequation}
+\rho_{ij} = \frac{\mathbb{E}_{\mathbf{x}}[\varepsilon_i(\mathbf{x})\,\varepsilon_j(\mathbf{x})]}{\sqrt{\mathbb{E}_{\mathbf{x}}[\varepsilon_i(\mathbf{x})^2]\,\mathbb{E}_{\mathbf{x}}[\varepsilon_j(\mathbf{x})^2]}},
+\end{myequation}
+and let $\rho$ denote the average correlation across all distinct pairs,
+\begin{myequation}
+\rho = \frac{1}{B(B-1)} \sum_{i=1}^{B} \sum_{j \neq i} \rho_{ij}.
+\end{myequation}
+Under the simplifying assumption that all models have the same average squared error and that all pairwise error correlations equal $\rho$, one can show that the committee error takes the form
+\begin{myequation}
+E_c = \rho\,E_{\mathrm{av}} + \frac{1-\rho}{B}\,E_{\mathrm{av}}.
+\end{myequation}
+This decomposition is perhaps the single most important formula for understanding bagging, and it deserves careful interpretation. The second term, $\frac{1-\rho}{B}\,E_{\mathrm{av}}$, is the reducible portion of the ensemble error: it decreases like $1/B$ and vanishes as more trees are added. This is the component that is ``averaged away'' by combining diverse models. The first term, $\rho\,E_{\mathrm{av}}$, is the irreducible portion that persists regardless of how many models are added. It represents the floor below which averaging cannot push the error, simply because all models share correlated mistakes rooted in the structure of the training data. Taking $B \to \infty$, one sees that
+\begin{myequation}
+E_c \;\longrightarrow\; \rho\,E_{\mathrm{av}},
+\end{myequation}
+which makes clear that the long-run quality of a bagged ensemble is determined not by the number of trees, but by the correlation among them. Increasing $B$ is always beneficial up to a point, but once the reducible term is negligible the correlation $\rho$ becomes the binding constraint. This observation motivates the central innovation of random forests: an additional mechanism, acting inside each tree, specifically designed to push $\rho$ lower.
+
+\medskip
+
+Two further observations help situate bagging within the bias--variance picture. First, bagging primarily reduces variance while leaving bias approximately unchanged: the bagged estimator typically has roughly the same bias as an individual base learner but a substantially lower variance. This means that bagging is most effective when the base learner already has low bias --- as deep, unpruned trees typically do --- and its primary defect is high variance. For stable learners such as linear regression under mild conditions, variance is already low, bootstrap-induced perturbations do not create enough diversity, and bagging yields little or no improvement. Second, and as a practical bonus, the bootstrap structure provides a built-in validation mechanism. Because each bootstrap sample leaves out approximately $36.8\%$ of observations, these excluded data points --- the \alert{out-of-bag} set --- can be used to obtain an approximately unbiased estimate of the generalization error without requiring any separate held-out data or the additional computational cost of cross-validation. This out-of-bag error estimate is one of the most practically attractive features of bagging, and it reappears in an even more refined form in random forests.
+
+\subsection*{Random Forests}
+
+Random forests represent one of the most consistently successful and widely used ensemble methods for tabular data. They can be understood as a natural and principled refinement of bagging, obtained by modifying the base procedure in a single but highly consequential way. To see why this modification is necessary, it is helpful to recall what the variance--correlation analysis of bagging tells us: aggregating many predictors only helps to the extent that their errors are not too strongly correlated, and the asymptotic ensemble error is determined entirely by the average pairwise correlation $\rho$. Bagging already reduces $\rho$ compared to training a single tree, because each tree sees a different bootstrap sample. However, if a small number of features are highly predictive of the target, the greedy tree-growing procedure will select those features for the first few splits across nearly all bootstrap replicates, regardless of which specific observations are included. As a result, bagged trees trained on different bootstrap samples can still develop very similar structures near the root and make highly correlated predictions. The correlation $\rho$ remains elevated, and the ensemble error floor $\rho\,E_{\mathrm{av}}$ is correspondingly high.
+
+Random forests address this directly by introducing a second, complementary source of randomness: at every node of every tree, the set of features eligible for splitting is restricted to a randomly drawn subset of size $m \leq p$. This simple constraint forces different trees to explore different regions of the feature space, reduces the tendency of dominant features to monopolize early splits, and substantially decreases the correlation among ensemble members. The result is a more diverse forest whose predictions are both more accurate and more stable than those of a standard bagged ensemble of trees.
+
+\subsubsection*{Random Forests as Enhanced Bagging}
+
+A random forest is, in essence, a bagged ensemble of decision trees with one key modification: when a tree is deciding how to split a node, it does \emph{not} examine all $p$ input features as split candidates. Instead, it examines only a randomly chosen subset of size $m \leq p$, and selects the best split \emph{within that subset} according to the usual splitting criterion.
+
+To appreciate why this matters, recall the difficulty with standard bagging of trees. Even if each tree is trained on a different bootstrap sample, all bootstrap samples are drawn from the same original dataset and therefore look broadly similar. In particular, if one or a few features are substantially more predictive than the rest, the greedy tree-growing algorithm will almost invariably choose those features for the earliest splits, because doing so leads to the largest immediate reduction in impurity or variance. The result is that many bagged trees share very similar structure near the root, generate similar predictions across the input space, and commit correlated errors. In this situation, averaging reduces variance only modestly, because the errors of different trees move together.
+
+By restricting the candidate set at each split to a random subset of $m$ features, random forests inject precisely the kind of diversity that bagging alone cannot guarantee. Even the strongest feature will be absent from the candidate set at a given node with probability $1 - m/p$, giving other, moderately informative features an opportunity to be selected. Different trees will therefore tend to find different ways to partition the feature space, producing an ensemble whose members are genuinely more diverse. It is this decorrelation effect, rather than any improvement in the quality of individual trees, that drives the advantage of random forests over simple bagging.
+
+\subsubsection*{The Random Forest Algorithm}
+
+Suppose we are given a training set $(\mathbf{x}_i, y_i)$ for $i = 1, \ldots, n$, where each $\mathbf{x}_i \in \mathbb{R}^p$ has $p$ features. A random forest is specified by two central design choices: the number of trees $B$ and the number of candidate features $m$ considered at each split. Once these are fixed, the forest is built by iterating the following construction $B$ times.
+
+For each tree index $b \in \{1, \ldots, B\}$, one begins by drawing a bootstrap sample $\{(\mathbf{x}_i^{*(b)}, y_i^{*(b)})\}_{i=1}^n$ from the original training data by sampling $n$ observations with replacement. A decision tree $T_b$ is then grown on this bootstrap sample using the following recursive procedure. At each node, rather than searching for the best split across all $p$ features, one \alert{randomly selects} a subset of $m$ features and considers only those as candidate split variables. The best split within this restricted candidate set is chosen according to the usual criterion: Gini impurity or entropy for classification, and squared-error (variance) reduction for regression. The node is then partitioned according to this split, and the procedure is recursively applied to the resulting child nodes until a stopping criterion is met --- for instance, a minimum node size, a maximum tree depth, or a purity threshold.
+
+A practically important detail is that random forests typically grow each tree to maximum depth, or close to it, \alert{without pruning}. At first glance, this may appear counterproductive: for a single tree, aggressive pruning is usually necessary to prevent overfitting. In an ensemble, however, the logic is reversed. Deep, unpruned trees are high-variance, low-bias predictors, and bagging with random feature selection is specifically designed to neutralize the high variance through averaging. Pruning would reduce the variance of individual trees but would also reduce the diversity across ensemble members, potentially increasing the correlation $\rho$ and thereby raising the irreducible ensemble error. The unpruned tree is therefore a better building block for a random forest precisely because of the property that makes it a poor predictor when used alone.
+
+At the conclusion of training, the random forest is defined by the collection of trees $\{T_1, \ldots, T_B\}$, which together constitute the ensemble predictor.
+
+\subsubsection*{Making Predictions}
+
+Once the forest has been trained, prediction for a new input $\mathbf{x}$ is obtained by aggregating the outputs of the $B$ individual trees, with the form of aggregation depending on the task. In classification, each tree produces a class label $T_b(\mathbf{x})$, and the forest prediction is the class receiving the most votes:
+\begin{myequation}
+\hat{y}(\mathbf{x}) = \operatorname{mode}\{T_1(\mathbf{x}),\, T_2(\mathbf{x}),\, \ldots,\, T_B(\mathbf{x})\}.
+\end{myequation}
+When the trees output class probabilities $\hat{p}_k^{(b)}(\mathbf{x})$ for class $k$, it is generally preferable to average the probability estimates before taking the majority decision:
+\begin{myequation}
+\hat{p}_k(\mathbf{x}) = \frac{1}{B} \sum_{b=1}^B \hat{p}_k^{(b)}(\mathbf{x}),
+\end{myequation}
+and then predict $\hat{y}(\mathbf{x}) = \arg\max_k\, \hat{p}_k(\mathbf{x})$. This soft-voting procedure is preferable because it uses more information: rather than collapsing each tree's output to a single class before combining, it pools the full probability distributions and then makes a decision, which tends to yield better-calibrated and more accurate predictions.
+
+In regression, the forest prediction is simply the average of the individual tree predictions:
+\begin{myequation}
+\hat{y}(\mathbf{x}) = \frac{1}{B} \sum_{b=1}^B T_b(\mathbf{x}).
+\end{myequation}
+In both settings, the aggregation step plays the same conceptual role: by combining many diverse and partially independent predictions, it smooths out idiosyncratic errors and produces a more stable, lower-variance estimate than any single tree could provide.
+
+\subsubsection*{The Choice of $m$}
+
+The parameter $m$, the number of features randomly selected as split candidates at each node, is the key tuning parameter of a random forest and governs a fundamental trade-off between individual-tree quality and ensemble diversity. Understanding this trade-off is essential for using random forests effectively.
+
+When $m = p$, every split has access to all features, and the procedure reduces exactly to standard bagging of trees. In this regime, trees are as informative as possible individually, but if strong predictors exist they will dominate the early splits of nearly every tree, keeping correlation high and limiting the benefit of aggregation. At the other extreme, $m = 1$ forces each node to split on a single randomly chosen feature, maximally decorrelating the trees but also seriously impairing the quality of individual trees: important features may be unavailable at critical splits, especially near the root, where poor partitioning decisions have cascading effects on the entire subtree.
+
+Intermediate values of $m$ strike a balance between these extremes, and in practice they consistently perform best. Widely used defaults are $m = \lfloor \sqrt{p} \rfloor$ for classification and $m = \lfloor p/3 \rfloor$ for regression, guidelines supported both by theoretical reasoning and by extensive empirical experience. These defaults often provide strong performance without further tuning, but $m$ should nevertheless be treated as a genuine hyperparameter to be optimized: the optimal choice depends on how many features are truly informative, how strong the dominant predictors are, and the noise level in the target. In problems where many features are informative and roughly equally so, smaller values of $m$ are more appropriate because they create more diversity without sacrificing too much information per split. When the signal is concentrated in a very small number of features, larger $m$ may be preferable to ensure those features are regularly accessible.
+
+\subsubsection*{Why Random Forests Outperform Simple Bagging}
+
+The advantage of random forests over plain bagged trees can be explained directly and precisely using the variance--correlation decomposition introduced earlier. Recall that the expected ensemble error for a regression problem satisfies
+\begin{myequation}
+E_c = \rho\,E_{\mathrm{av}} + \frac{1-\rho}{B}\,E_{\mathrm{av}},
+\end{myequation}
+where $E_{\mathrm{av}}$ is the average error of an individual tree and $\rho$ is the average pairwise correlation between the trees' errors. This expression cleanly separates the two levers available for improving ensemble performance. Increasing $B$ reduces only the second term, which decays to zero as $B \to \infty$; the first term, $\rho\,E_{\mathrm{av}}$, persists regardless of how many trees are used and represents the absolute lower bound on ensemble error that can be achieved by adding more trees. Improving $E_{\mathrm{av}}$ --- the quality of each individual tree --- reduces both terms proportionally, but may conflict with the goal of diversity. Random forests are designed primarily to reduce $\rho$ through feature randomization, and this is where their decisive advantage over bagging lies.
+
+Feature randomization achieves decorrelation in a concrete and interpretable way. In a standard bagged forest, a globally dominant feature will be selected for the root split of nearly every tree, regardless of which bootstrap sample was used, simply because it yields the greatest immediate reduction in impurity across any reasonable subset of the data. By constraining each node to see only $m < p$ features, random forests ensure that this dominant feature is available only with probability roughly $m/p$ at any given node. Over many trees, this forces the ensemble to rely on a broader range of features, with different trees developing qualitatively different splitting structures and partitioning the feature space in complementary ways. The correlations among tree predictions decrease, $\rho$ decreases, and the asymptotic ensemble error $\rho\,E_{\mathrm{av}}$ decreases accordingly. In many practical problems, especially high-dimensional ones where multiple moderately informative features exist, this decorrelation effect is the dominant source of the improvement of random forests over bagging.
+
+The asymptotic analysis is particularly illuminating. As $B \to \infty$, the reducible term $\frac{1-\rho}{B}\,E_{\mathrm{av}}$ vanishes, and the ensemble error converges to $\rho\,E_{\mathrm{av}}$. This limit is lower for a random forest than for a bagged ensemble because random forests achieve a smaller $\rho$, even though the individual trees in a random forest may have slightly higher $E_{\mathrm{av}}$ (since they make suboptimal splits due to the restricted candidate set). The net effect is favorable: the gain from lower correlation more than compensates for the loss in individual tree quality, provided $m$ is chosen appropriately.
+
+\subsubsection*{Additional Properties and Advantages}
+
+Beyond their predictive accuracy, random forests are attractive in applied settings because they come with several practical benefits that emerge naturally from the bootstrap-and-aggregate construction, without requiring additional computation or modelling choices.
+
+A first benefit is \alert{out-of-bag (OOB) error estimation}. Because each tree $T_b$ is trained on a bootstrap sample that excludes approximately $36.8\%$ of observations, we can, for any given observation $(\mathbf{x}_i, y_i)$, identify the subset of trees for which $i$ was out-of-bag and aggregate only their predictions. Comparing this aggregated prediction against the true label $y_i$, and repeating this for all $i$, yields an OOB error estimate that is approximately equivalent to leave-one-out or $k$-fold cross-validation error, but requires no additional model fitting. This is a significant computational saving in large-scale applications.
+
+A second useful feature is that random forests provide informative \alert{variable importance measures}. One widely used approach, sometimes called mean decrease in impurity, measures how much each feature contributes to reducing the splitting criterion (Gini impurity, entropy, or MSE) when it is used as a split variable, accumulated and averaged across all nodes and all trees in the forest. Intuitively, features that lead to larger reductions in impurity more often and more consistently are judged to be more important. A second and complementary approach is permutation importance: for each feature in turn, one permutes its values in the out-of-bag data --- thereby destroying any predictive relationship between that feature and the target --- and measures the resulting decrease in OOB predictive accuracy. A large drop in accuracy signals that the feature carries genuine predictive information that the forest is exploiting; a small drop suggests the feature contributes little. Both importance measures aim to rank features by their relevance to the prediction task, but they do so from different operational perspectives and can in principle give different orderings, particularly when features are correlated with one another.
+
+Random forests also tend to be \alert{robust to outliers and noise}. Individual deep trees may overfit in different ways to noise in their respective bootstrap samples, but because these overfitting patterns are idiosyncratic and approximately independent, they largely cancel in the ensemble average. Moreover, because each split examines only a random subset of features, irrelevant or noisy features have reduced influence: their chances of being selected at any given node are limited, and even when they are selected, they will tend to produce uninformative splits that contribute little variation to the final predictions. In a loose but useful sense, the random selection of features at each split acts as an implicit form of feature selection, with informative features appearing and being chosen more consistently across the ensemble.
+
+Finally, random forests are computationally convenient. All $B$ trees can be grown independently and in parallel, since the construction of one tree does not depend on the results of any other. The training procedure is therefore naturally parallelizable and well suited to modern multi-core hardware. Moreover, in many applications the default settings --- a sufficiently large $B$ and the standard rules of thumb for $m$ --- already deliver strong performance, meaning that random forests often require substantially less careful tuning than single decision trees.
+
+\subsubsection*{Limitations}
+
+Despite their many strengths, random forests have real limitations that are important to bear in mind, particularly when choosing between methods or interpreting results.
+
+The most significant practical limitation concerns \alert{interpretability}. A single decision tree, even a moderately deep one, yields an explicit and human-readable set of decision rules: one can trace the path from root to leaf for any input, inspect which features were used and at what thresholds, and understand intuitively why a particular prediction was made. A random forest, by contrast, is the aggregate output of hundreds or thousands of such trees, and no single tree is representative of the whole. Variable importance measures and partial dependence plots can offer partial insight into which features matter and how their relationship with the target behaves on average, but these summaries necessarily discard much of the complexity of the ensemble. The random forest remains largely a ``black box'' compared to a single tree, and in applications where interpretability or regulatory transparency is paramount, this opacity can be a serious limitation.
+
+A second limitation is computational cost at inference time and in terms of memory. Storing $B$ trees requires memory proportional to $B$ and to the size of each tree, which can be substantial for large forests of deep trees. Making predictions requires evaluating each tree in turn (or in parallel if hardware permits), which may be unacceptable in latency-sensitive applications. In practice, one often finds a rapid saturation of accuracy gains as $B$ increases, suggesting that using a moderately sized forest (a few hundred trees) rather than a very large one provides most of the benefit at a fraction of the cost; but the fundamental trade-off between ensemble size and prediction speed remains.
+
+Finally, random forests in regression inherit a fundamental structural limitation of all tree-based predictors: they are \alert{unable to extrapolate} beyond the range of training outputs. Because each tree prediction is a piecewise constant function, obtained by averaging target values within leaves, and because the forest averages these piecewise constants, the ensemble prediction must always lie within the convex hull of observed training targets. If the true function grows beyond the maximum training value, or falls below the minimum, the random forest will systematically underpredict or overpredict, respectively. This is rarely a concern in interpolation-focused settings where future inputs are similar in distribution to the training data, but it is a fundamental obstacle in problems where extrapolation is necessary, such as forecasting far beyond the historical range or applying a model trained in one regime to a qualitatively different operating condition.
+
+\section*{Boosting}
+
+Boosting represents a fundamentally different approach to ensemble learning compared to bagging and random forests. In bagging, we deliberately generate many \emph{independent} models --- typically by training the same learner on different bootstrap replicas of the data --- and combine their predictions by averaging or majority voting. This strategy is primarily aimed at reducing \emph{variance}: if each individual model is unstable, averaging many of them tends to cancel out fluctuations and produce a more reliable predictor. The base learners in a bagged ensemble are constructed in parallel, each unaware of the others, and their combination is simple and symmetric.
+
+Boosting, instead, is built around a different guiding principle entirely. Rather than training models independently and hoping their errors cancel out, we train models \alert{sequentially}, forcing each new model to confront the specific weaknesses of the current ensemble. The resulting procedure is adaptive and self-correcting: the ensemble is grown stage by stage, and at each stage the algorithm modifies the learning problem so that the next weak learner focuses its attention on the examples that the current ensemble is handling poorly. This sequential dependence is the defining characteristic of boosting, and it is precisely what allows boosting to reduce not only variance but often also \emph{bias} --- a regime where bagging typically offers little improvement. The practical consequence is that boosting can yield large performance gains even when individual base learners are extremely simple, and it is among the most effective general-purpose supervised learning methods available today.
+
+\subsubsection*{The Core Philosophy of Boosting}
+
+At the heart of boosting lies an idea that is simple to state but surprisingly powerful when developed carefully. We begin with the notion of a \alert{weak learner}. In binary classification, a weak learner is any classifier whose error rate is only marginally better than random guessing. If labels are in $\{-1, +1\}$ and a purely random classifier achieves accuracy $50\%$, then a weak learner is one that can consistently achieve accuracy just slightly above $50\%$ on any weighted training distribution presented to it. On its own, such a learner is not impressive: its decision boundary may be crude and its predictions individually unreliable. But the central insight of boosting is that \emph{many} such learners, combined in the right way, can produce a \alert{strong learner} with arbitrarily small training error and, in many cases, excellent generalization to unseen data.
+
+Formally, boosting constructs a sequence of weak classifiers $y_m(\mathbf{x})$ for $m = 1, \ldots, M$ and combines them through a weighted sum,
+\begin{myequation}
+f(\mathbf{x}) = \sum_{m=1}^{M} \alpha_m\, y_m(\mathbf{x}),
+\end{myequation}
+leading to the final classification rule
+\begin{myequation}
+\hat{y}(\mathbf{x}) = \mathrm{sign}(f(\mathbf{x})) = \mathrm{sign}\!\left(\sum_{m=1}^{M} \alpha_m\, y_m(\mathbf{x})\right).
+\end{myequation}
+The coefficients $\alpha_m > 0$ are not chosen arbitrarily: they are computed by the boosting algorithm and are intended to reflect the reliability of each corresponding weak learner. A weak learner that performs better than others should be trusted more and should therefore carry a larger weight in the final vote. In this sense, boosting implements not just a majority vote, but a \emph{confidence-weighted} vote in which different components contribute unequally to the final decision, with the contribution of each calibrated to its empirical accuracy.
+
+A useful way to interpret $f(\mathbf{x})$ is as a real-valued \emph{score function}. Even though each individual $y_m(\mathbf{x})$ outputs only $\pm 1$, the weighted sum can take many real values. Large positive values correspond to confident predictions of class $+1$, while large negative values correspond to confident predictions of class $-1$, and values near zero indicate uncertainty. This score-based view becomes important when discussing why boosting tends to improve not just accuracy but also the \emph{margin} of the resulting classifier, which in turn helps explain its generalization behavior.
+
+\subsubsection*{Key Differences from Bagging}
+
+Because both bagging and boosting construct ensembles of base learners, it is tempting to view them as variations on the same theme. Yet their internal logic is quite different, and understanding the contrast clarifies what boosting is really doing and why it is suited to different problems.
+
+In bagging, each model is trained independently on a bootstrap sample, and the combination rule is simple averaging or unweighted voting. Diversity among models arises from the randomness of the bootstrap: since each sample omits some points and repeats others, the individual predictors differ, and averaging reduces their fluctuations. This is why bagging is most effective with high-variance learners such as deep decision trees, where individual predictions are unstable but unbiased.
+
+Boosting deliberately introduces dependence between learners. The $m$-th learner is generally \emph{not} trained on the same distribution as the $(m-1)$-th: instead, the algorithm adaptively modifies the training emphasis so that the new learner sees a harder problem, specifically one in which the previously misclassified examples receive greater attention. This produces diversity not through random resampling but through specialization: successive learners focus on different regions of the input space, complementing rather than duplicating each other. As a consequence, boosting is often most effective with weak learners that have relatively low variance but high bias, such as shallow trees or decision stumps. These learners are simple enough that sequential corrections make sense, yet their limited complexity means the ensemble must build up representational power gradually, stage by stage.
+
+This different mechanism also has implications for overfitting. Bagging is generally quite resistant to overfitting because averaging smooths the predictor and the bootstrap does not systematically amplify any particular training examples. Boosting, by contrast, can overfit if run for too many stages or if the weak learners are too expressive, because the algorithm may continue refining its decision boundary to accommodate noise. For this reason, practical boosting implementations are typically paired with regularization mechanisms such as shrinkage (a small learning rate that scales down each additive step), early stopping, subsampling of training examples, or constraints on the complexity of weak learners. These techniques preserve the core strength of boosting while mitigating its tendency to chase irreducible noise.
+
+\subsubsection*{The Adaptive Reweighting Mechanism}
+
+The sequential nature of boosting is realized through an \alert{adaptive reweighting} mechanism that lies at the heart of the algorithm. Rather than treating all training points equally at every stage, boosting maintains an explicit weight distribution over the dataset, which evolves as the ensemble grows. Initially, all points are assigned equal weight, reflecting the prior belief that we have no reason to favor any particular example over another.
+
+After the first weak learner is trained, the algorithm evaluates which points it classifies correctly and which it does not. The decisive step is then to increase the weights of misclassified points and decrease the weights of correctly classified ones. The magnitude and precise form of these changes depend on the specific boosting algorithm, but the qualitative effect is always the same: the next weak learner is trained on a distribution in which the previously difficult examples carry more weight and therefore exert a stronger influence on the learner's optimization. Stage after stage, the algorithm focuses progressively more on the observations that the ensemble has so far failed to handle correctly, pushing the decision boundary to become more refined and accurate in those regions.
+
+This mechanism can also be understood geometrically. Each weak learner contributes a simple decision rule, but by reweighting the data, boosting encourages successive learners to make targeted corrections in specific problematic regions of the input space. The ensemble is therefore built by superimposing many such corrections, each addressing a different residual failure of the current model, until the overall decision function is complex and accurate enough to cover the training distribution well.
+
+\subsubsection*{Major Boosting Algorithms}
+
+Many boosting algorithms have been proposed over the years, differing mainly in how they modify the emphasis on data points and how they compute the combination weights $\alpha_m$. Among them, AdaBoost (Adaptive Boosting) holds a central historical position and remains the most conceptually transparent, because it realizes the adaptive reweighting principle in its purest and most explicit form. We will treat AdaBoost in detail, both as a standalone algorithm and as a special case of a more general framework --- forward stagewise additive modeling --- which also motivates gradient boosting and other modern variants.
+
+\subsubsection*{AdaBoost (Adaptive Boosting)}
+
+AdaBoost is designed for binary classification, with labels $t_i \in \{-1, 1\}$. Given a training dataset $(\mathbf{X}, \mathbf{t})$ of size $n$, AdaBoost maintains a set of nonnegative weights $w^{(j)} = (w_1^{(j)}, \ldots, w_n^{(j)})$ that can be normalized to define a probability distribution over training points. At the very beginning, all points are treated as equally important:
+\begin{myequation}
+w_i^{(0)} = \frac{1}{n}, \qquad i = 1, \ldots, n.
+\end{myequation}
+The algorithm then proceeds for $j = 1, \ldots, m$ stages. At each stage, it trains a weak learner $y_j(\mathbf{x})$ by minimizing the \emph{weighted} misclassification error with respect to the current weight distribution $w^{(j)}$.
+
+\centerline{\includegraphics[width=.4\linewidth]{Figure14-1.pdf}}
+
+To measure the performance of the $j$-th weak learner under the current distribution, we define its weighted error as
+\begin{myequation}
+\pi^{(j)} = \frac{\sum_{\mathbf{x}_i \in \mathcal{E}^{(j)}} w_i^{(j)}}{\sum_i w_i^{(j)}},
+\end{myequation}
+where $\mathcal{E}^{(j)}$ denotes the set of training points misclassified by $y_j(\mathbf{x})$. This quantity has a clean probabilistic interpretation: if we draw an index $i$ at random with probability proportional to $w_i^{(j)}$, then $\pi^{(j)}$ is the probability that the drawn point is misclassified by $y_j$. In other words, $\pi^{(j)}$ measures the error of $y_j$ under the \emph{current} emphasis distribution, rather than under the uniform distribution. It therefore reflects how well the learner addresses precisely those examples that the algorithm currently considers most important.
+
+If $\pi^{(j)} > 1/2$, then $y_j$ is performing worse than random guessing under the current distribution. In this case, the reverse learner --- which simply flips all predictions --- would achieve weighted error $1 - \pi^{(j)} < 1/2$. This observation guarantees that, without loss of generality, we can always assume the weak learner is at least marginally better than random under the current weights, simply by flipping its predictions if necessary.
+
+Once $\pi^{(j)}$ is computed, AdaBoost assigns a confidence weight to the learner via the log-odds formula
+\begin{myequation}
+\alpha_j = \frac{1}{2} \log \frac{1 - \pi^{(j)}}{\pi^{(j)}} > 0.
+\end{myequation}
+This formula encodes the reliability of the learner in a smooth and monotonic way. If $\pi^{(j)}$ is small --- meaning the learner is highly accurate under the current distribution --- then the ratio $(1 - \pi^{(j)})/\pi^{(j)}$ is large and $\alpha_j$ is correspondingly large, so this learner receives a strong vote in the ensemble. Conversely, if $\pi^{(j)}$ is close to $1/2$, meaning the learner barely outperforms random guessing, then $\alpha_j$ approaches zero and the learner contributes almost nothing to the final prediction. The log-odds form is not arbitrary: as we will see, it emerges naturally from an underlying optimization problem.
+
+The weights on the data points are then updated according to
+\begin{myequation}
+w_i^{(j+1)} = w_i^{(j)}\, e^{-\alpha_j\, t_i\, y_j(\mathbf{x}_i)}.
+\end{myequation}
+Because $t_i y_j(\mathbf{x}_i) = +1$ if point $i$ is correctly classified and $-1$ if it is misclassified, this update has the explicit effect
+\begin{myequation}
+w_i^{(j+1)} =
+\begin{cases}
+w_i^{(j)}\, e^{\alpha_j} > w_i^{(j)} & \text{if } \mathbf{x}_i \in \mathcal{E}^{(j)}, \\[4pt]
+w_i^{(j)}\, e^{-\alpha_j} < w_i^{(j)} & \text{otherwise.}
+\end{cases}
+\end{myequation}
+Misclassified points are amplified by a multiplicative factor $e^{\alpha_j}$, while correctly classified points are discounted by $e^{-\alpha_j}$. Crucially, the magnitude of this change is governed by $\alpha_j$: a more confident learner (large $\alpha_j$) causes a more aggressive redistribution of weight, making its mistakes especially important for the next stage. This captures the adaptive logic of the algorithm in a precise way: errors made by stronger learners are penalized more heavily, because a strong learner should not be making these mistakes, and therefore the algorithm infers that those points must be genuinely difficult. After each stage, the weights are renormalized to sum to one, maintaining the interpretation of $w^{(j)}$ as a probability distribution.
+
+After $m$ iterations, the final prediction is obtained by the confidence-weighted vote
+\begin{myequation}
+y(\mathbf{x}) = \mathrm{sgn}\!\left(\sum_{j=1}^m \alpha_j\, y_j(\mathbf{x})\right).
+\end{myequation}
+Each $y_j(\mathbf{x}) \in \{-1, 1\}$ contributes a signed vote, scaled by the reliability weight $\alpha_j$. The sign of the overall sum determines the predicted class, while its magnitude can be interpreted as a confidence score.
+
+\subsubsection*{Why Does It Work?}
+
+A first explanation for the effectiveness of AdaBoost comes directly from inspecting the mechanics of the algorithm. The confidence weight $\alpha_j$ is inversely related to the weighted error $\pi^{(j)}$: more accurate learners receive larger influence in the ensemble. Meanwhile, the update rule concentrates weight on the points that current learners find difficult, in proportion to the confidence of those learners. This combination ensures that each successive learner is targeted toward the most consequential remaining errors.
+
+One can make the cumulative effect of this reweighting explicit. After several iterations, the weight of a training point $\mathbf{x}_i$ at stage $t$ is proportional to the product of factors contributed by all previous learners that misclassify it:
+\begin{myequation}
+w_i^{(t)} = \frac{1}{n} \prod_{j \in \mathcal{B}_i} \frac{1 - e^{(j)}}{e^{(j)}},
+\end{myequation}
+where $\mathcal{B}_i$ is the set of indices of those weak learners that misclassify $\mathbf{x}_i$. Since $1 - e^{(j)} > e^{(j)}$ for any learner better than random, each misclassifying stage multiplies the weight of that example by a factor greater than one, while stages that classify it correctly reduce its weight. The qualitative implication is clear: points that are consistently misclassified by the sequence of learners accumulate ever-larger weights and come to dominate the objective of later stages. Points that are classified correctly early on gradually recede in importance, leaving the algorithm free to concentrate its capacity elsewhere.
+
+This produces a coherent learning dynamic across the stages: each successive classifier is forced to focus on those training observations that previous classifiers have repeatedly failed to handle, so the ensemble gradually allocates more modeling effort to stubborn errors. In many problems, the hard points are precisely those lying near the true decision boundary, where classification is intrinsically uncertain. For this reason, boosting often ends up improving the \emph{margin} of the final classifier: not only does it classify training points correctly, but it tends to push many of those points farther from the decision boundary, making predictions more confident and often more robust.
+
+\centerline{\includegraphics[width=.3\linewidth]{adaboost1.png}}
+
+\centerline{\includegraphics[width=.3\linewidth]{adaboost2.png}}
+
+\centerline{\includegraphics[width=.3\linewidth]{adaboost3.png}}
+
+\medskip
+\centerline{\includegraphics[width=.5\linewidth]{adaboost4.png}}
+
+The figures above provide a geometric illustration of this process. Early weak learners produce coarse separators that inevitably misclassify certain regions of the input space; the reweighting then forces subsequent learners to focus precisely on these problematic areas, yielding progressively more refined boundaries. The final ensemble, being the weighted superposition of all such incremental corrections, can represent a highly nonlinear decision function even though each individual component learner remains simple.
+
+At the same time, the very mechanism that makes boosting powerful also explains why regularization is important. If the training data contain label noise or outliers --- points whose true label is inconsistent with the surrounding data --- boosting may repeatedly focus on them because they are persistently misclassified, eventually assigning them very large weights and distorting the decision boundary in their vicinity. Left unchecked, this can lead to overfitting. Practical implementations of boosting therefore typically incorporate mechanisms such as early stopping, shrinkage (a small multiplicative learning rate applied to $\alpha_j$ at each step), or constraints on the depth of weak learners. These techniques preserve the key strength of boosting while mitigating its tendency to chase noise.
+
+In summary, boosting transforms a sequence of weak learners into a strong predictor through a sequential process that repeatedly shifts attention toward difficult examples. The combination of confidence-weighted voting and adaptive reweighting provides both an intuitive account and a mathematically grounded explanation for why boosting consistently achieves excellent performance across a wide range of learning tasks.
+
+\subsection*{Additive Models}
+
+The preceding discussion of boosting was largely procedural: we described the algorithm's mechanics and gave an informal justification for why they work. To understand boosting at a deeper level, and to see how it connects to a broader family of methods, it is useful to step back and consider the abstract framework of \emph{additive models}. This framework provides a unifying perspective for a large class of learning algorithms in which a complex predictor is built by summing many simple components, and it will allow us to derive the AdaBoost algorithm from first principles as the solution to a specific optimization problem.
+
+The appeal of additive models is twofold. Each individual component can be chosen to be computationally cheap, easy to optimize, and simple enough to be interpretable on its own. Yet the sum of many such components can approximate highly nonlinear functions of arbitrary complexity, provided the components are chosen wisely. This ``many simple pieces make one strong model'' philosophy is exactly the conceptual bridge connecting additive modeling to boosting: boosting is, as we shall see, a particular strategy for fitting an additive model greedily, one component at a time.
+
+\medskip
+\noindent\textbf{Definition.} An additive model is defined as the weighted sum of simple ``base'' predictors $h_j$:
+\begin{myequation}
+y(\mathbf{x}) = \sum_{j=1}^m \alpha_j\, h_j(\mathbf{x}),
+\end{myequation}
+where, for each $j$, $\alpha_j$ is a real-valued weight and $h_j(\mathbf{x}) = h(\mathbf{x}; \mathbf{w}_j) \in \mathbb{R}$ is a simple function of the input $\mathbf{x}$ parameterized by $\mathbf{w}_j \in \mathbb{R}^p$, for a fixed $p$. The parameters $\mathbf{w}_j$ determine the functional form of the $j$-th base predictor, while $\alpha_j$ controls how strongly that predictor contributes to the overall output. In the context of boosting for binary classification, we typically choose base predictors to be binary weak classifiers, so that
+\begin{myequation}
+h_j(\mathbf{x}) \in \{-1, 1\}.
+\end{myequation}
+Even if each $h_j$ can only output $\pm 1$, their weighted sum $y(\mathbf{x})$ is real-valued and naturally interpreted as a \emph{score}: the sign of $y(\mathbf{x})$ yields the predicted label, while its magnitude reflects the confidence of that prediction. This score-based interpretation is important: it means that the additive model does not just produce a class label but a graded measure of certainty, which will be relevant when we discuss margins and generalization.
+
+\subsubsection*{Empirical Risk Minimization for Additive Models}
+
+As in all supervised learning, additive models are fit by minimizing a loss function over the training data. Given a training set $\{(\mathbf{x}_i, t_i)\}_{i=1}^n$, we seek weights $\alpha_j$ and parameters $\mathbf{w}_j$ that minimize the empirical risk:
+\begin{myequation}
+\min_{\boldsymbol{\alpha},\,\mathbf{W}}\; \sum_{i=1}^n L\!\left(t_i,\, y(\mathbf{x}_i)\right)
+= \min_{\boldsymbol{\alpha},\,\mathbf{W}}\; \sum_{i=1}^n L\!\left(t_i,\, \sum_{j=1}^m \alpha_j\, h(\mathbf{x}_i; \mathbf{w}_j)\right),
+\end{myequation}
+where $\boldsymbol{\alpha} = \{\alpha_1, \ldots, \alpha_m\}$ and $\mathbf{W} = \bigcup_{j=1}^m \mathbf{w}_j$.
+
+This objective is conceptually straightforward but often computationally challenging. The difficulty is not merely the number of parameters: it is that the parameters appear inside a nested structure, in which the loss is evaluated on a \emph{sum} of base predictors, each of which may itself depend nonlinearly on its parameters $\mathbf{w}_j$. For many choices of loss function $L$ and many families of base predictors $h$ --- including both the exponential loss used in AdaBoost and the decision-tree base learners used in practice --- joint optimization over all $\alpha_j$ and all $\mathbf{w}_j$ simultaneously is either non-convex, computationally infeasible, or both. This difficulty motivates a principled approximation strategy: rather than optimizing the entire model at once, we build it incrementally, adding one component at a time in a greedy fashion.
+
+\subsubsection*{Forward Stagewise Additive Modeling}
+
+The key algorithmic idea that makes additive models tractable is to \emph{build the model one term at a time}, fixing all previously added components and optimizing only the next one. This strategy is known as \alert{forward stagewise additive modeling}, and it converts the intractable joint optimization into a sequence of simpler subproblems, each involving only a single base learner and its associated weight.
+
+Concretely, we start from the null model $y_0(\mathbf{x}) = 0$, and then for $k = 1, \ldots, m$ we choose the next pair $(\alpha_k, \mathbf{w}_k)$ by solving the stagewise optimization problem
+\begin{myequation}
+(\hat{\alpha}_k, \hat{\mathbf{w}}_k) = \operatorname*{arg\,min}_{\alpha_k,\, \mathbf{w}_k}\; \sum_{i=1}^n L\!\left(t_i,\; y_{k-1}(\mathbf{x}_i) + \alpha_k\, h(\mathbf{x}_i; \mathbf{w}_k)\right),
+\end{myequation}
+and then update the model as
+\begin{myequation}
+y_k(\mathbf{x}) = y_{k-1}(\mathbf{x}) + \hat{\alpha}_k\, h(\mathbf{x}; \hat{\mathbf{w}}_k).
+\end{myequation}
+This scheme embodies a \alert{greedy paradigm}: at each step, we make the best local improvement available within the chosen family of base predictors, without revisiting or modifying earlier choices. Although greedy strategies do not in general find global optima of the original joint objective, they are highly effective for additive modeling because each new learner can be interpreted as a targeted \emph{correction} to the current model: it is chosen precisely to reduce what the current ensemble is still getting wrong. The accumulated effect of many such corrections can approximate the global optimum closely in practice.
+
+\medskip
+\noindent\textbf{From stagewise fitting to boosting.} If the base predictors are weak classifiers, then at any intermediate stage $k-1$, the model $y_{k-1}$ will perform well on some training points and poorly on others. Stagewise fitting naturally concentrates effort on the poorly handled points, because those points contribute more to the loss and therefore exert more influence on the next optimization step. This is precisely the adaptive mechanism that characterizes boosting. In AdaBoost, this concentration manifests through explicit \emph{reweighting} of training examples, while in gradient boosting it manifests through the computation of \emph{pseudo-residuals} --- the negative gradient of the loss with respect to the current ensemble's predictions. In both cases, the algorithm identifies the shortcomings of the current model and directs the next learner to address them.
+
+\subsubsection*{AdaBoost as an Additive Model}
+
+One of the most important consequences of the additive-model viewpoint is that AdaBoost can be rigorously derived as forward stagewise minimization of a specific loss function: the \alert{exponential loss},
+\begin{myequation}
+L(t, y(\mathbf{x})) = e^{-t\, y(\mathbf{x})}.
+\end{myequation}
+Under the additive expansion $y(\mathbf{x}) = \sum_{k=1}^m \alpha_k\, h(\mathbf{x}; \mathbf{w}_k)$, minimizing the total exponential loss over the training set amounts to solving
+\begin{myequation}
+\min_{\mathbf{w}_1, \ldots, \mathbf{w}_m,\, \alpha_1, \ldots, \alpha_m}\; \sum_{i=1}^n \exp\!\left(-t_i \sum_{k=1}^m \alpha_k\, h(\mathbf{x}_i; \mathbf{w}_k)\right).
+\end{myequation}
+This is a conceptually powerful statement. AdaBoost is often introduced through its algorithmic steps --- update weights, fit the next classifier, compute $\alpha_k$, repeat --- which can appear as a collection of separate heuristics. The expression above shows that this procedure is not arbitrary: every step emerges naturally from minimizing a single well-defined objective. The exponential loss is especially sensitive to negative margins $t\, y(\mathbf{x})$: when a point is misclassified, the product $t\, y(\mathbf{x})$ is negative and the loss $e^{-t\, y(\mathbf{x})}$ grows rapidly, causing that point to dominate the objective. This mathematical property is the formal counterpart of the intuitive description that AdaBoost ``focuses on hard examples.''
+
+\medskip
+In the AdaBoost setting, $p = n$: the number of parameters in each base function $h(\mathbf{x}, \mathbf{w})$ equals the number of training examples, so $\mathbf{w}_k = (w_{k1}, \ldots, w_{kn})$ for all $k$.
+
+\subsubsection*{Stagewise Optimization under Exponential Loss and the Emergence of Weights}
+
+Let us now carry out the forward stagewise optimization under the exponential loss explicitly, as doing so will reveal how the AdaBoost weight update arises directly from the optimization structure. At stage $k$, we hold the model $y_{k-1}$ fixed and optimize over $\alpha_k$ and $\mathbf{w}_k$ only. The stagewise objective is
+\begin{myequation}
+\begin{aligned}
+(\hat{\alpha}_k, \hat{\mathbf{w}}_k)
+&= \operatorname*{arg\,min}_{\alpha_k,\, \mathbf{w}_k}\; \sum_{i=1}^n e^{-t_i\, y(\mathbf{x}_i)} \\
+&= \operatorname*{arg\,min}_{\alpha_k,\, \mathbf{w}_k}\; \sum_{i=1}^n e^{-t_i\left(y_{k-1}(\mathbf{x}_i) + \alpha_k\, h(\mathbf{x}_i;\, \mathbf{w}_k)\right)} \\
+&= \operatorname*{arg\,min}_{\alpha_k,\, \mathbf{w}_k}\; \sum_{i=1}^n w_i^{(k)}\, e^{-\alpha_k\, t_i\, h(\mathbf{x}_i;\, \mathbf{w}_k)},
+\end{aligned}
+\end{myequation}
+where we have defined the \emph{current example weights}
+\begin{myequation}
+w_i^{(k)} = e^{-t_i\, y_{k-1}(\mathbf{x}_i)} = \exp\!\left(-\frac{1}{2}\, t_i \sum_{r=1}^{k-1} \alpha_r\, h(\mathbf{x}_i; \mathbf{w}_r)\right).
+\end{myequation}
+A crucial observation is that $w_i^{(k)}$ depends only on the ensemble built through stage $k-1$, and is therefore a constant with respect to the variables $(\alpha_k, \mathbf{w}_k)$ currently being optimized. This is precisely how example weights arise naturally from the stagewise decomposition: they are not introduced by hand as a heuristic, but appear as a direct mathematical consequence of optimizing exponential loss greedily. Moreover, since $y_{k-1}$ is updated at each stage, the weights evolve over time through the sequence $w_i^{(0)}, w_i^{(1)}, w_i^{(2)}, \ldots$, and the training distribution presented to each successive weak learner is therefore adaptively modified in a way determined entirely by the previous ensemble.
+
+\subsubsection*{Finding the Next Learner and Its Associated Weighted Error}
+
+To solve the stagewise problem, it is useful to decompose the objective by separating correctly classified from misclassified points. Let
+\begin{myequation}
+\mathcal{E}^{(k)} = \{\mathbf{x}_i : t_i\, h(\mathbf{x}_i; \mathbf{w}_k) = -1\}
+\end{myequation}
+be the set of training points misclassified by $h_k(\mathbf{x}) = h(\mathbf{x}; \mathbf{w}_k)$. Since $t_i h(\mathbf{x}_i; \mathbf{w}_k) = +1$ for correctly classified points and $-1$ for misclassified ones, the weighted exponential objective decomposes as
+\begin{myequation}
+\sum_{i=1}^n w_i^{(k)}\, e^{-\alpha_k\, t_i\, h(\mathbf{x}_i;\, \mathbf{w}_k)}
+= \sum_{\mathbf{x}_i \in \mathcal{E}^{(k)}} w_i^{(k)}\, e^{\alpha_k}
++ \sum_{\mathbf{x}_i \notin \mathcal{E}^{(k)}} w_i^{(k)}\, e^{-\alpha_k}.
+\end{myequation}
+This decomposition highlights a key structural fact: for a fixed $\alpha_k$, the dependence on $\mathbf{w}_k$ enters only through the set $\mathcal{E}^{(k)}$, that is, through which points the weak learner misclassifies. To isolate this dependence further, we add and subtract the term $\sum_{\mathbf{x}_i \in \mathcal{E}^{(k)}} w_i^{(k)}\, e^{-\alpha_k}$, obtaining
+\begin{myequation}
+\sum_{\mathbf{x}_i \in \mathcal{E}^{(k)}} w_i^{(k)}\!\left(e^{\alpha_k} - e^{-\alpha_k}\right) + e^{-\alpha_k} \sum_{i=1}^n w_i^{(k)}.
+\end{myequation}
+The second term, $e^{-\alpha_k} \sum_i w_i^{(k)}$, does not depend on $\mathbf{w}_k$ at all, since it involves only the current weights and the scalar $\alpha_k$. When optimizing with respect to $\mathbf{w}_k$ for fixed $\alpha_k$, only the first term matters. Since $\alpha_k > 0$ implies that $e^{\alpha_k} - e^{-\alpha_k} > 0$, and since this factor is constant with respect to $\mathbf{w}_k$, minimizing the first term reduces to minimizing
+\begin{myequation}
+\sum_{\mathbf{x}_i \in \mathcal{E}^{(k)}} w_i^{(k)},
+\end{myequation}
+the total current weight of misclassified examples. This is exactly the weighted misclassification error minimization step of AdaBoost: the optimal next weak learner is the one that minimizes the weighted error under the current distribution $w^{(k)}$. The derivation thus confirms that this step is not an ad hoc heuristic but the direct solution of a well-posed optimization subproblem.
+
+\subsubsection*{Finding the Next Learner Weight}
+
+Once the weak learner has been selected --- and hence the error set $\mathcal{E}^{(k)}$ is fixed --- we turn to optimizing $\alpha_k$. Differentiating the full weighted objective with respect to $\alpha_k$ and setting the derivative to zero gives
+\begin{myequation}
+\frac{\partial}{\partial \alpha_k} \sum_{i=1}^n w_i^{(k)}\, e^{-\alpha_k\, t_i\, h(\mathbf{x}_i;\, \mathbf{w}_k)}
+= \frac{\partial}{\partial \alpha_k} \left(\sum_{\mathbf{x}_i \in \mathcal{E}^{(k)}} w_i^{(k)}\, e^{\alpha_k} + \sum_{\mathbf{x}_i \notin \mathcal{E}^{(k)}} w_i^{(k)}\, e^{-\alpha_k}\right) = 0.
+\end{myequation}
+Solving this condition yields the familiar AdaBoost expression
+\begin{myequation}
+\alpha_k = \frac{1}{2} \log \frac{1 - \pi^{(k)}}{\pi^{(k)}},
+\end{myequation}
+where
+\begin{myequation}
+\pi^{(k)} = \frac{\sum_{\mathbf{x}_i \in \mathcal{E}^{(k)}} w_i^{(k)}}{\sum_{i=1}^n w_i^{(k)}}
+\end{myequation}
+is the weighted misclassification rate of the selected weak learner. The formula for $\alpha_k$ has a natural interpretation as a log-odds: a learner with small $\pi^{(k)}$ is highly accurate under the current distribution, so the ratio $(1 - \pi^{(k)})/\pi^{(k)}$ is large and $\alpha_k$ is large, granting the learner a strong vote. As $\pi^{(k)} \to 1/2$, meaning the learner barely outperforms random guessing, $\alpha_k \to 0$ and the learner's contribution to the ensemble vanishes. This confirms that the log-odds formula for the confidence weight is not introduced by hand but is the exact solution of the stagewise optimization.
+
+\subsubsection*{Updating the Example Weights}
+
+After the new learner and its coefficient have been determined, the model is updated to
+\begin{myequation}
+y_k(\mathbf{x}) = y_{k-1}(\mathbf{x}) + \alpha_k\, h_k(\mathbf{x}) = y_{k-1}(\mathbf{x}) + \alpha_k\, h(\mathbf{x}; \mathbf{w}_k).
+\end{myequation}
+Since the example weights are defined as $w_i^{(k)} = e^{-t_i\, y_{k-1}(\mathbf{x}_i)}$, the weights for the next stage follow immediately from the updated model:
+\begin{myequation}
+w_i^{(k+1)}
+= e^{-t_i\, y_k(\mathbf{x}_i)}
+= e^{-t_i\left(y_{k-1}(\mathbf{x}_i) + \alpha_k\, h(\mathbf{x}_i;\, \mathbf{w}_k)\right)}
+= w_i^{(k)}\, e^{-t_i\, \alpha_k\, h(\mathbf{x}_i;\, \mathbf{w}_k)}.
+\end{myequation}
+This is exactly the AdaBoost weight update rule. Its effect is transparent from the sign of $t_i h(\mathbf{x}_i; \mathbf{w}_k)$: correctly classified points, for which $t_i h(\mathbf{x}_i; \mathbf{w}_k) = +1$, have their weight multiplied by $e^{-\alpha_k} < 1$ and thus become less influential; misclassified points, for which $t_i h(\mathbf{x}_i; \mathbf{w}_k) = -1$, have their weight multiplied by $e^{\alpha_k} > 1$ and thus become more influential. The magnitude of the change scales with $\alpha_k$: a more reliable learner causes a more aggressive redistribution of weight, making its mistakes more costly and ensuring that subsequent learners treat them with heightened priority. Far from being an ad hoc design choice, this update rule is the direct mathematical consequence of defining weights as $w_i^{(k)} = e^{-t_i y_{k-1}(\mathbf{x}_i)}$ and updating the ensemble by adding a new term.
+
+\medskip
+\noindent\textbf{Summary.} The additive-model derivation reveals that AdaBoost is forward stagewise minimization of the exponential loss. All the algorithmic steps --- training a weak learner by minimizing a weighted classification error, computing $\alpha_k$ from the weighted error rate, and updating example weights multiplicatively --- are not separate heuristics, but emerge naturally and inevitably from the stagewise optimization of a single objective. This perspective is more than just a theoretical justification: it is also the conceptual foundation for gradient boosting. By replacing the exponential loss with a different loss function $L$ and interpreting the stagewise correction as a gradient descent step in function space, one obtains a broad and flexible family of boosting algorithms that retain the same additive and sequential spirit while accommodating regression, classification with different loss functions, ranking, and many other learning problems.
+
+
+\subsection*{Gradient Boosting}
+
+Gradient boosting can be understood as one of the most influential modern developments of the boosting paradigm, because it reframes ensemble learning as an \alert{optimization problem in function space}. Instead of thinking of the model as a finite-dimensional parameter vector to be tuned by conventional gradient descent, we think of it as a function $f : \mathcal{X} \to \mathbb{R}$ --- or to $\mathbb{R}^K$ in multi-class problems --- that we wish to construct progressively and adaptively. The ensemble is built in an additive and sequential fashion, by repeatedly appending simple functions (weak learners) in directions that reduce a chosen loss, much as gradient descent reduces an objective by taking steps along the negative gradient. This functional perspective is what gives gradient boosting its unusual combination of generality, power, and interpretability.
+
+The viewpoint is already partially foreshadowed by AdaBoost. As we saw in the preceding section, AdaBoost can be interpreted as minimizing an exponential loss by adapting example weights and selecting, at each stage, the weak learner that best reduces the weighted training error. Gradient boosting makes this underlying logic fully explicit and considerably more general: rather than being tied to the exponential loss and a specific reweighting rule, it provides a \emph{single algorithmic template} that can optimize \alert{any differentiable loss function} by following the negative gradient direction of the empirical risk in function space. The change of loss function requires no modification to the algorithm's structure --- only the gradient computation changes --- and this is what makes gradient boosting applicable to an exceptionally wide range of supervised learning tasks.
+
+\subsubsection*{From AdaBoost to Gradient Boosting}
+
+To situate gradient boosting properly, it is worth tracing the conceptual distance from AdaBoost. Both algorithms share the stagewise additive modeling structure: a new weak learner is added at each iteration, and the model is updated by incorporating that learner's contribution. The differences lie in how the algorithm decides what the next weak learner should do, and in how broadly this decision-making mechanism can be applied.
+
+In AdaBoost, the algorithm maintains an explicit distribution over training examples and updates it after each iteration so that misclassified points receive greater weight. The next weak learner is then trained to minimize the weighted misclassification error under this updated distribution. As established in the additive-model analysis, this procedure is equivalent to forward stagewise minimization of the exponential loss, and the weight update rule emerges naturally from the gradient of that specific loss. The mechanism is elegant and works extremely well for classification, but it is fundamentally tied to the exponential loss and to the binary classification setting. Extending it to regression, multi-class problems, or losses with different robustness properties requires non-trivial modifications.
+
+Gradient boosting retains the stagewise additive structure but replaces the reweighting mechanism with a more principled and general procedure: at iteration $k$, compute the negative gradient of the empirical risk with respect to the current model's predictions, and fit a new weak learner to approximate this negative gradient. The key shift is from ``which examples are currently misclassified'' to ``in which direction should we adjust each prediction to most rapidly reduce the loss.'' This gradient-based perspective is applicable to any differentiable loss, and it also changes the way we think about what the weak learner is learning at each stage: rather than attempting to classify a reweighted version of the original data, it is attempting to approximate a correction function that moves the current model's predictions in the direction of steepest descent. Understanding gradient boosting therefore requires a clear understanding of this functional gradient descent analogy, which we develop in the following sections.
+
+\subsubsection*{The Core Intuition: Iterative Residual Fitting}
+
+Before introducing the most general framework, it is illuminating to revisit the classical idea of fitting residuals for the case of squared loss, because in this special case the algorithm is nearly self-explanatory and the connection to gradient descent becomes completely transparent.
+
+Assume we observe training pairs $(\mathbf{x}_i, t_i)$ for $i = 1, \ldots, n$, and we want to learn a function $y(\mathbf{x})$ by minimizing the squared error loss. We begin with a simple initial predictor $y^{(1)}(\mathbf{x})$, producing predictions $y_i^{(1)} = y^{(1)}(\mathbf{x}_i)$. This first model is not expected to be perfect, and it leaves behind pointwise errors
+\begin{myequation}
+r_i^{(1)} = t_i - y_i^{(1)}.
+\end{myequation}
+These residuals quantify, for each training example, what the current model has \emph{failed} to explain. If we now train a second model $h^{(1)}(\mathbf{x})$ to predict these residuals from the inputs, we obtain a correction function, and adding it to the original predictor yields
+\begin{myequation}
+y^{(2)}(\mathbf{x}) = y^{(1)}(\mathbf{x}) + h^{(1)}(\mathbf{x}),
+\end{myequation}
+so that $h^{(1)}$ is explicitly tasked with compensating for the deficiencies of $y^{(1)}$. If $y^{(2)}$ is still inadequate, we compute new residuals
+\begin{myequation}
+r_i^{(2)} = t_i - y_i^{(2)},
+\end{myequation}
+fit another correction function $h^{(2)}(\mathbf{x})$ on $\{(\mathbf{x}_i, r_i^{(2)})\}$, and update
+\begin{myequation}
+y^{(3)}(\mathbf{x}) = y^{(2)}(\mathbf{x}) + h^{(2)}(\mathbf{x}).
+\end{myequation}
+Iterating this procedure produces an additive model that progressively reduces the remaining error. The important conceptual point is that each stage is not attempting to refit the entire target $t_i$ from scratch; it is attempting to explain what is left unexplained by the current ensemble. This greedy, incremental correction strategy is precisely what makes boosting effective even with very weak learners: a shallow decision tree may be far too limited to model the full target function, but it can still provide a locally useful correction that moves the ensemble closer to the truth.
+
+\subsubsection*{The Connection to Gradient Descent}
+
+The residual-fitting procedure is not merely an intuition: in the squared-loss case, it is \emph{exactly} gradient descent, once we clarify the space in which the gradient is taken. Consider the empirical risk for squared loss $L(t, y) = \frac{1}{2}(t - y)^2$:
+\begin{myequation}
+R(y_1, \ldots, y_n) = \sum_{i=1}^n L(t_i, y_i) = \sum_{i=1}^n \frac{1}{2}(t_i - y_i)^2.
+\end{myequation}
+Here, $y_i$ denotes the model's prediction at the $i$-th training point, $y_i = y(\mathbf{x}_i)$. If we were to minimize $R$ by directly adjusting the vector of predictions $(y_1, \ldots, y_n)$, standard gradient descent would update each coordinate as
+\begin{myequation}
+y_i^{\mathrm{new}} = y_i^{\mathrm{old}} - \eta\,\frac{\partial R}{\partial y_i}.
+\end{myequation}
+Computing the partial derivative gives
+\begin{myequation}
+\frac{\partial R}{\partial y_i} = \frac{\partial}{\partial y_i}\left[\frac{1}{2}(t_i - y_i)^2\right] = -(t_i - y_i) = y_i - t_i,
+\end{myequation}
+so the negative gradient is
+\begin{myequation}
+-\frac{\partial R}{\partial y_i} = t_i - y_i = r_i.
+\end{myequation}
+The residual is not an ad hoc quantity: it is the steepest-descent direction of the empirical risk in the space of predictions. A gradient step with learning rate $\eta = 1$ that directly adjusts $y_i$ is equivalent to fitting the residuals perfectly, but in general we cannot independently set each $y_i$, because all predictions must arise from a single function $y(\mathbf{x})$ belonging to some model class. Gradient boosting resolves this constraint by approximating the negative gradient \emph{with a weak learner}: at iteration $k$, the algorithm constructs the dataset
+\begin{myequation}
+\left\{\left(\mathbf{x}_i,\; -\frac{\partial R}{\partial y_i}\right)\right\}_{i=1}^n = \{(\mathbf{x}_i, r_i)\}_{i=1}^n
+\end{myequation}
+and fits $h^{(k)}(\mathbf{x})$ to these targets. The update
+\begin{myequation}
+y^{(k+1)}(\mathbf{x}) = y^{(k)}(\mathbf{x}) + h^{(k)}(\mathbf{x})
+\end{myequation}
+is then the functional analogue of a gradient step: we move the current function in the direction that would most rapidly decrease the empirical risk, as well as possible within the expressivity of the weak learner class.
+
+\subsubsection*{Understanding the Gradient Direction}
+
+The sign and magnitude of the negative gradient carry immediate and practically meaningful information. If the negative gradient at $\mathbf{x}_i$ is close to zero, the loss landscape is locally flat with respect to the prediction at that point, and a large correction there would not significantly reduce the overall objective. If the negative gradient is large and positive, then increasing the prediction at $\mathbf{x}_i$ would reduce the loss rapidly, and the weak learner should produce a positive output there. Conversely, a large negative value indicates that decreasing the prediction at $\mathbf{x}_i$ is beneficial. By fitting the weak learner to these signed, magnitude-weighted targets across all training points simultaneously, the algorithm learns a correction function that moves predictions in the locally optimal direction for loss reduction, constrained to the function class available.
+
+This interpretation generalizes beyond squared loss. For any differentiable loss, the negative gradient of the empirical risk with respect to each prediction $y_i$ plays the role of the residual, and is referred to as the \emph{pseudo-residual}. The pseudo-residual encodes both the direction and the urgency of the correction needed at each point, and it is recomputed at every iteration to reflect the current state of the ensemble. Different loss functions lead to different pseudo-residuals and hence to different patterns of emphasis across training examples --- a flexibility that we will exploit extensively when choosing loss functions tailored to specific problems.
+
+\subsubsection*{Gradient Boosting Algorithm for Regression}
+
+We can now state the gradient boosting algorithm for regression in its most general form. Let $L(t, y)$ be a differentiable loss function, and represent the model as the additive expansion
+\begin{myequation}
+y(\mathbf{x}) = y^{(1)}(\mathbf{x}) + \sum_{k=1}^{M} \nu\, h^{(k)}(\mathbf{x}),
+\end{myequation}
+where each $h^{(k)}$ is a weak learner (in practice, almost always a shallow decision tree) and $\nu \in (0, 1]$ is a learning rate, sometimes called the shrinkage parameter, that controls the step size of each additive update.
+
+The procedure begins with a constant initialization that minimizes the loss over the training set:
+\begin{myequation}
+y^{(1)}(\mathbf{x}) = \operatorname*{arg\,min}_{c}\; \sum_{i=1}^n L(t_i, c) \qquad \bigl(\text{for squared loss: } y^{(1)}(\mathbf{x}) = \tfrac{1}{n}\textstyle\sum_{i=1}^n t_i\bigr).
+\end{myequation}
+Then, for iterations $k = 1, 2, \ldots, M$, the algorithm computes the pseudo-residuals as the negative gradients of the loss with respect to the current predictions:
+\begin{myequation}
+-g_i^{(k)} = -\left[\frac{\partial L(t_i, y)}{\partial y}\right]_{y = y^{(k)}(\mathbf{x}_i)}, \qquad i = 1, \ldots, n.
+\end{myequation}
+For squared loss $L(t, y) = \frac{1}{2}(t - y)^2$, this reduces to $-g_i^{(k)} = t_i - y^{(k)}(\mathbf{x}_i)$, recovering ordinary residual fitting. A weak learner $h^{(k)}(\mathbf{x})$ is then fitted to the training set $\{(\mathbf{x}_i, -g_i^{(k)})\}$, so that $h^{(k)}$ approximates the negative-gradient direction. The ensemble is then updated:
+\begin{myequation}
+y^{(k+1)}(\mathbf{x}) = y^{(k)}(\mathbf{x}) + \nu \cdot h^{(k)}(\mathbf{x}).
+\end{myequation}
+After $M$ iterations, the final predictor can be written compactly as
+\begin{myequation}
+y^{(M+1)}(\mathbf{x}) = y^{(1)}(\mathbf{x}) + \nu \sum_{k=1}^{M} h^{(k)}(\mathbf{x}).
+\end{myequation}
+
+The learning rate $\nu$ plays a central regulatory role. Setting $\nu = 1$ takes full steps in the direction suggested by the weak learner, reducing training loss quickly but potentially overfitting. Choosing $\nu < 1$ forces the procedure to make smaller, more cautious corrections at each stage; empirically, this consistently yields better generalization, especially when compensated by increasing $M$. The interplay between $\nu$ and $M$ is one of the most important practical aspects of gradient boosting: a small learning rate paired with many iterations and early stopping based on a validation set is among the most reliable strategies for achieving strong generalization.
+
+\subsubsection*{Flexibility through Loss Functions}
+
+A major advantage of the gradient-based formulation is that changing the loss function automatically changes the pseudo-residuals, and hence changes what the weak learners are trained to approximate at each stage. The algorithmic template remains entirely unchanged; only the gradient computation differs. This is not merely a computational convenience: it allows the practitioner to encode fundamentally different statistical objectives and robustness properties, adapting the algorithm to the specific characteristics of the problem at hand.
+
+For regression, the three most commonly used losses are squared loss, absolute loss, and Huber loss, each corresponding to a different trade-off between sensitivity and robustness. For squared loss,
+\begin{myequation}
+L(t, y) = \frac{1}{2}(t - y)^2 \qquad \Rightarrow \qquad -g = t - y,
+\end{myequation}
+the pseudo-residual is simply the ordinary residual, and the algorithm performs the most direct form of iterative correction. The loss is smooth and easy to optimize, but it penalizes large errors quadratically and is therefore sensitive to outliers: a single extreme observation can produce a very large pseudo-residual and pull the model disproportionately toward it.
+
+Absolute loss addresses this sensitivity:
+\begin{myequation}
+L(t, y) = |t - y| \qquad \Rightarrow \qquad -g = \mathrm{sign}(t - y).
+\end{myequation}
+Here, all errors contribute linearly regardless of their magnitude, making the algorithm robust to outliers. However, the gradient carries only sign information and no magnitude: the pseudo-residual tells the model only whether the prediction should increase or decrease, not by how much. This coarseness can slow convergence and makes the optimization less smooth, since the gradient is undefined at zero and must be handled via subgradients.
+
+Huber loss combines the advantages of both:
+\begin{myequation}
+L(t, y) = \begin{cases} \frac{1}{2}(t - y)^2 & \text{if } |t - y| \leq \delta, \\ \delta\,|t - y| - \frac{\delta^2}{2} & \text{if } |t - y| > \delta, \end{cases}
+\end{myequation}
+with corresponding pseudo-residuals
+\begin{myequation}
+-g = \begin{cases} t - y & \text{if } |t - y| \leq \delta, \\ \delta\,\mathrm{sign}(t - y) & \text{if } |t - y| > \delta. \end{cases}
+\end{myequation}
+For small errors, the loss behaves quadratically, giving smooth and magnitude-sensitive gradients that allow fine-grained corrections. For large errors, it transitions to a linear regime, capping the influence of outliers in a controlled way. The threshold $\delta$ is a tunable parameter that determines where this transition occurs; setting $\delta$ very large recovers squared loss, while $\delta \to 0$ approaches absolute loss. In practice, Huber loss is often preferred when the data contain occasional outliers but are otherwise well-behaved.
+
+These examples illustrate a recurring theme in gradient boosting: the choice of loss function determines what kinds of mistakes the algorithm prioritizes, because the pseudo-residuals determine where and how strongly the model will be corrected at each iteration. Choosing the loss thoughtfully is therefore not merely a theoretical decision but a practical one with significant consequences for the behavior and robustness of the resulting model.
+
+\subsubsection*{Gradient Boosting for Classification}
+
+Gradient boosting extends naturally from scalar regression to classification by modifying both the output structure and the loss function. In multi-class classification with $K$ classes, it is convenient to learn a separate score function $y_j(\mathbf{x})$ for each class $j = 1, \ldots, K$, which are then converted to class probabilities via the softmax transformation:
+\begin{myequation}
+p_{ij} = \frac{\exp(y_{ij})}{\sum_{\ell=1}^K \exp(y_{i\ell})}, \qquad y_{ij} = y_j(\mathbf{x}_i).
+\end{myequation}
+If $\mathbf{t}_i = (t_{i1}, \ldots, t_{iK})$ is the one-hot encoding of the true class label for example $i$, the standard loss is the cross-entropy:
+\begin{myequation}
+L(\mathbf{t}_i, \mathbf{y}_i) = -\sum_{j=1}^K t_{ij} \log(p_{ij}), \qquad R = \sum_{i=1}^n L(\mathbf{t}_i, \mathbf{y}_i).
+\end{myequation}
+A natural initialization is to assign equal scores to all classes,
+\begin{myequation}
+y_j^{(1)}(\mathbf{x}) = 0 \quad \text{for } j = 1, \ldots, K \quad (\text{equivalently, } y_{ij}^{(1)} = \log(1/K)),
+\end{myequation}
+which implies $p_{ij}^{(1)} = 1/K$ for all $i$ and $j$: the model starts from maximum uncertainty. At boosting iteration $k$, we compute the pseudo-residual for each training point and each class as the negative gradient of the loss with respect to the corresponding score:
+\begin{myequation}
+-g_{ij}^{(k)} = -\left[\frac{\partial L(\mathbf{t}_i, \mathbf{y}_i)}{\partial y_{ij}}\right]_{y_{ij} = y_j^{(k)}(\mathbf{x}_i)}.
+\end{myequation}
+For cross-entropy with softmax, this gradient takes the particularly interpretable form
+\begin{myequation}
+-g_{ij}^{(k)} = t_{ij} - p_{ij}^{(k)}.
+\end{myequation}
+The pseudo-residual is simply the difference between the target indicator and the model's current probability estimate: if the model assigns too little probability to the true class for example $i$, the residual is positive and the algorithm will push that class's score upward; if a non-target class is assigned excessive probability, its residual is negative and its score will be pushed down. The magnitude of the residual reflects how badly miscalibrated the model currently is at that point, so larger corrections are made where the model is most wrong. This is a direct and intuitive generalization of the regression residual concept to the probabilistic classification setting.
+
+For each class $j$, a weak learner $h_j^{(k)}(\mathbf{x})$ is then fitted to the dataset $\{(\mathbf{x}_i, -g_{ij}^{(k)})\}_{i=1}^n$, and the score for class $j$ is updated:
+\begin{myequation}
+y_j^{(k+1)}(\mathbf{x}) = y_j^{(k)}(\mathbf{x}) + \nu \cdot h_j^{(k)}(\mathbf{x}),
+\end{myequation}
+followed by recomputation of the softmax probabilities:
+\begin{myequation}
+p_{ij}^{(k+1)} = \frac{\exp(y_j^{(k+1)}(\mathbf{x}_i))}{\sum_{\ell=1}^K \exp(y_\ell^{(k+1)}(\mathbf{x}_i))}.
+\end{myequation}
+Once the full $M$ iterations are complete, prediction for a new input $\mathbf{x}$ is performed by selecting the class of highest probability:
+\begin{myequation}
+\hat{t} = \operatorname*{arg\,max}_{j = 1, \ldots, K}\; p_j(\mathbf{x}) = \operatorname*{arg\,max}_{j = 1, \ldots, K}\; \frac{\exp(y_j^{(M+1)}(\mathbf{x}))}{\sum_{\ell=1}^K \exp(y_\ell^{(M+1)}(\mathbf{x}))}.
+\end{myequation}
+
+\subsubsection*{Relationship to AdaBoost}
+
+With the general gradient boosting framework in hand, it is natural to ask where AdaBoost fits within it. The answer is clean and illuminating: AdaBoost is a special case of gradient boosting with the exponential loss. Choosing $L(t, y) = e^{-t\,y}$ and applying the forward stagewise procedure, one can verify that the pseudo-residuals reduce to a reweighted form of the original data, and that the weight update rule of AdaBoost emerges directly from the gradient of this loss. The emphasis that AdaBoost places on misclassified examples is thus not an independent heuristic but a direct consequence of the exponential loss's rapidly growing penalty for negative margins $t\,y(\mathbf{x}) < 0$: the more badly a point is misclassified, the larger the exponential loss and the larger the gradient, and hence the more aggressively the algorithm focuses on correcting that mistake. This connection situates AdaBoost as one point in a continuous family of boosting algorithms parameterized by the choice of loss, and it suggests that one can obtain less aggressive, more robust behavior by switching to losses that grow more slowly for large errors --- such as the logistic loss used in LogitBoost, or Huber loss in the regression setting.
+
+\subsubsection*{Major Variants and Modern Implementations}
+
+The gradient boosting framework as described above provides the conceptual foundation for a rich and practically important family of algorithms. The key observation is that the framework makes no assumptions about how the weak learners are implemented or optimized internally, and it says nothing about computational efficiency or scalability. A large portion of the practical progress in gradient boosting over the past two decades has therefore consisted not in changing the mathematical framework but in developing increasingly efficient, regularized, and scalable implementations of it. The three most significant developments in this direction are XGBoost, LightGBM, and CatBoost, each of which extends the core gradient boosting idea in a different but complementary way.
+
+\paragraph{XGBoost: Second-Order Optimization and Explicit Regularization.}
+XGBoost (eXtreme Gradient Boosting), introduced by Chen and Guestrin in 2016, was the first widely adopted implementation to make two conceptually important departures from the basic gradient boosting template: the explicit incorporation of a regularization term into the objective, and the use of second-order Taylor approximations of the loss to guide tree construction.
+
+The objective optimized at each stage of XGBoost can be written as
+\begin{myequation}
+\mathcal{L} = \sum_{i=1}^n L(y_i, f(\mathbf{x}_i)) + \sum_{m=1}^M \Omega(y_m),
+\end{myequation}
+where $\Omega(y_m)$ is a regularization term that penalizes the complexity of the $m$-th tree. A common form is
+\begin{myequation}
+\Omega(T) = \gamma\,|T| + \frac{1}{2}\lambda \sum_{j=1}^{|T|} w_j^2,
+\end{myequation}
+where $|T|$ is the number of leaves in the tree, $w_j$ are the leaf weights (the output values), $\gamma \geq 0$ controls a penalty for adding new leaves, and $\lambda \geq 0$ is an $L_2$ regularization coefficient on the leaf weights. The first term discourages overly complex trees by penalizing each additional leaf, while the second term shrinks the leaf output values toward zero. Together, these two components provide explicit and interpretable control over the complexity of the ensemble, making the capacity-control aspect of the algorithm a first-class concern rather than an afterthought.
+
+The second key innovation in XGBoost is the use of a second-order Taylor expansion of the loss to define more accurate split-quality criteria. At iteration $k$, rather than fitting a weak learner purely to the negative gradient (the first derivative), XGBoost approximates the objective around the current prediction using both the gradient $g_i$ and the Hessian $h_i = \partial^2 L / \partial y_i^2$:
+\begin{myequation}
+L(t_i,\; y^{(k)}(\mathbf{x}_i) + \delta_i) \approx L(t_i,\; y^{(k)}(\mathbf{x}_i)) + g_i\,\delta_i + \frac{1}{2}\,h_i\,\delta_i^2,
+\end{myequation}
+where $\delta_i$ denotes the proposed additive update at $\mathbf{x}_i$. Incorporating the regularization term and summing over training examples, the optimal leaf weight for a given tree structure can be derived in closed form as
+\begin{myequation}
+w_j^* = -\frac{\sum_{i \in \mathcal{I}_j} g_i}{\sum_{i \in \mathcal{I}_j} h_i + \lambda},
+\end{myequation}
+where $\mathcal{I}_j$ is the set of training examples assigned to leaf $j$. The corresponding optimal objective value for that leaf is
+\begin{myequation}
+-\frac{1}{2}\,\frac{\left(\sum_{i \in \mathcal{I}_j} g_i\right)^2}{\sum_{i \in \mathcal{I}_j} h_i + \lambda} + \gamma,
+\end{myequation}
+and the gain from a candidate split that partitions leaf $j$ into left child $L$ and right child $R$ is the difference
+\begin{myequation}
+\mathrm{Gain} = \frac{1}{2}\left[\frac{\left(\sum_{i \in \mathcal{I}_L} g_i\right)^2}{\sum_{i \in \mathcal{I}_L} h_i + \lambda} + \frac{\left(\sum_{i \in \mathcal{I}_R} g_i\right)^2}{\sum_{i \in \mathcal{I}_R} h_i + \lambda} - \frac{\left(\sum_{i \in \mathcal{I}_j} g_i\right)^2}{\sum_{i \in \mathcal{I}_j} h_i + \lambda}\right] - \gamma.
+\end{myequation}
+This expression shows that XGBoost evaluates every candidate split not merely by how much it reduces a heuristic impurity measure, but by how much it decreases the regularized second-order approximation of the true loss. The Hessian $h_i$ in the denominator acts as a local weighting: examples in regions where the loss is sharply curved (large $h_i$) are effectively downweighted, because large curvature means that a small prediction change already has a large effect and additional correction is less necessary. This second-order correction gives XGBoost a more accurate and adaptive view of where the model most needs improvement, and in practice it often leads to better split decisions than pure gradient-based methods, especially for losses whose curvature varies significantly across the prediction range.
+
+Beyond these two mathematical innovations, XGBoost introduced a number of practical engineering improvements that were critical for its rapid adoption: approximate histogram-based split finding (which avoids sorting the full dataset at every candidate split and reduces the computational cost from $O(n p)$ to $O(n p / b)$ for $b$ histogram bins), efficient handling of sparse data and missing values (each node learns a default direction for missing values directly from the data), column and row subsampling (analogous to the feature and example subsampling in random forests), pruning of splits with negative gain, and support for parallel and distributed computation. Taken together, these features made XGBoost dramatically faster and more memory-efficient than earlier implementations, enabling its application to datasets with millions of examples and thousands of features.
+
+\paragraph{LightGBM: Histogram Binning and Gradient-Based Sampling.}
+LightGBM (Light Gradient Boosting Machine), developed by Microsoft Research, pushes the efficiency of gradient boosting further through two innovations that address the main computational bottlenecks of large-scale tree learning.
+
+The first innovation is a more aggressive histogram-based approach to split finding. Rather than maintaining exact feature values, LightGBM discretizes each continuous feature into a small number of bins (typically 255) at the start of training and constructs gradient histograms over these bins at each node. Building these histograms requires only $O(n)$ operations per feature, and because the histogram for a child node can be obtained by subtracting the sibling's histogram from the parent's (the histogram subtraction trick), the cost of evaluating all candidate splits at a node is reduced significantly. This makes LightGBM substantially faster than XGBoost on large datasets, at the cost of a small loss of precision in the split points due to quantization.
+
+The second innovation concerns how the training data are used. Standard gradient boosting trains each tree on the full dataset, but most training examples, particularly those with small gradient values, contribute very little information to the current round: the algorithm already predicts them well and their pseudo-residuals are close to zero. LightGBM exploits this observation through Gradient-based One-Side Sampling (GOSS): at each iteration, it retains all examples with large gradient magnitudes (those the model is currently getting most wrong) and randomly samples a smaller proportion of the low-gradient examples, reweighting the sampled subset to compensate for the undersampling. This reduces the effective dataset size per iteration without significantly affecting the information content of the gradient estimate, and it can reduce training time by a factor of several without appreciable loss in accuracy.
+
+LightGBM also departs from the standard level-wise (breadth-first) tree growing strategy used by XGBoost, adopting instead a leaf-wise (best-first) strategy in which the algorithm always splits the leaf that offers the largest gain, regardless of depth. This tends to produce more asymmetric but deeper trees that reduce the training loss more rapidly per split, though it requires care with the maximum-depth hyperparameter to prevent overfitting on small datasets.
+
+Finally, LightGBM introduces Exclusive Feature Bundling (EFB) to handle high-dimensional sparse data efficiently. When features are sparse and mutually exclusive --- that is, they are rarely both non-zero for the same example, as often occurs with one-hot encoded categorical variables --- they can be bundled into a single feature without loss of information, reducing the effective feature dimension and the cost of histogram construction accordingly.
+
+\paragraph{CatBoost: Ordered Boosting and Native Categorical Support.}
+CatBoost (Categorical Boosting), developed at Yandex, addresses two distinct but related problems that arise frequently in real-world gradient boosting applications: target leakage due to the way gradient statistics are computed on the training data, and the handling of categorical features.
+
+The first problem, sometimes called \emph{prediction shift}, arises because the gradients used to fit each new tree in standard gradient boosting are computed using the same training examples that will be used to train that tree. When the loss gradient is evaluated on a data point that was also used to train the previous trees, the gradient is not an unbiased estimate of the population gradient: it tends to be smaller in magnitude because the model has already partially overfit to that point. This introduces a systematic bias in the tree-fitting process that can reduce generalization. CatBoost addresses this through \emph{ordered boosting}: for each training example, the gradient used in its tree-fitting is computed from a model that was trained on a random subset of the data that does not include that example. This is analogous in spirit to the out-of-bag evaluation in random forests, but applied dynamically to gradient computation. The result is an approximately unbiased gradient estimate for each example, which reduces prediction shift and often improves generalization.
+
+The second major contribution of CatBoost is its native treatment of categorical features. In standard gradient boosting implementations, categorical features must be preprocessed externally --- commonly through one-hot encoding, which increases dimensionality, or through target encoding, which can introduce target leakage. CatBoost handles categorical features internally using an ordered variant of target statistics: for each training example, the target statistic for a given category is computed from a random prefix of the data (respecting a random permutation of the training set), so that the statistic for example $i$ is computed from examples that appear before $i$ in the permutation and thus do not include $i$ itself. This avoids target leakage while providing informative numerical representations of categorical variables directly within the boosting loop.
+
+CatBoost also introduces symmetric (oblivious) trees as weak learners, in which all nodes at the same depth use the same feature and the same split threshold. While this is a more constrained tree structure than the asymmetric trees used by XGBoost and LightGBM, it has the advantage of producing highly regular computation patterns that can be evaluated very efficiently at inference time (often as simple lookup tables), making CatBoost particularly fast for prediction after training.
+
+\paragraph{Other Notable Variants.}
+The gradient boosting family extends beyond these three flagship implementations. LogitBoost, one of the earlier variants, applies gradient boosting with the logistic (cross-entropy) loss for binary classification, obtaining pseudo-residuals that are less aggressive than those of AdaBoost under the exponential loss and therefore more robust to outliers and label noise. BrownBoost was specifically designed to handle noisy labels: it assigns lower weights to points that are consistently misclassified under the assumption that they are likely mislabeled, effectively allowing the algorithm to ``give up'' on a small fraction of examples rather than obsessively trying to fit them. LPBoost formulates the boosting problem as a linear program and provides theoretical guarantees on the margin of the resulting classifier. Stochastic gradient boosting, introduced by Friedman, adds row and column subsampling at each iteration, in a manner directly analogous to random forests, to reduce correlation between successive trees and improve robustness; this is now a standard option in virtually all gradient boosting implementations.
+
+\subsubsection*{Key Properties and Practical Considerations}
+
+Because gradient boosting is so flexible, its success in practice depends critically on managing the trade-off between fitting power and generalization through a combination of design choices. The number of iterations $M$ is the most direct control: each new tree adds complexity, and eventually the ensemble will begin to memorize noise rather than signal. Early stopping based on a held-out validation set is the most reliable and widely used strategy for selecting $M$.
+
+The learning rate $\nu$ interacts closely with $M$: a smaller learning rate produces smoother, more regular additive updates that are less likely to overfit on any single iteration, but requires more iterations to achieve a comparable training loss. In practice, a small $\nu$ (typically between $0.01$ and $0.1$) combined with a moderately large $M$ and early stopping is a consistently strong baseline.
+
+When decision trees are used as weak learners, their depth or leaf count is another important regularizer. Shallow trees, typically of depth between one and six, capture low-order interactions and are usually sufficient for the incremental correction role that each tree plays in the ensemble. Deeper trees can model higher-order interactions but increase the risk of overfitting and reduce the diversity of successive corrections. Row subsampling (training each tree on a random fraction of the training data) and column subsampling (restricting each tree to a random subset of features) are both highly effective at reducing variance and improving generalization, while simultaneously providing the computational benefit of smaller datasets per tree. Together, these forms of subsampling give gradient boosting some of the diversity-increasing properties that define random forests, but within a sequential rather than parallel ensemble structure.
+
+Although the sequential nature of gradient boosting limits its parallelism compared to bagging-based methods, modern implementations such as XGBoost, LightGBM, and CatBoost implement extensive engineering optimizations --- histogram-based split finding, cache-aware data layouts, GPU acceleration, and distributed training --- that make gradient boosting scalable to very large datasets in practice.
+
+\subsubsection*{Why Does Boosting Work?}
+
+The empirical success of gradient boosting can be understood from multiple complementary perspectives, each highlighting a different aspect of what the algorithm achieves. Taken together, these viewpoints provide a coherent and multi-layered account of the method's effectiveness.
+
+From a \emph{statistical} perspective, boosting often improves generalization by increasing the \emph{classification margin}. For a training example $(\mathbf{x}_i, y_i)$ with $y_i \in \{-1, +1\}$, consider an ensemble predictor
+\begin{myequation}
+f(\mathbf{x}) = \sum_{m=1}^{M} \alpha_m\, h_m(\mathbf{x}), \qquad \alpha_m > 0.
+\end{myequation}
+The margin is defined as the product of the true label and the ensemble score,
+\begin{myequation}
+\mathrm{margin}_i = y_i\, f(\mathbf{x}_i) = y_i \sum_{m=1}^{M} \alpha_m\, h_m(\mathbf{x}_i).
+\end{myequation}
+A positive margin indicates correct classification, and a larger margin corresponds to a more confident and robust prediction. Theoretical analyses of AdaBoost, and more broadly of ensemble methods with bounded base classifiers, show that even after the training error reaches zero, boosting can continue to increase the margins of correctly classified examples. This post-zero-error improvement in margin is associated with tighter generalization bounds and helps explain the empirical observation that boosting continues to reduce test error even when training error is already zero --- a behavior that would be puzzling from a classical overfitting perspective but is natural from the margin viewpoint.
+
+From an \emph{optimization} perspective, gradient boosting is functional gradient descent: at each stage, we compute the negative gradient of the empirical loss with respect to the current model's predictions and fit a weak learner to approximate it. Concretely, at iteration $m$,
+\begin{myequation}
+r_i = -\left.\frac{\partial L(y_i, f(\mathbf{x}_i))}{\partial f(\mathbf{x}_i)}\right|_{f = f_{m-1}},
+\end{myequation}
+and the model is updated as
+\begin{myequation}
+f_m(\mathbf{x}) = f_{m-1}(\mathbf{x}) + \nu \cdot \alpha_m\, h_m(\mathbf{x}),
+\end{myequation}
+with $\nu \in (0, 1]$ controlling the step size. This perspective explains both the broad applicability of the method (any differentiable loss yields a valid set of pseudo-residuals) and the fundamental role of shrinkage: smaller steps produce smoother trajectories in function space and reduce the risk of overshooting, much as a small learning rate stabilizes ordinary gradient descent.
+
+From a \emph{bias--variance} perspective, gradient boosting differs from bagging in a fundamental way. Bagging primarily reduces variance by averaging many independently trained, high-variance predictors. Boosting, instead, primarily reduces bias by sequentially correcting the systematic errors of the current ensemble. When the base learners are very simple --- shallow trees with genuinely high bias --- this sequential bias reduction can produce a dramatic improvement: the ensemble progressively builds up representational power that no individual tree could achieve. Variance reduction also occurs, through the averaging of many additive contributions, but it is secondary and more delicate: without regularization through shrinkage, subsampling, or early stopping, boosting can overfit as the algorithm begins correcting noise rather than signal once the systematic bias has been largely eliminated.
+
+\medskip
+In summary, gradient boosting turns the intuition of boosting into a coherent and broadly applicable optimization framework. It constructs an additive model by repeatedly fitting weak learners to the negative gradients of a chosen loss function, generalizing residual fitting to arbitrary differentiable objectives. Modern implementations extend this foundation with explicit regularization, second-order optimization, efficient histogram-based computation, and principled handling of categorical data, collectively making gradient boosting one of the most powerful and widely deployed methods for supervised learning on structured data. Understanding both the mathematical framework and the engineering decisions behind these implementations is essential for using them effectively and for anticipating when they are likely to succeed or fail.
+
+%\end{document}

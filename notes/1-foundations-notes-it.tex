@@ -1,0 +1,360 @@
+%!TEX program = xelatex
+%!TEX root = all.tex
+%\input{header.tex}
+%
+%\title{Note sul Machine Learning}
+%\class{Corso di Machine Learning}
+%\course{Laurea Magistrale in Informatica}
+%\university{Università degli Studi di Roma ``Tor Vergata''}
+%\acyear{2025-2026}
+%\author{Giorgio Gambosi}
+%
+%\begin{document}
+%
+%\maketitle
+
+\chapter{Fondamenti del Machine Learning}
+
+\section*{Concetti introduttivi}
+Il machine learning si fonda su un'osservazione apparentemente semplice: i dati sono raramente casuali. Che si tratti di immagini, testi, misurazioni di sensori o comportamenti umani, i dati che raccogliamo contengono schemi nascosti -- strutture che riflettono il processo sottostante che ha generato i dati. La sfida fondamentale, e la promessa, del machine learning è scoprire automaticamente questi schemi dalle osservazioni, senza essere esplicitamente programmato con le regole che governano i dati.
+
+Questa scoperta avviene attraverso l'apprendimento da esempi. Si parte da una collezione di osservazioni, ognuna delle quali è una istantanea di qualche fenomeno che si desidera comprendere. Da questi esempi costruiamo \alert{modelli} -- astrazioni matematiche che catturano le relazioni e gli schemi presenti nei dati. Questi modelli servono poi come strumenti per la previsione, la comprensione e il processo decisionale su dati nuovi e precedentemente non osservati.
+
+
+\subsection*{Tre Paradigmi di Apprendimento}
+
+Il machine learning comprende tre scenari di apprendimento fondamentalmente diversi, ciascuno con le proprie sfide e opportunità:
+
+\subsubsection*{Apprendimento Supervisionato}
+
+Nell'apprendimento supervisionato, disponiamo di coppie di dati composte da osservazioni, nella forma di un insieme di caratteristiche, e corrispondenti valori target. Il nostro obiettivo è semplice: apprendere la relazione tra osservazioni e target in modo da poter predire i target per nuove osservazioni in input.
+
+Immaginiamo di avere un dataset di abitazioni con caratteristiche come la metratura, il numero di camere da letto e la posizione. Se ogni abitazione ha anche un prezzo di vendita noto che desideriamo prevedere sulla base delle altre caratteristiche, ci troviamo in un contesto supervisionato. Vogliamo apprendere una funzione che mappa le caratteristiche ai prezzi, in modo da poter stimare il prezzo di una nuova abitazione a partire dalle sue caratteristiche.
+
+L'apprendimento supervisionato si divide in due categorie a seconda della natura del target:
+
+\begin{description}
+\item[Regressione] Il target è un numero reale (continuo): è il caso in cui si predicono prezzi, temperature, valori azionari, o qualsiasi quantità su uno spettro numerico.
+
+\item[Classificazione] Il target è una categoria discreta: in questo caso si vuole predire se un'email è spam o meno, riconoscere cifre scritte a mano (0-9), diagnosticare malattie, o determinare il sentiment in un testo.
+\end{description}
+
+In entrambi i casi, formalizziamo il processo di apprendimento definendo un modello -- una funzione $y(\mathbf{x})$ che produce direttamente una previsione, oppure una distribuzione di probabilità $p(t|\mathbf{x})$ che quantifica la nostra incertezza sul valore target. Utilizziamo poi i dati di addestramento per regolare i parametri del modello in modo che catturi la relazione ingresso-uscita sottostante nel modo più accurato possibile.
+
+
+\subsubsection*{Apprendimento Non Supervisionato}
+
+L'apprendimento non supervisionato opera in un contesto più esplorativo. Disponiamo di dati, ma nessun target esplicito ci guida. Il nostro obiettivo è invece scoprire la struttura intrinseca dei dati, comprenderne la natura e organizzarli in modi significativi.
+
+L'apprendimento non supervisionato si manifesta in diverse forme importanti. Il \alert{clustering} raggruppa elementi simili, rivelando automaticamente categorie o segmenti naturali nei dati senza che vengano specificate le categorie. La \alert{stima della densità} modella la distribuzione di probabilità sottostante che ha generato i dati, rivelando dove i punti dati sono concentrati e come sono distribuiti nello spazio delle caratteristiche. La \alert{riduzione della dimensionalità} proietta dati ad alta dimensionalità in rappresentazioni a dimensionalità inferiore preservando le informazioni essenziali -- questo è fondamentale quando i dati hanno centinaia o migliaia di caratteristiche ma risiedono effettivamente in un sottospazio a dimensionalità molto inferiore, a causa di correlazioni nascoste tra le caratteristiche.
+
+Un'applicazione particolarmente potente dell'apprendimento non supervisionato è la \alert{modellazione generativa}, in cui si apprende a generare nuovi punti dati sintetici che sembrano provenire dallo stesso processo sottostante dei dati di addestramento. I modelli linguistici di grandi dimensioni, i modelli di diffusione e le GAN esemplificano questa capacità: dopo aver osservato un numero sufficiente di esempi, sono in grado di generare nuovo testo, immagini o altri contenuti che appaiono autentici e originali. Ciò richiede che il modello abbia davvero appreso la struttura profonda della distribuzione dei dati.
+
+Anche in assenza di target espliciti, l'apprendimento non supervisionato si affida comunque ai modelli. Questi modelli rappresentano la nostra comprensione della struttura dei dati e ci consentono di eseguire diverse attività utili: permettono di identificare anomalie e valori anomali (punti che si discostano significativamente dallo schema appreso), facilitano la visualizzazione e l'interpretazione di dati complessi ad alta dimensionalità, e forniscono le basi per il feature engineering -- il processo di creazione di nuove rappresentazioni più informative dei dati.
+
+\subsubsection*{Apprendimento per Rinforzo}
+
+L'apprendimento per rinforzo rappresenta un paradigma di apprendimento fondamentalmente diverso. Invece di lavorare con un dataset fisso, si apprende attraverso l'interazione dinamica con un ambiente. Un agente sceglie ripetutamente azioni, osserva le conseguenze e adatta il proprio comportamento per massimizzare la ricompensa cumulativa nel tempo.
+
+In concreto, ad ogni passo l'agente osserva lo \alert{stato} corrente dell'ambiente e deve selezionare un'\alert{azione} tra quelle disponibili. L'ambiente risponde fornendo due informazioni: una \alert{ricompensa} che indica il beneficio immediato di quell'azione, e un nuovo stato che rappresenta l'ambiente aggiornato. L'obiettivo dell'agente è scoprire una \alert{politica} ottimale -- una strategia che mappa gli stati nelle azioni in modo da massimizzare la ricompensa cumulativa attesa.
+
+Matematicamente, se indichiamo la politica come $\pi: S \rightarrow A$ (che mappa stati in azioni), l'obiettivo di ottimizzazione è:
+
+\begin{myequation}
+\pi^* = \argmax{\pi} \mathbb{E}_{\pi}\left[\sum_{t=0}^{\infty} \gamma^t r_t\right]
+\end{myequation}
+
+dove $\gamma \in [0,1]$ è un fattore di sconto che bilancia le ricompense immediate rispetto a quelle future, e $r_t$ è la ricompensa al passo $t$.
+
+L'apprendimento per rinforzo ha dato risultati straordinari in domini in cui l'apprendimento per tentativi ed errori ha senso: il gioco (dove AlphaGo ha sconfitto i campioni del mondo), la robotica (apprendimento di abilità motorie e navigazione) e i sistemi autonomi (ottimizzazione dell'allocazione delle risorse). La tensione centrale nell'apprendimento per rinforzo è il compromesso esplorazione-sfruttamento: dobbiamo provare nuove azioni per scoprire strategie potenzialmente migliori, ma vogliamo anche sfruttare le azioni che sappiamo essere buone per massimizzare la ricompensa.
+
+Poiché l'apprendimento per rinforzo opera in un framework di decisione sequenziale e interattivo molto diverso dall'apprendimento supervisionato e non supervisionato, impiega tecniche matematiche e algoritmi distinti. Per questo motivo, lo metteremo da parte e ci concentreremo principalmente sull'apprendimento supervisionato e non supervisionato.
+
+\subsection*{Rappresentazione dei Dati}
+Al cuore di qualsiasi approccio di machine learning si trova una scelta fondamentale: come rappresentare i dati. Le entità del mondo reale -- immagini, documenti, clienti, transazioni, campioni biologici -- devono essere convertite in vettori di caratteristiche che gli algoritmi di machine learning possano elaborare.
+
+Un \alert{vettore di caratteristiche} $\mathbf{x} = (x_1, x_2, \ldots, x_d)$ è una raccolta di $d$ misurazioni numeriche che descrivono un oggetto. Queste caratteristiche sono sia il nostro modo di osservare gli oggetti sia il materiale grezzo da cui vengono costruiti i modelli. La scelta di quali caratteristiche includere è determinante: influisce sia sulla qualità delle previsioni sia sull'efficienza computazionale dell'apprendimento.
+
+Si consideri un compito di classificazione delle immagini. Potremmo rappresentare ogni intensità di pixel come una caratteristica, ottenendo milioni di caratteristiche -- ma questo è spesso dispendioso e rumoroso. In alternativa, potremmo estrarre caratteristiche di livello superiore come orientamenti dei bordi o texture. Per la diagnosi medica da dati clinici, potremmo includere misurazioni come la pressione sanguigna, i livelli di colesterolo e i risultati dei test. Per l'analisi del testo, potremmo contare le frequenze delle parole o apprendere embedding semantici. Lo stesso oggetto sottostante può essere rappresentato in innumerevoli modi, e la scelta condiziona profondamente il problema di apprendimento.
+
+Per questo motivo il \alert{feature engineering} -- il processo di definizione di nuove caratteristiche tramite combinazioni funzionali di quelle esistenti, la selezione del sottoinsieme più informativo, o l'apprendimento di rappresentazioni migliori -- è spesso tanto importante quanto la scelta dell'algoritmo di apprendimento stesso. A volte la competenza di dominio guida questo processo: un cardiologo sa quali misurazioni contano per le malattie cardiache. Altre volte, sofisticate tecniche di apprendimento non supervisionato scoprono automaticamente le rappresentazioni a dimensionalità inferiore più informative.
+
+
+\subsection*{Il Processo di Apprendimento}
+
+Indipendentemente dal paradigma di apprendimento adottato, il processo fondamentale è simile. Si parte da un \alert{insieme di addestramento} $\mathcal{T} = (\mathbf{X}, \mathbf{t})$ contenente $n$ esempi. Nell'apprendimento supervisionato, ogni esempio accoppia un vettore di caratteristiche di input $\mathbf{x}_i$ con il suo valore target $t_i$. Nell'apprendimento non supervisionato, abbiamo solo i vettori di caratteristiche $\mathbf{X} = \{\mathbf{x}_1, \ldots, \mathbf{x}_n\}$.
+
+L'algoritmo di apprendimento elabora questi dati di addestramento per costruire un modello -- una funzione o distribuzione di probabilità che cattura gli schemi presenti nei dati di addestramento. Ma il punto cruciale è questo: non ci interessa quanto bene il modello si adatti ai dati di addestramento. Ciò che conta è quanto bene generalizza su dati nuovi e non osservati.
+
+Questa distinzione tra prestazioni di addestramento e di test rivela la sfida centrale nel machine learning: la \alert{generalizzazione}. Un modello che memorizza perfettamente i dati di addestramento fallirà su nuovi esempi che non ha mai visto. Al contrario, un modello troppo semplice potrebbe non cogliere schemi importanti. Si cerca il punto di equilibrio -- modelli che catturano la struttura genuina del processo generatore dei dati senza fare overfitting sul rumore o sulle particolarità del campione di addestramento.
+
+Ottenere una buona generalizzazione richiede la comprensione di diversi concetti correlati. La \alert{capacità} o \alert{complessità} di un modello determina quanto può essere flessibile: i modelli più complessi possono adattarsi a schemi più intricati ma rischiano l'overfitting. Il \alert{compromesso bias-varianza} riflette la tensione tra underfitting (modelli troppo semplici per catturare il pattern reale) e overfitting (modelli che si adattano troppo strettamente al rumore di addestramento). Le tecniche di \alert{regolarizzazione} penalizzano la complessità del modello, favorendo soluzioni più semplici che generalizzano meglio.
+\medskip
+
+%\subsection*{Il Ruolo dei Modelli}
+
+In tutti questi scenari di apprendimento, i modelli fungono da ponte tra i dati e la previsione. Un modello incorpora ciò che abbiamo appreso dai dati di addestramento -- la nostra migliore comprensione attuale degli schemi e delle relazioni sottostanti.
+
+Nell'apprendimento supervisionato, il modello apprende la relazione ingresso-uscita, consentendo previsioni per nuovi input. Nell'apprendimento non supervisionato, il modello cattura la struttura della distribuzione dei dati, consentendo il clustering, la stima della densità o la sintesi di nuovi esempi. La forma specifica che un modello assume dipende dal compito: potrebbe essere una semplice funzione lineare, una complessa rete neurale, una distribuzione probabilistica, un insieme basato su alberi, o qualcosa di completamente diverso.
+
+Ciò che accomuna tutti questi approcci diversi è il loro obiettivo condiviso: costruire dai dati un modello che catturi schemi genuini rimanendo abbastanza generale da fornire buone prestazioni al di là dell'insieme di addestramento.
+
+ \section*{Definizione Formale di un Compito di Machine Learning Supervisionato}
+
+Alla base, un compito di apprendimento supervisionato è definito su due domini essenziali: il \alert{dominio degli oggetti} $\mathcal{X}$ e l'\alert{insieme delle etichette} $\mathcal{Y}$.
+
+Il dominio degli oggetti $\mathcal{X}$ rappresenta la collezione di oggetti che desideriamo etichettare o su cui fare previsioni. Ogni oggetto $\x \in \mathcal{X}$ è tipicamente modellato come un array di \alert{caratteristiche} -- si pensi alle caratteristiche come proprietà o attributi misurabili dell'oggetto. Formalmente, rappresentiamo un oggetto come $\x = (x_1, x_2, \ldots, x_d)$, dove $d$ indica la \alert{dimensionalità}, ovvero il numero totale di caratteristiche che descrivono l'oggetto. In scenari più avanzati, gli oggetti possono avere strutture più intricate come sequenze o grafi, ma per la maggior parte dei problemi standard questa rappresentazione per caratteristiche è sufficiente.
+
+L'insieme delle etichette $\mathcal{Y}$ contiene tutti i possibili valori di output che potremmo assegnare agli oggetti in $\mathcal{X}$. La natura di questo insieme determina fondamentalmente il tipo di problema di apprendimento che stiamo affrontando. Se $\mathcal{Y}$ è continuo (si pensi a tutti i numeri reali in un certo intervallo), stiamo affrontando un compito di \alert{regressione}, in cui si predicono valori numerici. Al contrario, quando $\mathcal{Y}$ è discreto (un insieme finito di categorie distinte), abbiamo un compito di \alert{classificazione}. Nell'ambito della classificazione, si distingue ulteriormente tra \alert{classificazione binaria} quando $|\mathcal{Y}| = 2$ (solo due categorie possibili) e \alert{classificazione multi-classe} quando $|\mathcal{Y}| > 2$.
+
+Per apprendere come mappare gli oggetti alle loro etichette, l'algoritmo di apprendimento $\mathcal{A}$ riceve un \alert{insieme di addestramento} $\mathcal{T}$, che è una collezione di coppie oggetto-etichetta: $\mathcal{T} = \{(\x_1, t_1), \ldots, (\x_n, t_n)\}$. Queste coppie sono solitamente organizzate in una \alert{matrice delle caratteristiche} $\X$ contenente tutti gli oggetti come righe, e un \alert{vettore target} $\t$ contenente tutte le etichette corrispondenti:
+\begin{myequation}
+\X = \matrighe{\x_1}{\x_n}, \quad \t = \vcol{t_1}{t_n}
+\end{myequation}
+
+L'obiettivo finale dell'algoritmo di apprendimento è restituire una \alert{regola di previsione} -- detta anche \alert{classificatore} o \alert{regressore} a seconda del compito -- che è una funzione $h: \mathcal{X} \mapsto \mathcal{Y}$. Questa funzione deve essere in grado di predire un'etichetta $y$ per qualsiasi nuovo oggetto $\x$ che incontra.
+
+Quando si fanno previsioni, esistono due strategie principali. La prima è la \alert{previsione diretta del valore target}, in cui l'algoritmo produce una singola etichetta predetta $y$ calcolando direttamente $h(\x)$. Il secondo approccio è la \alert{previsione della distribuzione di probabilità}, in cui l'algoritmo produce una distribuzione di probabilità su $\mathcal{Y}$, fornendo una probabilità stimata $p(y|\x)$ per ciascuna etichetta possibile. Se si deve scegliere una singola previsione in questo caso, si applica tipicamente una regola di decisione indipendente, come la selezione dell'etichetta con la probabilità più alta.
+
+\subsection*{Tre Approcci alla Derivazione di un Predittore}
+
+Esistono fondamentalmente tre strategie diverse per costruire una funzione di previsione, ognuna con le proprie caratteristiche e casi d'uso.
+
+\subsubsection*{Calcolo Diretto della Previsione}
+
+Nell'approccio più semplice, si applica un algoritmo predefinito $A$ direttamente al momento della previsione. Invece di apprendere una funzione fissa dall'insieme di addestramento, l'algoritmo calcola una nuova previsione per ogni nuovo elemento tenendo conto dell'intero insieme di addestramento. Formalmente, l'algoritmo calcola $y = h(\x, \mathcal{T})$ -- si noti come sia il nuovo elemento $\x$ sia l'intero insieme di addestramento compaiono come input. Questo approccio non esegue alcuna fase di apprendimento esplicita; invece, gli esempi di addestramento vengono memorizzati e consultati durante la previsione.
+
+\begin{center}
+\begin{tikzpicture}
+\Vertex[Math, x=.5, y=0, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B0}
+\Vertex[Math, x=2.5, y=0, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+\Edge[lw=.5pt, Direct](B0)(B1)
+\Vertex[Math, x=2.5, y=1.7, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+\Vertex[Math, x=4, y=0, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=5mm, minimum height=5mm, line width=.1pt}]{C7}
+\Edge[lw=.5pt, Direct](B01)(B1)
+\Edge[lw=.5pt, Direct](B1)(C7)
+\end{tikzpicture}
+\end{center}
+
+Un esempio classico è l'algoritmo dei \alert{$k$-vicini più prossimi}. Quando si vuole predire la classe per un nuovo elemento $\x$, si trovano i $k$ oggetti nell'insieme di addestramento $\X$ più vicini a $\x$ secondo una certa misura di distanza. La classe predetta è semplicemente la classe di maggioranza tra questi $k$ vicini più prossimi. Questo approccio è appealing per la sua semplicità: non richiede alcuna fase di apprendimento esplicita e può adattarsi naturalmente a diverse regioni dello spazio di input. Si noti inoltre che non viene introdotto alcun modello dei dati per descrivere le proprietà dei dati stessi utili alla previsione.
+
+\subsubsection*{Approccio di Apprendimento Basato su Modello}
+
+Il secondo approccio è di gran lunga più tipico nel machine learning moderno. Qui non si rinvia tutto il calcolo al momento della previsione. Si definisce invece una \alert{classe di ipotesi} $\mathcal{H}$ -- una famiglia predefinita di funzioni che mappano $\mathcal{X}$ in $\mathcal{Y}$ -- e si usa un algoritmo di apprendimento $\mathcal{A}$ per selezionare la singola funzione migliore da questa classe. L'algoritmo deriva una funzione specifica $h_{\mathcal{T}} \in \mathcal{H}$ che approssima nel modo migliore (secondo un certo criterio) gli esempi di addestramento in $\mathcal{T}$. Una volta ottenuta questa funzione, le previsioni per nuovi elementi sono semplici: si applica semplicemente $h_{\mathcal{T}}(\x)$.
+
+\begin{center}
+\begin{tikzpicture}
+\Vertex[Math, x=.5, y=0, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+\Text[position=left, x=-1, y=0, distance=1.5mm, fontsize=\normalsize]{apprendimento}
+\Vertex[Math, x=2.5, y=0, color=xkcdAmethyst, opacity=.3, shape=rectangle, label=\mathcal{A}, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+\Edge[lw=.5pt, Direct](B01)(B1)
+\Vertex[Math, x=4.5, y=0, color=xkcdLipstickRed, label=A_{\mathcal{T}}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=.1pt}]{C7}
+\Edge[lw=.5pt, Direct](B1)(C7)
+\Vertex[Math, x=1, y=-2, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B00}
+\Text[position=left, x=-1, y=-1.8, distance=1.5mm, fontsize=\normalsize]{previsione}
+\Vertex[Math, x=2.5, y=-2, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}, fontsize=\Large, style={minimum width=1cm, minimum height=1cm, line width=0.1pt}]{B10}
+\Edge[lw=.5pt, Direct](B00)(B10)
+\Vertex[Math, x=3.8, y=-2, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=5mm, minimum height=5mm, line width=.1pt}]{C70}
+\Edge[lw=.5pt, Direct](B10)(C70)
+\end{tikzpicture}
+\end{center}
+
+In molti casi, la classe di ipotesi $\mathcal{H}$ è composta da \alert{funzioni parametriche} -- funzioni con la stessa struttura di base ma che differiscono nei valori dei parametri. Possiamo indicare tale classe come $\mathcal{H}_{\boldsymbol{\theta}}$, dove $\boldsymbol{\theta} = (\theta_1, \ldots, \theta_m)$ è un vettore di parametri. Il compito di apprendimento si riduce quindi a trovare i valori ottimali dei parametri che meglio si adattano ai dati di addestramento.
+
+La regressione lineare fornisce un'ottima illustrazione. Nella regressione lineare, si assume che il valore target possa essere predetto come una somma pesata delle caratteristiche, più un termine costante:
+\begin{myequation}
+y = \sum_{i=1}^d w_i x_i + w_0 = \w^T \overline{\x}
+\end{myequation}
+dove $\w = (w_0, w_1, \ldots, w_d)^T$ è il vettore dei parametri e $\overline{\x} = (1, x_1, \ldots, x_d)^T$ include una componente costante per il termine di bias. La classe di ipotesi qui è l'insieme di tutte le funzioni lineari di dimensione $(d+1)$, e l'algoritmo di apprendimento deve trovare i pesi $w_0, w_1, \ldots, w_d$ che minimizzano l'errore di previsione sull'insieme di addestramento.
+
+\subsubsection*{Approccio di Apprendimento d'Insieme}
+
+Il terzo approccio adotta una filosofia diversa: invece di cercare un singolo predittore migliore, costruiamo più predittori e combiniamo le loro previsioni. Questa strategia di \alert{ensemble} produce spesso prestazioni migliori rispetto a qualsiasi singolo predittore, poiché modelli diversi possono catturare schemi diversi nei dati.
+
+Il processo si svolge in tre fasi. Prima, si ricava una collezione di $s$ predittori diversi $A^{(1)}_{\mathcal{T}}, \ldots, A^{(s)}_{\mathcal{T}}$ dall'insieme di addestramento, ciascuno calcolante una funzione $h^{(i)}_{\mathcal{T}}: \mathcal{X} \rightarrow \mathcal{Y}$. Questi predittori possono differire nella struttura, nei parametri o nel sottoinsieme dei dati di addestramento che utilizzano. Secondo, si ricava un peso $w^{(i)}$ per ogni predittore, che riflette la sua qualità o affidabilità stimata. Terzo, quando si deve fare una previsione per un nuovo elemento $\x$, si raccolgono le previsioni $y^{(i)} = h^{(i)}_{\mathcal{T}}(\x)$ da ogni singolo predittore e le si combinano usando i pesi.
+
+\begin{center}
+\begin{tikzpicture}
+\Vertex[Math, x=.5, y=0, color=xkcdTurquoise, opacity=.5, shape=rectangle, label=\mathcal{T}, fontsize=\large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B01}
+\Text[position=left, x=-1, y=0, distance=1.5mm, fontsize=\normalsize]{apprendimento}
+\Vertex[Math, x=2.5, y=0, color=xkcdAmethyst, opacity=.3, shape=rectangle, label=\mathcal{A}, fontsize=\LARGE, style={minimum width=1.5cm, minimum height=1.5cm, line width=0.1pt}]{B1}
+\Edge[lw=.5pt, Direct](B01)(B1)
+\Vertex[Math, x=4.5, y=-1, color=xkcdLipstickRed, label=A_{\mathcal{T}}^{(s)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C7}
+\Vertex[Math, x=5.4, y=-1, color=xkcdTeal, label=w^{(s)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C700}
+\Vertex[Math, x=4.5, y=1, color=xkcdLipstickRed, label=A_{\mathcal{T}}^{(1)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C8}
+\Vertex[Math, x=5.4, y=1, color=xkcdTeal, label=w^{(1)}, opacity=.3, shape=rectangle, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=.1pt}]{C701}
+\node (D0) at (4.85, 0) {$\vdots$};
+\Edge[lw=.5pt, Direct](B1)(C7)
+\Edge[lw=.5pt, Direct](B1)(C8)
+\Vertex[Math, x=1, y=-3, color=xkcdFadedBlue, opacity=.4, fontsize=\normalsize, shape=rectangle, label=\x, style={minimum width=1cm, minimum height=.3cm, line width=0.1pt}]{B00}
+\Text[position=left, x=-1, y=-1.8, distance=1.5mm, fontsize=\normalsize]{previsione}
+\Vertex[Math, x=2.5, y=-2, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}^{(1)}, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B10}
+\node (D1) at (2.5, -3) {$\vdots$};
+\Vertex[Math, x=2.5, y=-4, color=xkcdLipstickRed, opacity=.3, shape=rectangle, label=A_{\mathcal{T}}^{(s)}, fontsize=\Large, style={minimum width=.9cm, minimum height=.9cm, line width=0.1pt}]{B11}
+\Edge[lw=.5pt, Direct](B00)(B10)
+\Edge[lw=.5pt, Direct](B00)(B11)
+\Vertex[Math, x=3.8, y=-2, color=xkcdOrange, label=y^{(1)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=9mm, minimum height=8mm, line width=.1pt}]{C70}
+\Vertex[Math, x=4.8, y=-2, color=xkcdLightGrey, label=\times, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C702}
+\Vertex[Math, x=5.8, y=-2, color=xkcdTeal, label=w^{(1)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=.9cm, minimum height=.8cm, line width=.1pt}]{C71}
+\node (D2) at (3.8, -3) {$\vdots$};
+\Vertex[Math, x=3.8, y=-4, color=xkcdOrange, label=y^{(s)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=9mm, minimum height=8mm, line width=.1pt}]{C80}
+\Vertex[Math, x=4.8, y=-4, color=xkcdLightGrey, label=\times, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C802}
+\Vertex[Math, x=5.8, y=-4, color=xkcdTeal, label=w^{(s)}, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=.9cm, minimum height=.8cm, line width=.1pt}]{C81}
+\Edge[lw=.5pt, Direct](B10)(C70)
+\Edge[lw=.5pt, Direct](B11)(C80)
+\Edge[lw=.5pt, Direct](C70)(C702)
+\Edge[lw=.5pt, Direct](C80)(C802)
+\Edge[lw=.5pt, Direct](C71)(C702)
+\Edge[lw=.5pt, Direct](C81)(C802)
+\node (D3) at (4.8, -3) {$\vdots$};
+\Vertex[Math, x=5.8, y=-3, color=xkcdLightGrey, label=+, size=.5, opacity=.5, fontsize=\footnotesize, style={line width=.5pt}]{C90}
+\Vertex[Math, x=6.8, y=-3, color=xkcdOrange, label=y, opacity=.3, shape=rectangle, fontsize=\normalsize, style={minimum width=6mm, minimum height=5mm, line width=.1pt}]{C91}
+\Edge[lw=.5pt, Direct](C702)(C90)
+\Edge[lw=.5pt, Direct](C802)(C90)
+\Edge[lw=.5pt, Direct](C90)(C91)
+\end{tikzpicture}
+\end{center}
+
+Il metodo di combinazione dipende dal compito in esame. Per la regressione, si calcola tipicamente una media pesata delle previsioni individuali:
+\begin{myequation}
+h(\x) = \sum_{i=1}^s w^{(i)} h^{(i)}(\x)
+\end{myequation}
+dove i pesi soddisfano $\sum_{i=1}^s w^{(i)} = 1$ e $w^{(i)} \geq 0$ per ogni $i$, garantendo che il risultato sia interpretabile come una media. Per i compiti di classificazione, un approccio naturale è il \alert{voto pesato}, dove si seleziona la classe che riceve il peso maggiore:
+\begin{myequation}
+h(\x) = \argmax{y \in \mathcal{Y}} \sum_{i=1}^s w^{(i)} \mathds{1}[h^{(i)}(\x) = y]
+\end{myequation}
+dove $\mathds{1}[\cdot]$ è la funzione indicatrice che vale uno se il predicato è vero e zero altrimenti. Questa aggregazione raccoglie i voti di tutti i predittori, ponderando ogni voto in base all'affidabilità del predittore.
+
+Una variante importante dell'apprendimento d'insieme è la previsione \alert{completamente Bayesiana}. Invece di lavorare con un insieme discreto di predittori, si ricava una distribuzione di probabilità sui valori dei parametri dal dataset, che viene utilizzata per calcolare effettivamente la media delle previsioni su tutti i possibili valori dei parametri. Matematicamente, poiché i parametri sono solitamente variabili reali, la somma pesata diventa un integrale sullo spazio dei parametri.
+
+%\subsection*{Confronto e Contrasto}
+
+Questi tre approcci rappresentano filosofie fondamentalmente diverse su quando e come elaborare i dati di addestramento. Nella previsione diretta, elaboriamo sia il nuovo elemento sia l'intero insieme di addestramento al momento della previsione, eseguendo tutto il calcolo su richiesta. Nell'apprendimento basato su modello, investiamo lo sforzo computazionale in anticipo durante una fase di apprendimento per produrre un predittore compatto che può essere applicato in modo efficiente in seguito. Nei metodi ensemble, eludiamo la questione di trovare un singolo modello migliore abbracciando molteplici prospettive, ognuna codificata in un predittore diverso, e lasciando che decidano collettivamente la previsione finale. Ogni approccio ha vantaggi: i metodi diretti sono flessibili e possono adattarsi localmente ai dati; i metodi basati su modello sono efficienti e interpretabili; i metodi ensemble sono robusti e spesso raggiungono prestazioni predittive superiori.
+
+\subsection*{Quadro Probabilistico per il Machine Learning}
+
+Per costruire una solida base per la comprensione del machine learning, dobbiamo ragionare in modo probabilistico su come si originano i dati. L'ipotesi centrale è che sia gli oggetti che osserviamo sia le loro etichette provengano da un qualche processo stocastico sottostante che produce una distribuzione di probabilità sul dominio delle etichette.
+
+Assumiamo quindi che gli oggetti di qualsiasi insieme di addestramento siano campionati (assumiamo indipendentemente) da una distribuzione di probabilità sconosciuta $p_M$ sul dominio $\mathcal{X}$. Per ogni oggetto $\x \in \mathcal{X}$, la quantità $p_M(\x)$ rappresenta la probabilità che $\x$ appaia nel nostro dataset. Analogamente, assumiamo che le etichette non siano assegnate deterministicamente agli oggetti ma che derivino da una distribuzione di probabilità condizionale $p_C(t|\x)$. Questo cattura lo scenario realistico in cui possono esistere più etichette legittime per lo stesso oggetto, a causa del rumore nell'etichettatura, dell'ambiguità intrinseca o del giudizio soggettivo. Insieme, queste ipotesi inducono una distribuzione congiunta $p(\x, t) = p_M(\x) p_C(t|\x)$ sulle coppie oggetto-etichetta.
+
+Per semplicità e intuitività, faremo spesso l'ipotesi più semplice che esista una \alert{funzione ground truth} sconosciuta $f: \mathcal{X} \to \mathcal{Y}$ tale che le etichette siano generate deterministicamente come $t = f(\x)$. Questo può essere visto come un caso speciale in cui $p_C(t|\x)$ concentra tutta la sua probabilità sul valore $f(\x)$. Sebbene questa visione deterministica sia concettualmente più pulita, il contesto probabilistico più generale riflette meglio gli scenari del mondo reale dove etichette perfette non esistono sempre.
+
+\subsubsection*{Rischio e Perdita}
+
+Una volta che abbiamo un predittore $h: \mathcal{X} \to \mathcal{Y}$, abbiamo bisogno di un modo per misurare quanto bene si comporta. Il fondamento di questa misurazione è la \alert{funzione di perdita} $L: \mathcal{Y} \times \mathcal{Y} \to \mathbb{R}$, che quantifica la penalità subita quando predichiamo $y$ ma la vera etichetta è $t$. Ad esempio, nella classificazione binaria con la \alert{perdita 0-1}, paghiamo una penalità di 1 per qualsiasi previsione errata e 0 per quelle corrette:
+\begin{myequation}\color{evidmath}
+L(y, t) = \mathds{1}[y \neq t]
+\end{myequation}
+
+Per un singolo oggetto $\x$, il \alert{rischio di previsione} $\mathcal{R}(y, \x)$ misura la perdita attesa sotto la vera distribuzione delle etichette. Nel contesto deterministico in cui le etichette provengono da una funzione $f$, questo è semplicemente:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_f(y, \x) \defeq L(y, f(\x))
+\end{myequation}
+
+Nel caso probabilistico generale, in cui si conosce solo la distribuzione condizionale $p_C(t|\x)$, il rischio di previsione diventa un'aspettazione su tutte le possibili etichette:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_C}(y, \x) \defeq \ev{t \sim p_C(\cdot|\x)}{L(y, t)} = \int_{\mathcal{Y}} L(y, t) \, p_C(t|\x) \, dt
+\end{myequation}
+
+Per insiemi di etichette discreti come quelli nella classificazione, questo integrale diventa una somma:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_C}(y, \x) \defeq \sum_{t \in \mathcal{Y}} L(y, t) \, p_C(t|\x)
+\end{myequation}
+
+L'intuizione chiave è che un rischio di previsione minore significa un migliore allineamento tra la nostra previsione e la vera distribuzione delle etichette.
+
+%\subsubsection*{Rischio Atteso: L'Obiettivo Finale}
+
+Per valutare un predittore $h$ complessivamente, dobbiamo aggregare il rischio di previsione su tutti i possibili oggetti in base alla loro probabilità di occorrenza. Questo porta alla nozione di \alert{rischio atteso} (o \alert{rischio vero}), che misura la perdita media che incorreremo se applicassimo $h$ a infiniti esempi estratti dalla vera distribuzione:
+
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_M, f}(h) \defeq \ev{\x \sim p_M}{L(h(\x), f(\x))} = \int_{\mathcal{X}} L(h(\x), f(\x)) \, p_M(\x) \, d\x
+\end{myequation}
+
+Nel contesto probabilistico:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_p(h) \defeq \ev{(\x,t) \sim p}{L(h(\x), t)} = \int_{\mathcal{X}} \int_{\mathcal{Y}} L(h(\x), t) \, p_M(\x) \, p_C(t|\x) \, d\x \, dt
+\end{myequation}
+
+Quando si usa la perdita 0-1, il rischio atteso si semplifica nella probabilità di commettere un errore:
+\begin{myequation}\color{evidmath}
+\mathcal{R}_{p_M, f}(h) = \prob{\x \sim p_M}{h(\x) \neq f(\x)}
+\end{myequation}
+
+Questa è la metrica più intuitiva: ci dice direttamente con quale frequenza il nostro predittore sbaglia su dati campionati casualmente.
+
+Purtroppo, nel machine learning le vere distribuzioni $p_M$ e $p_C$ (o equivalentemente la funzione $f$) sono per ipotesi sconosciute e inconoscibili. Non possiamo calcolare direttamente il rischio atteso perché non abbiamo accesso al flusso infinito di dati futuri. Dobbiamo invece lavorare con il campione finito che abbiamo: l'insieme di addestramento $\mathcal{T}$.
+
+Questo motiva la definizione di \alert{rischio empirico}, una stima del vero rischio atteso basata unicamente sui dati di addestramento. Il rischio empirico è semplicemente la perdita media su tutti gli esempi di addestramento:
+\begin{myequation}\color{evidmath}
+\overline{\mathcal{R}}_{\mathcal{T}}(h) \defeq \frac{1}{|\mathcal{T}|} \sum_{(\x,t) \in \mathcal{T}} L(h(\x), t)
+\end{myequation}
+
+Per la perdita 0-1, questa quantità ha un'interpretazione particolarmente naturale: è il \alert{tasso di errore}, la frazione degli esempi di addestramento che $h$ classifica erroneamente:
+\begin{myequation}\color{evidmath}
+\overline{\mathcal{R}}_{\mathcal{T}}(h) = \frac{1}{|\mathcal{T}|} \sum_{(\x,t) \in \mathcal{T}} \mathds{1}[h(\x) \neq t] = \frac{\left|\{(\x,t) \in \mathcal{T} \mid h(\x) \neq t\}\right|}{|\mathcal{T}|}
+\end{myequation}
+
+%\subsubsection*{Il Problema di Apprendimento come Ottimizzazione}
+
+La strategia nel machine learning è quindi semplice: poiché non possiamo minimizzare il vero rischio atteso, minimizziamo invece il rischio empirico. Assumendo di avere una classe di ipotesi $\mathcal{H}$ (una famiglia predefinita di predittori candidati), l'apprendimento diventa un problema di ottimizzazione:
+
+\begin{myequation}\color{evidmath}
+h_{\mathcal{T}} = \argmin{h \in \mathcal{H}} \overline{\mathcal{R}}_{\mathcal{T}}(h)
+\end{myequation}
+
+Ovvero, cerchiamo il predittore in $\mathcal{H}$ che minimizza il rischio empirico sui nostri dati di addestramento. La classe di ipotesi $\mathcal{H}$, detta anche \alert{bias induttivo}, codifica le nostre assunzioni su che tipo di predittore sia plausibile. Restringendoci a $\mathcal{H}$, facciamo un'affermazione implicita sulla struttura del problema sottostante.
+
+Tuttavia, questo approccio comporta una sottile ma profonda avvertenza: minimizzare il rischio empirico non garantisce automaticamente buone prestazioni su dati futuri non visti. Un predittore potrebbe adattarsi perfettamente all'insieme di addestramento pur performando male su nuovi esempi -- un fenomeno noto come \alert{overfitting}. Il divario tra rischio di addestramento e rischio vero è uno dei soggetti fondamentali della teoria dell'apprendimento statistico, che esploreremo ulteriormente man mano che progrediamo.
+
+In sostanza, il quadro probabilistico trasforma l'obiettivo vago di ``imparare dai dati'' in un concreto problema matematico: trovare una funzione in una classe specificata che spieghi al meglio i dati osservati secondo una funzione di perdita scelta. Ma ci ricorda anche che questo surrogato matematico -- minimizzare il rischio empirico -- è solo un proxy per ciò che ci interessa davvero: minimizzare il rischio atteso su dati futuri sconosciuti.
+
+\subsubsection*{Bias Induttivo}
+
+Una delle decisioni più consequenziali nel machine learning è la scelta della classe di ipotesi $\mathcal{H}$. Questa scelta incarna ciò che potremmo chiamare il \alert{bias induttivo} del discente -- un insieme di assunzioni su che tipo di predittore sia probabile che funzioni bene per il problema in questione. Quando ci limitiamo alle funzioni in $\mathcal{H}$, stiamo essenzialmente dicendo: ``Credo che da qualche parte in questa classe si trovi una funzione che generalizzerà bene su dati non visti.'' La domanda è: come dovremmo scegliere questa classe?
+
+Vi sono due preoccupazioni concorrenti che guidano questa scelta. Prima, se $\mathcal{H}$ è troppo piccola, rischiamo di escludere completamente la vera funzione sottostante. In questo caso, anche con dati di addestramento infiniti e un'ottimizzazione perfetta, non riusciamo a raggiungere un errore basso perché la nostra classe semplicemente non è sufficientemente espressiva. Secondo, se $\mathcal{H}$ è troppo grande, guadagniamo flessibilità ma invitiamo un pericolo diverso: l'algoritmo di apprendimento potrebbe trovare una funzione che si adatta perfettamente ai dati di addestramento pur performando terribilmente su nuovi dati. Comprendere questa tensione richiede una riflessione approfondita sull'overfitting e sul fondamentale compromesso tra bias e varianza.
+
+%\subsubsection*{Overfitting: Quando il Successo in Addestramento Maschera il Fallimento}
+\medskip
+Iniziamo con un esempio concreto che illustra il problema dell'overfitting. Si consideri un compito di classificazione binaria in cui la vera probabilità condizionale della classe 1 è bilanciata: $p_C(t=1|\x) = \frac{1}{2}$ per tutti gli oggetti. Usiamo la perdita 0-1 standard, dove paghiamo una penalità di 1 per qualsiasi classificazione errata e 0 altrimenti.
+
+Immaginiamo ora di definire la nostra classe di ipotesi in modo estremamente permissivo: $\mathcal{H}$ è composta da tutte le funzioni possibili da $\mathcal{X}$ a $\{0, 1\}$. Con questa scelta, si consideri il seguente predittore:
+\begin{myequation}\color{evidmath}
+h_{\mathcal{T}}(\x) = \begin{cases}
+1 & \text{se } \x = \x_i \in \X \text{ e } t_i = 1 \\
+0 & \text{altrimenti}
+\end{cases}
+\end{myequation}
+
+Questa funzione è un puro \alert{memorizzatore}: restituisce 1 esattamente per quegli oggetti di addestramento che erano etichettati 1, e restituisce 0 per tutto il resto. Cosa succede quando la valutiamo?
+
+Sull'insieme di addestramento $\mathcal{T}$, il rischio empirico è esattamente zero -- ogni esempio di addestramento viene classificato correttamente per costruzione. La funzione ha essenzialmente memorizzato l'intero insieme di addestramento. Tuttavia, questo apparente successo è un'illusione. Quando applichiamo $h_{\mathcal{T}}$ a nuovi oggetti campionati dalla popolazione, la probabilità che un qualsiasi nuovo oggetto appaia nell'insieme di addestramento è trascurabilmente piccola. Pertanto, per la maggior parte dei nuovi oggetti, la funzione restituisce 0, predicendo la classe minoritaria. Poiché le due classi sono ugualmente probabili, questa strategia ingenua non è migliore di una supposizione casuale, raggiungendo un rischio atteso di circa $\frac{1}{2}$.
+
+Questo divario tra prestazioni di addestramento e prestazioni vere è l'essenza dell'\alert{overfitting}. Il predittore non ha appreso alcuno schema genuino; ha semplicemente memorizzato i dati di addestramento senza riuscire a catturare alcuna struttura generalizzabile. In termini pratici, l'overfitting si verifica quando $\mathcal{H}$ è così grande che l'algoritmo di apprendimento può trovare funzioni che raggiungono un rischio empirico perfetto pur avendo un elevato rischio atteso.
+
+%\subsubsection*{Underfitting: Quando la Classe è Troppo Restrittiva}
+\medskip
+Il problema opposto si presenta se scegliamo $\mathcal{H}$ troppo piccola. Supponiamo, ad esempio, che la vera funzione sottostante sia altamente non lineare, ma ci limitiamo a predittori lineari. Indipendentemente da quanti dati di addestramento raccogliamo o quanto bene ottimizziamo all'interno della nostra classe ristretta, non possiamo sfuggire alla limitazione fondamentale: le funzioni lineari non possono approssimare schemi non lineari. La migliore approssimazione lineare potrebbe comunque lasciare un errore sostanziale sia sui dati di addestramento sia su quelli di test. Questo scenario è chiamato \alert{underfitting} -- la classe di ipotesi è troppo restrittiva per catturare la complessità della vera relazione.
+
+Con l'underfitting, non esiste un divario tra errore di addestramento e di test perché il predittore è troppo rigido per memorizzare qualcosa. Il problema è invece che sia l'errore di addestramento sia quello di test rimangono inaccettabilmente alti. Non riusciamo ad adattarci bene ai dati di addestramento e, di conseguenza, non riusciamo nemmeno a generalizzare.
+
+\subsubsection*{Il Compromesso Bias-Varianza}
+
+Per comprendere più in profondità questi fenomeni, dobbiamo introdurre due concetti centrali nella teoria dell'apprendimento statistico: \alert{bias} e \alert{varianza}.
+
+Si consideri la generazione ripetuta di diversi insiemi di addestramento $\mathcal{T}_1, \mathcal{T}_2, \mathcal{T}_3, \ldots$ dalla vera distribuzione $p_M$ e l'addestramento di un algoritmo di apprendimento $\mathcal{A}$ su ciascuno di essi. Ogni insieme di addestramento sarà leggermente diverso (assumendo che i dati siano campionati casualmente) e, di conseguenza, l'algoritmo produrrà predittori diversi $h_{\mathcal{T}_1}, h_{\mathcal{T}_2}, h_{\mathcal{T}_3}, \ldots$ ogni volta.
+
+Il \alert{bias} di un algoritmo di apprendimento misura quanto lontano sia il predittore medio (mediato su molti insiemi di addestramento) dalla vera funzione sottostante. Formalmente, il bias cattura l'errore sistematico -- se ci addestriamo su innumerevoli dataset estratti dalla stessa distribuzione, i predittori risultanti tendono ad essere sistematicamente sbagliati nella stessa direzione? Un bias elevato deriva tipicamente da classi di ipotesi restrittive che non riescono a rappresentare schemi complessi. Un modello lineare applicato a un problema altamente non lineare avrà un bias elevato indipendentemente da quanti dati si forniscano.
+
+La \alert{varianza}, al contrario, misura quanto il predittore appreso fluttui a seconda dell'insieme di addestramento specifico che si è ricevuto. Se la classe di ipotesi è molto grande e flessibile, piccole variazioni nell'insieme di addestramento possono portare a funzioni apprese molto diverse. Una varianza elevata significa che l'algoritmo è sensibile al rumore specifico e alle peculiarità dei dati di addestramento. Questa è la firma dell'overfitting: l'algoritmo ha così tanta flessibilità che si adatta non solo al segnale ma anche al rumore.
+
+L'intuizione fondamentale è che queste due fonti di errore sono in tensione. Se si sceglie una classe di ipotesi piccola e restrittiva (come le funzioni lineari), si riduce la varianza perché la classe non è semplicemente abbastanza flessibile da inseguire ogni fluttuazione di rumore nei dati. Ma si paga il prezzo di un bias elevato perché non si riesce a rappresentare la vera funzione. Al contrario, se si sceglie una classe di ipotesi grande ed espressiva (come l'insieme di tutte le funzioni possibili), si può portare il bias quasi a zero perché si riesce ad approssimare quasi qualsiasi funzione target. Ma si aumenta drammaticamente la varianza perché l'algoritmo può ora adattarsi al rumore di addestramento.
+
+Il \alert{compromesso bias-varianza} è la consapevolezza che non possiamo minimizzare simultaneamente entrambe le fonti di errore. Esiste una dimensione ottimale della classe di ipotesi che bilancia questi due problemi. Troppo piccola, e il bias domina; troppo grande, e la varianza domina. Il punto ottimale dipende dal problema in questione: la complessità della vera funzione sottostante, la quantità di dati di addestramento disponibili e il rumore nelle osservazioni.
+
+In pratica, questo compromesso si manifesta nelle curve di apprendimento che si osservano. Quando ci si addestra su piccoli dataset, un modello molto flessibile può effettivamente funzionare bene sia sui dati di addestramento sia su quelli di test se riesce a catturare il vero schema prima di catturare il rumore. Ma con la crescita dell'insieme di addestramento, i modelli flessibili iniziano a fare overfitting perché ci sono più dati con schemi di rumore diversi da memorizzare. Nel frattempo, i modelli restrittivi potrebbero non adattarsi mai bene ai dati di addestramento, indipendentemente da quanti dati si forniscano. L'arte del machine learning sta nello scegliere un bias induttivo che corrisponda alla reale complessità del compito sottostante.
+
+%\subsubsection*{Considerazioni Computazionali e Statistiche}
+\medskip
+Oltre al compromesso bias-varianza, vi è una seconda preoccupazione pratica: la fattibilità computazionale. Anche se crediamo che la vera funzione risieda in una certa classe di ipotesi $\mathcal{H}$, trovare il predittore in $\mathcal{H}$ che minimizza il rischio empirico potrebbe essere computazionalmente intrattabile. Alcune classi di ipotesi, sebbene statisticamente valide, conducono a problemi di ottimizzazione NP-difficili o altrimenti computazionalmente proibitivi. In tali casi, potremmo deliberatamente scegliere una classe più piccola o diversa $\mathcal{H}'$ semplicemente per rendere il problema di apprendimento risolvibile in un tempo ragionevole. Questo introduce un ulteriore livello al bias induttivo: non solo codifichiamo le nostre credenze statistiche sul problema, ma ci limitiamo anche pragmaticamente in base a ciò che riusciamo effettivamente a calcolare. La scelta della classe di ipotesi riflette quindi una combinazione di teoria statistica e realtà computazionale.
